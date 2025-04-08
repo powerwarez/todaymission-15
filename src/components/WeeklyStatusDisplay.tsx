@@ -1,6 +1,5 @@
 import React from 'react';
 import { WeekdayStatus } from '../hooks/useWeeklyCompletionStatus';
-import { FaCheckCircle, FaRegCircle, FaQuestionCircle } from 'react-icons/fa'; // Font Awesome 아이콘 사용
 
 interface WeeklyStatusDisplayProps {
   weekStatus: WeekdayStatus[];
@@ -12,32 +11,46 @@ const dayNames = ['월', '화', '수', '목', '금'];
 
 const WeeklyStatusDisplay: React.FC<WeeklyStatusDisplayProps> = ({ weekStatus, loading, error }) => {
 
-  const renderStatusIcon = (status: WeekdayStatus) => {
+  // 상태에 따른 원형 구슬 스타일 반환
+  const getStatusIndicatorStyle = (status: WeekdayStatus): string => {
     if (status.isCompleted === true) {
-      return <FaCheckCircle className="text-green-500" title={`완료 (${status.date})`} />;
+      return 'bg-green-500'; // 완료: 녹색
     } else if (status.isCompleted === false) {
-      return <FaRegCircle className="text-gray-400" title={`미완료 (${status.date})`} />; // 빈 원 아이콘
+      return 'bg-red-400'; // 미완료 (기록 있음): 빨간색
     } else {
-      // 데이터가 없는 경우 (스냅샷 없음)
-      return <FaQuestionCircle className="text-gray-300" title={`기록 없음 (${status.date})`} />;
+      return 'bg-gray-200'; // 기록 없음: 밝은 회색
     }
   };
 
   if (loading) {
-    return <div className="text-center text-sm text-gray-500">주간 현황 로딩 중...</div>;
+    // 로딩 시에도 레이아웃 유지하도록 빈 슬롯 표시 (개선)
+    return (
+        <div className="flex flex-col items-center space-y-3 p-4 bg-white rounded-lg shadow-inner min-h-[180px] justify-center">
+            <div className="text-center text-sm text-gray-400 animate-pulse">주간 현황 로딩 중...</div>
+        </div>
+    );
   }
 
   if (error) {
-    return <div className="text-center text-sm text-red-500">오류: {error}</div>;
+    return (
+        <div className="flex flex-col items-center space-y-3 p-4 bg-white rounded-lg shadow-inner min-h-[180px] justify-center">
+             <div className="text-center text-sm text-red-500">오류: {error}</div>
+        </div>
+    );
   }
 
   return (
-    <div className="flex flex-col items-center space-y-3 p-4 bg-white rounded-lg shadow-inner">
-      <h3 className="text-sm font-semibold text-pink-600 mb-1">주간 달성</h3>
+    <div className="flex flex-col items-center space-y-4 p-4 bg-white rounded-lg shadow-lg min-w-[80px]"> {/* 패딩, 그림자, 최소 너비 조정 */}
+      <h3 className="text-md font-semibold text-pink-700 mb-2">주간 달성</h3> {/* 글자 크기, 색상, 마진 조정 */}
       {weekStatus.map((status, index) => (
-        <div key={status.dayIndex} className="flex items-center space-x-2">
-          <span className="font-medium text-gray-700 text-sm w-4 text-center">{dayNames[index]}</span>
-          {renderStatusIcon(status)}
+        <div key={status.dayIndex} className="flex items-center space-x-3 w-full justify-center"> {/* 간격, 정렬 조정 */}
+          <span className="font-bold text-gray-800 text-lg w-5 text-center">{dayNames[index]}</span> {/* 요일 폰트 크기, 굵기 조정 */}
+          <div
+            className={`h-6 w-6 rounded-full shadow-md ${getStatusIndicatorStyle(status)}`} // 원 크기 및 스타일 적용, 그림자 추가
+            title={status.isCompleted === true ? `완료 (${status.date})` : status.isCompleted === false ? `미완료 (${status.date})` : `기록 없음 (${status.date})`}
+          >
+            {/* 내용 없이 색상으로만 표시 */}
+          </div>
         </div>
       ))}
     </div>

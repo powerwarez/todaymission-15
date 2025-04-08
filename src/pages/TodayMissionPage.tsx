@@ -33,7 +33,7 @@ const TodayMissionPage: React.FC = () => {
 
   const { missions, loading: missionsLoading, error: missionsError } = useMissions();
   const { logs, loading: logsLoading, error: logsError, addLog, deleteLog } = useMissionLogs(today);
-  const { weekStatus, loading: weekStatusLoading, error: weekStatusError } = useWeeklyCompletionStatus(); // 주간 현황 데이터 로드
+  const { weekStatus, loading: weekStatusLoading, error: weekStatusError, refetch: refetchWeeklyStatus } = useWeeklyCompletionStatus(); // 주간 현황 데이터 로드
 
   const [showConfetti, setShowConfetti] = useState(false);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
@@ -133,22 +133,28 @@ const TodayMissionPage: React.FC = () => {
   }, [missions, logs, missionsLoading, logsLoading]);
 
   const handleToggleComplete = async (mission: MissionWithLogs) => {
-    if (mission.is_completed_today) {
-      // If already completed, delete the log (uncomplete)
-      await deleteLog(mission.id);
-    } else {
-      // If not completed, add the log (complete)
-      const addedLog = await addLog(mission.id);
-      if (addedLog) {
-        // Play sound and show confetti on completion
-        if (audio) {
-           audio.currentTime = 0; // Rewind to start
-           audio.play().catch(e => console.error("Audio play failed:", e));
+    try {
+      if (mission.is_completed_today) {
+        await deleteLog(mission.id);
+        // 성공 후 주간 현황 리프레시
+        refetchWeeklyStatus();
+      } else {
+        const addedLog = await addLog(mission.id);
+        if (addedLog) {
+          if (audio) {
+             audio.currentTime = 0;
+             audio.play().catch(e => console.error("Audio play failed:", e));
+          }
+          setShowConfetti(true);
+          // 성공 후 주간 현황 리프레시
+          refetchWeeklyStatus();
         }
-        setShowConfetti(true);
       }
+    } catch (toggleError) {
+        console.error("Error toggling mission status:", toggleError);
+        // 에러 발생 시에도 리프레시 시도 (선택적)
+        refetchWeeklyStatus();
     }
-    // The hooks will refetch/update the state automatically
   };
 
   const handleConfettiComplete = () => {
