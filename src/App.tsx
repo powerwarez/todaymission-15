@@ -81,15 +81,18 @@ const AppContent: React.FC = () => {
 // 최상위 App 컴포넌트: Provider들로 감싸기
 const App: React.FC = () => {
   // useNotificationState 훅을 여기서 직접 사용
-  const { currentBadge, handleCloseNotification } = useNotificationState();
+  const notificationState = useNotificationState(); // 훅의 모든 반환값을 객체로 받음
 
   return (
     <AuthProvider>
-      {/* Provider는 children만 감쌈 */}
-      <NotificationProvider>
+      {/* Provider에는 훅의 반환값 전체를 value로 전달 */}
+      <NotificationProvider value={notificationState}>
         <AppContent />
-        {/* 모달 렌더링은 여기서 계속 수행 */}
-        <BadgeNotificationModal badge={currentBadge} onClose={handleCloseNotification} />
+        {/* 모달은 App 레벨에서 상태를 직접 받아 렌더링 */}
+        <BadgeNotificationModal
+            badge={notificationState.currentBadge}
+            onClose={notificationState.handleCloseNotification}
+        />
       </NotificationProvider>
     </AuthProvider>
   );

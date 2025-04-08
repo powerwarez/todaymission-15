@@ -1,31 +1,27 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useNotificationState } from '../hooks/useNotificationState'; // 상태 관리 훅 임포트
+import { Badge } from '../types';
 
+// Context가 제공할 값의 타입 정의
 interface NotificationContextType {
-  // 이제 Context는 실제 show 함수를 직접 노출합니다.
+  currentBadge: Badge | null;
+  handleCloseNotification: () => void;
   showBadgeNotification: (badgeId: string) => Promise<void>;
 }
 
+// Context 생성 (기본값은 undefined)
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
+// Provider Props 타입 정의
 interface NotificationProviderProps {
   children: ReactNode;
+  value: NotificationContextType; // Provider가 받을 값
 }
 
-export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
-  // useNotificationState 훅을 Provider 내부에서 호출하여 값을 얻음
-  const { showBadgeNotification } = useNotificationState();
-
-  // Context 값으로는 show 함수만 전달
-  const contextValue = {
-    showBadgeNotification,
-  };
-
+// Provider 컴포넌트: 외부에서 받은 value를 그대로 전달
+export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children, value }) => {
   return (
-    // value prop 대신 Provider의 기본 방식으로 값 전달
-    <NotificationContext.Provider value={contextValue}>
+    <NotificationContext.Provider value={value}>
       {children}
-      {/* 모달 렌더링은 App.tsx에서 처리 */}
     </NotificationContext.Provider>
   );
 };
