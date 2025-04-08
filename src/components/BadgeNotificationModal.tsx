@@ -9,24 +9,24 @@ interface BadgeNotificationModalProps {
 
 const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, onClose }) => {
   const [isVisible, setIsVisible] = useState(false);
-  console.log('[Modal] Rendering. Badge:', badge, 'isVisible:', isVisible); // 렌더링 시 상태 로그
+  // console.log('[Modal] Rendering. Badge:', badge, 'isVisible:', isVisible);
 
   useEffect(() => {
-    console.log('[Modal useEffect] Running. New badge prop:', badge);
+    // console.log('[Modal useEffect] Running. New badge prop:', badge);
     if (badge) {
-      console.log('[Modal useEffect] Badge found, setting isVisible to true.');
+      // console.log('[Modal useEffect] Badge found, setting isVisible to true.');
       setIsVisible(true);
       // 5초 후에 자동으로 닫기
       const timer = setTimeout(() => {
-        console.log('[Modal setTimeout] Closing modal automatically.');
+        // console.log('[Modal setTimeout] Closing modal automatically.');
         handleClose();
       }, 5000);
       return () => {
-        console.log('[Modal useEffect Cleanup] Clearing timeout.');
+        // console.log('[Modal useEffect Cleanup] Clearing timeout.');
         clearTimeout(timer);
       }
     } else {
-      console.log('[Modal useEffect] Badge is null, setting isVisible to false.');
+      // console.log('[Modal useEffect] Badge is null, setting isVisible to false.');
       // badge가 null이면 즉시 숨김 (이 경우는 handleClose를 통해 이미 false가 될 것임)
       // 하지만 초기 렌더링 시 badge가 null이면 이 부분이 실행될 수 있음
       setIsVisible(false);
@@ -34,10 +34,10 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
   }, [badge]); // badge 객체가 변경될 때마다 실행
 
   const handleClose = () => {
-    console.log('[Modal handleClose] Setting isVisible to false.');
+    // console.log('[Modal handleClose] Setting isVisible to false.');
     setIsVisible(false);
     // 애니메이션 시간(300ms) 후 onClose 호출하여 부모 상태 업데이트
-    console.log('[Modal handleClose] Calling parent onClose after 300ms.');
+    // console.log('[Modal handleClose] Calling parent onClose after 300ms.');
     setTimeout(onClose, 300);
   };
 
@@ -73,6 +73,7 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
                     className="h-12 w-12 object-contain mr-3"
                     src={getBadgeImageUrl(badge.image_path)}
                     alt={badge.name}
+                    style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }} // 육각형 클립 적용
                     onError={(e) => {
                         console.error("Image load error for:", getBadgeImageUrl(badge.image_path));
                         (e.target as HTMLImageElement).src = '/placeholder_badge.png';
