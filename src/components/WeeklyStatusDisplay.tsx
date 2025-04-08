@@ -14,8 +14,9 @@ const WeeklyStatusDisplay: React.FC<WeeklyStatusDisplayProps> = ({ weekStatus, l
 
   // 상태에 따른 원형 구슬 스타일 반환
   const getStatusIndicatorStyle = (status: WeekdayStatus): string => {
-    const baseStyle = 'rounded-full shadow-md transition-colors duration-200 flex flex-col items-center justify-center text-white font-bold'; // Flex, 텍스트 스타일 추가
-    const sizeStyle = 'h-12 w-12'; // 크기 재조정 (텍스트/아이콘 공간 확보)
+    // 기본 스타일: 원형, 내부 그림자(inset), 트랜지션, Flex 설정
+    const baseStyle = 'rounded-full shadow-inner transition-colors duration-200 flex flex-col items-center justify-center text-white font-bold';
+    const sizeStyle = 'h-12 w-12'; // 크기 유지
 
     let gradientStyle = '';
     if (status.isCompleted === true) {
@@ -30,19 +31,19 @@ const WeeklyStatusDisplay: React.FC<WeeklyStatusDisplayProps> = ({ weekStatus, l
 
   // 상태에 따른 아이콘 반환
   const renderStatusIcon = (status: WeekdayStatus) => {
-    const iconSize = 16; // 아이콘 크기
+    const iconSize = 18; // 아이콘 크기 살짝 키움
     if (status.isCompleted === true) {
-      return <LuCheck size={iconSize} />; // 완료 아이콘
+      return <LuCheck size={iconSize} className="opacity-80" />; // 아이콘 투명도 조절
     } else if (status.isCompleted === false) {
-      return <LuX size={iconSize} />; // 미완료 아이콘
+      return <LuX size={iconSize} className="opacity-80" />;
     } else {
-      return <LuMinus size={iconSize} />; // 기록 없음 아이콘
+      return <LuMinus size={iconSize} className="opacity-80" />;
     }
   };
 
   if (loading) {
     return (
-        <div className="flex flex-col items-center space-y-4 p-4 bg-white rounded-lg shadow-inner min-h-[280px] justify-center"> {/* 높이 재조정 */} 
+        <div className="flex flex-col items-center space-y-4 p-4 bg-white rounded-lg min-h-[280px] justify-center"> {/* 그림자 제거 */}
             <div className="text-center text-sm text-gray-400 animate-pulse">주간 현황 로딩 중...</div>
         </div>
     );
@@ -50,25 +51,25 @@ const WeeklyStatusDisplay: React.FC<WeeklyStatusDisplayProps> = ({ weekStatus, l
 
   if (error) {
     return (
-        <div className="flex flex-col items-center space-y-4 p-4 bg-white rounded-lg shadow-inner min-h-[280px] justify-center"> {/* 높이 재조정 */} 
+        <div className="flex flex-col items-center space-y-4 p-4 bg-white rounded-lg min-h-[280px] justify-center"> {/* 그림자 제거 */}
              <div className="text-center text-sm text-red-500">오류: {error}</div>
         </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center space-y-4 p-6 bg-white rounded-lg shadow-lg min-w-[80px]"> {/* 간격, 최소 너비 재조정 */} 
-      <h3 className="text-lg font-semibold text-pink-700 mb-2">주간 달성</h3> {/* 마진 재조정 */} 
+    <div className="flex flex-col items-center space-y-4 p-6 bg-white rounded-lg min-w-[80px]"> {/* shadow-lg 제거 */}
+      <h3 className="text-lg font-semibold text-pink-700 mb-2">주간 달성</h3>
       {weekStatus.map((status, index) => (
-        <div key={status.dayIndex} className="flex flex-col items-center"> {/* 세로 배치 */} 
+        <div key={status.dayIndex} className="flex flex-col items-center"> {/* 세로 배치 유지 */}
           <div
             className={getStatusIndicatorStyle(status)} // 스타일 함수 적용
             title={status.isCompleted === true ? `완료 (${status.date})` : status.isCompleted === false ? `미완료 (${status.date})` : `기록 없음 (${status.date})`}
           >
             {/* 원 안에 요일 텍스트와 아이콘 표시 */}
-            <span className="text-lg leading-none">{dayNames[index]}</span> {/* 요일 텍스트 */}
-            <div className="mt-px"> {/* 아이콘 위치 조정을 위한 div */} 
-               {renderStatusIcon(status)} {/* 상태 아이콘 */} 
+            <span className="text-xl leading-none font-extrabold">{dayNames[index]}</span> {/* 요일 텍스트 크기/굵기 조정 */}
+            <div className="mt-0.5"> {/* 아이콘 위치 미세 조정 */}
+               {renderStatusIcon(status)} {/* 상태 아이콘 */}
             </div>
           </div>
         </div>
