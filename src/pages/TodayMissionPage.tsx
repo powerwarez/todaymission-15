@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabaseClient'; // Supabase 클라이언트 �
 import { useAuth } from '../contexts/AuthContext'; // 사용자 정보 가져오기
 import { useMissions } from '../hooks/useMissions';
 import { useMissionLogs } from '../hooks/useMissionLogs';
+import { useWeeklyCompletionStatus } from '../hooks/useWeeklyCompletionStatus'; // 주간 현황 훅 임포트
+import WeeklyStatusDisplay from '../components/WeeklyStatusDisplay'; // 주간 현황 컴포넌트 임포트
 import ConfettiEffect from '../components/ConfettiEffect';
 import { MissionWithLogs } from '../types'; // Combined type
 // import { FaCheckCircle } from "react-icons/fa"; // 버튼 제거로 불필요
@@ -31,6 +33,7 @@ const TodayMissionPage: React.FC = () => {
 
   const { missions, loading: missionsLoading, error: missionsError } = useMissions();
   const { logs, loading: logsLoading, error: logsError, addLog, deleteLog } = useMissionLogs(today);
+  const { weekStatus, loading: weekStatusLoading, error: weekStatusError } = useWeeklyCompletionStatus(); // 주간 현황 데이터 로드
 
   const [showConfetti, setShowConfetti] = useState(false);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
@@ -136,8 +139,8 @@ const TodayMissionPage: React.FC = () => {
     setShowConfetti(false);
   };
 
-  const isLoading = missionsLoading || logsLoading || !snapshotChecked; // 스냅샷 확인 전까지 로딩 상태 유지
-  const error = missionsError || logsError;
+  const isLoading = missionsLoading || logsLoading || weekStatusLoading || !snapshotChecked; // 스냅샷 확인 전까지 로딩 상태 유지
+  const error = missionsError || logsError || weekStatusError;
 
   // Simple weekday display (Korean)
   const getWeekdayString = (date: Date): string => {
@@ -159,48 +162,58 @@ const TodayMissionPage: React.FC = () => {
         </div>
       </div>
 
-      {isLoading && <p>미션 로딩 중...</p>}
+      {isLoading && <p>데이터 로딩 중...</p>}
       {error && <p className="text-red-500">오류: {error}</p>}
 
       {!isLoading && !error && (
-        <div className="space-y-4">
-          {missionsWithStatus.length === 0 && (
-            <p className="text-center text-gray-500 bg-white p-6 rounded-lg shadow">아직 설정된 미션이 없어요! "도전과제 설정"에서 오늘의 미션을 만들어 보세요.</p>
-          )}
-          {missionsWithStatus.map((mission, index) => {
-            // 완료 시 적용할 색상 결정 (index 기반)
-            const completedColor = pastelRainbowColors[index % pastelRainbowColors.length];
-            const missionStyle = mission.is_completed_today
-              ? `${completedColor.bg} border-l-4 ${completedColor.border}`
-              : 'bg-white hover:bg-pink-50';
-            const textStyle = mission.is_completed_today
-              ? `${completedColor.text} line-through`
-              : 'text-gray-800';
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="flex-1 space-y-4">
+            {missionsWithStatus.length === 0 && (
+              <p className="text-center text-gray-500 bg-white p-6 rounded-lg shadow">아직 설정된 미션이 없어요! "도전과제 설정"에서 오늘의 미션을 만들어 보세요.</p>
+            )}
+            {missionsWithStatus.map((mission, index) => {
+              // 완료 시 적용할 색상 결정 (index 기반)
+              const completedColor = pastelRainbowColors[index % pastelRainbowColors.length];
+              const missionStyle = mission.is_completed_today
+                ? `${completedColor.bg} border-l-4 ${completedColor.border}`
+                : 'bg-white hover:bg-pink-50';
+              const textStyle = mission.is_completed_today
+                ? `${completedColor.text} line-through`
+                : 'text-gray-800';
 
-            return (
-              <div
-                key={mission.id}
-                onClick={() => handleToggleComplete(mission)} // div 전체 클릭 핸들러
-                className={`flex items-center p-4 rounded-lg shadow transition-all duration-300 ease-in-out cursor-pointer ${missionStyle}`}
-              >
-                <div className="flex-grow mr-4">
-                  <p className={`text-lg font-medium ${textStyle}`}>
-                    {mission.content}
-                  </p>
-                </div>
-                {/* 버튼 제거 */}
-                {/*
-                <button
-                  onClick={() => handleToggleComplete(mission)}
-                  className={`p-2 rounded-full transition-colors ${mission.is_completed_today ? 'text-green-600 hover:bg-green-200' : 'text-gray-400 hover:bg-gray-200'}`}
-                  aria-label={mission.is_completed_today ? '미션 완료 취소' : '미션 완료'}
+              return (
+                <div
+                  key={mission.id}
+                  onClick={() => handleToggleComplete(mission)} // div 전체 클릭 핸들러
+                  className={`flex items-center p-4 rounded-lg shadow transition-all duration-300 ease-in-out cursor-pointer ${missionStyle}`}
                 >
-                  {mission.is_completed_today ? <FaCheckCircle size={28} /> : <LuCircle size={28} />}
-                </button>
-                */}
-              </div>
-            );
-          })}
+                  <div className="flex-grow mr-4">
+                    <p className={`text-lg font-medium ${textStyle}`}>
+                      {mission.content}
+                    </p>
+                  </div>
+                  {/* 버튼 제거 */}
+                  {/*
+                  <button
+                    onClick={() => handleToggleComplete(mission)}
+                    className={`p-2 rounded-full transition-colors ${mission.is_completed_today ? 'text-green-600 hover:bg-green-200' : 'text-gray-400 hover:bg-gray-200'}`}
+                    aria-label={mission.is_completed_today ? '미션 완료 취소' : '미션 완료'}
+                  >
+                    {mission.is_completed_today ? <FaCheckCircle size={28} /> : <LuCircle size={28} />}
+                  </button>
+                  */}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="w-full md:w-auto">
+            <WeeklyStatusDisplay
+              weekStatus={weekStatus}
+              loading={weekStatusLoading}
+              error={weekStatusError}
+            />
+          </div>
         </div>
       )}
     </div>
