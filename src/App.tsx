@@ -1,12 +1,15 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { NotificationProvider } from './contexts/NotificationContext';
+import { useNotificationState } from './hooks/useNotificationState';
 import MainLayout from './layouts/MainLayout';
 import LoginPage from './pages/LoginPage';
 import TodayMissionPage from './pages/TodayMissionPage';
 import HallOfFamePage from './pages/HallOfFamePage';
 import MissionSettingsPage from './pages/ChallengeSettingsPage';
 import BadgeSettingsPage from './pages/BadgeSettingsPage';
+import BadgeNotificationModal from './components/BadgeNotificationModal';
 
 // PrivateRoute 컴포넌트: 인증된 사용자만 접근 가능
 const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
@@ -75,11 +78,19 @@ const AppContent: React.FC = () => {
   );
 };
 
-// 최상위 App 컴포넌트: AuthProvider 래핑
+// 최상위 App 컴포넌트: Provider들로 감싸기
 const App: React.FC = () => {
+  // useNotificationState 훅을 여기서 직접 사용
+  const { currentBadge, handleCloseNotification } = useNotificationState();
+
   return (
     <AuthProvider>
-      <AppContent />
+      {/* Provider는 children만 감쌈 */}
+      <NotificationProvider>
+        <AppContent />
+        {/* 모달 렌더링은 여기서 계속 수행 */}
+        <BadgeNotificationModal badge={currentBadge} onClose={handleCloseNotification} />
+      </NotificationProvider>
     </AuthProvider>
   );
 };

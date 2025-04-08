@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotification } from '../contexts/NotificationContext';
 import { MissionLog } from '../types';
 
 // 오디오 재생 함수
@@ -16,6 +17,7 @@ const formatDate = (date: Date): string => {
 
 export const useMissionLogs = (date: Date) => {
   const { user } = useAuth();
+  const { showBadgeNotification } = useNotification();
   const [logs, setLogs] = useState<MissionLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,17 +75,35 @@ export const useMissionLogs = (date: Date) => {
 
       // 2. If insert successful, increment snapshot count
       if (data) {
-        const { error: rpcError } = await supabase.rpc('increment_completed_count', {
+        const { error: incrementError } = await supabase.rpc('increment_completed_count', {
             snapshot_user_id: user.id,
             snapshot_date: formattedDate
         });
-        if (rpcError) {
-            console.error('Error incrementing snapshot count:', rpcError);
-            // Optionally handle rollback or notify user, though log is already added
+        if (incrementError) {
+            console.error('Error incrementing snapshot count:', incrementError);
+            // 카운트 증가 실패 시 롤백은 복잡하므로 일단 로그만 남김
         }
 
         setLogs((prev) => [...prev, data]);
         playSound('/sound/high_rune.flac'); // 성공 시 사운드 재생
+
+        // 3. Check and award badge if all missions for the day are complete
+        try {
+            const { data: badgeAwarded, error: badgeCheckError } = await supabase.rpc(
+                'check_and_award_all_missions_badge',
+                { check_user_id: user.id, check_date: formattedDate }
+            );
+
+            if (badgeCheckError) {
+                console.error('Error checking/awarding badge:', badgeCheckError);
+            } else if (badgeAwarded === true) {
+                console.log('🎉 Badge awarded: all_missions_today!');
+                showBadgeNotification('all_missions_today');
+            }
+        } catch(badgeError) {
+             console.error('Failed to call badge check RPC:', badgeError);
+        }
+
         return data;
       }
       return null;
@@ -108,13 +128,13 @@ export const useMissionLogs = (date: Date) => {
       if (deleteError) throw deleteError;
 
       // 2. If delete successful, decrement snapshot count
-      const { error: rpcError } = await supabase.rpc('decrement_completed_count', {
+      const { error: decrementError } = await supabase.rpc('decrement_completed_count', {
           snapshot_user_id: user.id,
           snapshot_date: formattedDate
       });
-      if (rpcError) {
-          console.error('Error decrementing snapshot count:', rpcError);
-          // Optionally notify user
+      if (decrementError) {
+          console.error('Error decrementing snapshot count:', decrementError);
+          // 카운트 감소 실패 시 처리 (선택적)
       }
 
       setLogs((prev) => prev.filter((log) => log.mission_id !== missionId));
