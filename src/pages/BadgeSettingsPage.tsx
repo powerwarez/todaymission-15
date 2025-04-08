@@ -62,17 +62,34 @@ const BadgeSettingsPage: React.FC = () => {
           });
         }
 
-        // 5. 배지 이미지 URL 생성 및 데이터 결합
+        // 5. 배지 이미지 URL 생성 및 데이터 결합 (BadgeNotificationModal 방식 적용)
         const displayDataPromises = (allBadges as Badge[]).map(async (badge) => {
           let imageUrl: string | null = null;
-          console.log(`[${badge.name}] DB image_path:`, badge.image_path);
+          console.log(`[${badge.name}] DB image_path:`, badge.image_path); // DB 값 로깅 유지
+
           if (badge.image_path) {
-            // Supabase Storage에서 공개 URL 가져오기 (버킷 이름 확인 필요)
-            // 예시: 'badges' 버킷 사용
-            const { data: urlData } = supabase.storage.from('badges').getPublicUrl(badge.image_path);
-            imageUrl = urlData?.publicUrl || null;
-            console.log(`[${badge.name}] Generated imageUrl:`, imageUrl);
+            const imagePath = badge.image_path;
+            if (imagePath.startsWith('http')) {
+              // 이미 완전한 URL인 경우, 이중 슬래시 정리
+              imageUrl = imagePath.replace(/([^:])\/\/+/g, "$1");
+            } else {
+              // 상대 경로인 경우, URL 직접 조합
+              const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+              const bucketName = 'badges'; // 버킷 이름 확인!
+              if (supabaseUrl) { // 환경 변수 존재하는지 확인
+                const cleanRelativePath = imagePath.replace(/^\/+|\/+$/g, ''); // 앞뒤 슬래시 제거
+                imageUrl = `${supabaseUrl}/storage/v1/object/public/${bucketName}/${cleanRelativePath}`;
+              } else {
+                console.error("VITE_SUPABASE_URL 환경 변수가 설정되지 않았습니다.");
+                imageUrl = '/placeholder_badge.png'; // 환경 변수 없으면 플레이스홀더
+              }
+            }
+          } else {
+            imageUrl = '/placeholder_badge.png'; // image_path 없으면 플레이스홀더
           }
+
+          console.log(`[${badge.name}] Generated imageUrl (Manual):`, imageUrl); // 생성된 URL 로깅 유지
+
           return {
             ...badge,
             count: badgeCounts[badge.id] || 0,
