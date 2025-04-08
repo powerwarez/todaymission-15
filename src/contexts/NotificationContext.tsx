@@ -1,23 +1,20 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import { Badge } from '../types';
 
-// Context가 제공할 값의 타입 정의
+// Context가 제공할 값의 타입 정의 (show 함수만)
 interface NotificationContextType {
-  currentBadge: Badge | null;
-  handleCloseNotification: () => void;
   showBadgeNotification: (badgeId: string) => Promise<void>;
 }
 
-// Context 생성 (기본값은 undefined)
+// Context 생성
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 // Provider Props 타입 정의
 interface NotificationProviderProps {
   children: ReactNode;
-  value: NotificationContextType; // Provider가 받을 값
+  value: Pick<NotificationContextType, 'showBadgeNotification'>; // show 함수만 포함하는 값
 }
 
-// Provider 컴포넌트: 외부에서 받은 value를 그대로 전달
+// Provider 컴포넌트: 외부에서 받은 value(show 함수)를 전달
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children, value }) => {
   return (
     <NotificationContext.Provider value={value}>
@@ -26,11 +23,12 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   );
 };
 
-// Context를 사용하기 위한 커스텀 훅
-export const useNotification = (): NotificationContextType => {
+// Context를 사용하기 위한 커스텀 훅 (show 함수만 반환)
+export const useNotification = (): Pick<NotificationContextType, 'showBadgeNotification'> => {
   const context = useContext(NotificationContext);
   if (context === undefined) {
     throw new Error('useNotification must be used within a NotificationProvider');
   }
-  return context;
+  // 전체 context 객체 대신 필요한 함수만 반환하도록 할 수도 있음
+  return { showBadgeNotification: context.showBadgeNotification };
 }; 
