@@ -11,6 +11,7 @@ export const useMissions = () => {
 
   const fetchMissions = useCallback(async () => {
     if (!user) return;
+    console.log('[useMissions] Fetching missions...');
     setLoading(true);
     setError(null);
     try {

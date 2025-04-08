@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 // import { DailyMissionSnapshot } from '../types'; // 제거
@@ -45,13 +45,17 @@ export const useWeeklyCompletionStatus = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const today = new Date();
-  const { monday, friday } = getWeekDates(today);
-  const formattedMonday = formatDate(monday);
-  const formattedFriday = formatDate(friday);
+  // 오늘 날짜는 한 번만 생성되도록 useMemo 사용 (이미 TodayMissionPage에서 사용하지만, 훅 독립성을 위해 추가)
+  const today = useMemo(() => new Date(), []);
+
+  // 이번 주 월/금 날짜 계산 결과를 useMemo로 캐싱
+  const { monday, friday } = useMemo(() => getWeekDates(today), [today]);
+  const formattedMonday = useMemo(() => formatDate(monday), [monday]);
+  const formattedFriday = useMemo(() => formatDate(friday), [friday]);
 
   const fetchWeeklyStatus = useCallback(async () => {
     if (!user) return;
+    console.log('[useWeeklyCompletionStatus] Fetching weekly status...'); // 로딩 시작 로그
     setLoading(true);
     setError(null);
 
@@ -67,14 +71,14 @@ export const useWeeklyCompletionStatus = () => {
 
       if (fetchError) throw fetchError;
 
-      // 2. 스냅샷 데이터를 날짜별 Map으로 변환 (빠른 조회용)
-      const snapshotsMap = new Map<string, PartialSnapshot>(); // PartialSnapshot 타입 사용
-      (snapshots || []).forEach(snap => snapshotsMap.set(snap.date, snap as PartialSnapshot)); // 타입 단언
+      // 2. 스냅샷 데이터를 날짜별 Map으로 변환
+      const snapshotsMap = new Map<string, PartialSnapshot>();
+      (snapshots || []).forEach(snap => snapshotsMap.set(snap.date, snap as PartialSnapshot));
 
       // 3. 월요일부터 금요일까지 순회하며 상태 계산
       const statusResult: WeekdayStatus[] = [];
-      const currentDay = new Date(monday);
-      for (let i = 1; i <= 5; i++) { // 1: 월요일 ~ 5: 금요일
+      const currentDay = new Date(monday); // useMemo로 캐싱된 monday 사용
+      for (let i = 1; i <= 5; i++) {
         const currentDateStr = formatDate(currentDay);
         const snapshot = snapshotsMap.get(currentDateStr);
         let isCompleted: boolean | null = null;
@@ -90,7 +94,7 @@ export const useWeeklyCompletionStatus = () => {
           isCompleted: isCompleted,
         });
 
-        currentDay.setDate(currentDay.getDate() + 1); // 다음 날짜로 이동
+        currentDay.setDate(currentDay.getDate() + 1);
       }
 
       setWeekStatus(statusResult);
@@ -101,7 +105,8 @@ export const useWeeklyCompletionStatus = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, formattedMonday, formattedFriday, monday]);
+    // 의존성 배열에서 monday 제거하고 formattedMonday, formattedFriday 사용
+  }, [user, formattedMonday, formattedFriday]);
 
   useEffect(() => {
     fetchWeeklyStatus();

@@ -27,6 +27,7 @@ export const useMissionLogs = (date: Date) => {
 
   const fetchLogs = useCallback(async () => {
     if (!user) return;
+    console.log('[useMissionLogs] Fetching logs...'); // 로딩 시작 로그
     setLoading(true);
     setError(null);
     try {
