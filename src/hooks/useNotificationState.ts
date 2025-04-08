@@ -4,10 +4,11 @@ import { supabase } from '../lib/supabaseClient';
 
 export const useNotificationState = () => {
   const [currentBadge, setCurrentBadge] = useState<Badge | null>(null);
+  console.log('[StateHook] Running/Re-rendering. Current badge state:', currentBadge); // 훅 실행/리렌더링 시 상태 로그
 
   // 이 훅은 App 레벨에서 사용될 것이므로, DB 접근 로직을 포함합니다.
   const showBadgeNotification = useCallback(async (badgeId: string) => {
-    console.log('Hook: Attempting to show notification for badge:', badgeId);
+    console.log('[StateHook] showBadgeNotification called with badgeId:', badgeId);
     try {
         const { data: badgeData, error: fetchError } = await supabase
             .from('badges')
@@ -18,17 +19,19 @@ export const useNotificationState = () => {
         if (fetchError) throw fetchError;
 
         if (badgeData) {
-            console.log('Hook: Fetched badge data:', badgeData);
+            console.log('[StateHook] Fetched badge data:', badgeData);
+            console.log('[StateHook] Calling setCurrentBadge with fetched data.');
             setCurrentBadge(badgeData as Badge);
         } else {
-            console.warn('Hook: Badge data not found for id:', badgeId);
+            console.warn('[StateHook] Badge data not found for id:', badgeId);
         }
     } catch (error) {
-        console.error('Hook: Error fetching badge data for notification:', error);
+        console.error('[StateHook] Error fetching badge data:', error);
     }
   }, []);
 
   const handleCloseNotification = useCallback(() => {
+    console.log('[StateHook] handleCloseNotification called. Setting currentBadge to null.');
     setCurrentBadge(null);
   }, []);
 
