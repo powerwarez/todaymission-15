@@ -72,7 +72,14 @@ const HallOfFamePage: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-pink-700 mb-8">명예의 전당</h1>
+      <h1 className="text-3xl font-bold mb-8 bg-gradient-to-r from-pink-500 to-yellow-500 text-transparent bg-clip-text flex items-center">
+        <span className="mr-2">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" />
+          </svg>
+        </span>
+        명예의 전당
+      </h1>
 
       {isLoading && <p>데이터를 불러오는 중...</p>}
       {error && <p className="text-red-500">오류: {error}</p>}
@@ -101,10 +108,10 @@ const HallOfFamePage: React.FC = () => {
               {selectedDate.toLocaleDateString('ko-KR')} 미션 기록
             </h3>
             {!dailySnapshot && !dailySnapshotLoading && (
-                 <p className="text-center text-gray-500">선택된 날짜의 기록(스냅샷)이 없습니다.</p>
+                 <p className="text-center text-gray-500">선택된 날짜에는 오늘의 미션 기록이 없어요.</p>
             )}
             {dailySnapshot && displayedMissionsForSelectedDate.length === 0 && (
-              <p className="text-center text-gray-500">이 날짜의 스냅샷에 등록된 미션이 없습니다.</p>
+              <p className="text-center text-gray-500">이 날짜에 등록된 오늘의 미션이 없어요.</p>
             )}
             {dailySnapshot && displayedMissionsForSelectedDate.length > 0 && (
               <ul className="space-y-3 pr-2"> {/* max-h-60 overflow-y-auto 제거 */}
