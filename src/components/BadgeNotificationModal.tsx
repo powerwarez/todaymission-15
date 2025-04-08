@@ -29,14 +29,23 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
     setTimeout(onClose, 300);
   };
 
-  // Supabase Storage URL 생성 (실제 구조에 맞게 수정 필요)
+  // Supabase Storage URL 생성 로직 수정
   const getBadgeImageUrl = (imagePath: string | undefined): string => {
     if (!imagePath) return '/placeholder_badge.png'; // 기본 이미지
+
+    // imagePath가 이미 전체 URL인 경우, 정리 후 그대로 반환
+    if (imagePath.startsWith('http')) {
+      // URL 내의 이중 슬래시(:// 제외)를 단일 슬래시로 변경
+      const cleanedUrl = imagePath.replace(/([^:]\/)\/+/g, "$1");
+      return cleanedUrl;
+    }
+
+    // Fallback (만약 imagePath가 상대 경로일 경우 - 현재 시나리오에서는 아님)
+    console.warn("Image path is not a full URL, constructing one (fallback):", imagePath)
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    // 예시: public 버킷의 경우
-    return `${supabaseUrl}/storage/v1/object/public/badges/${imagePath.startsWith('/') ? imagePath.substring(1) : imagePath}`;
-    // 참고: storage 경로가 /public/badges/badge.png 형태라고 가정.
-    //       실제로는 /badges/badge.png 일 수 있으므로 앞의 '/' 제거 로직 추가.
+    const bucketName = 'badges';
+    const cleanRelativePath = imagePath.replace(/^\/+|\/+$/g, '');
+    return `${supabaseUrl}/storage/v1/object/public/${bucketName}/${cleanRelativePath}`;
   };
 
   return (
@@ -57,6 +66,10 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
                     className="h-12 w-12 object-contain mr-3"
                     src={getBadgeImageUrl(badge.image_path)}
                     alt={badge.name}
+                    onError={(e) => { // 이미지 로드 에러 시 콘솔 로그 추가
+                        console.error("Image load error for:", getBadgeImageUrl(badge.image_path));
+                        (e.target as HTMLImageElement).src = '/placeholder_badge.png'; // 에러 시 기본 이미지로 대체
+                    }}
                   />
               </div>
               <div className="ml-3 w-0 flex-1">
