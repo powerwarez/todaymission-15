@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 /* Google Fonts (Quicksand, Nunito) 예시 - 원하는 폰트 추가 */
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Quicksand:wght@400;500;700&display=swap');
@@ -9,41 +7,43 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 
 @layer base {
+  /* :root 선택자를 사용하여 CSS 변수 정의 */
+  :root {
+    /* Tailwind 테마 값 참조 대신 실제 값 직접 사용 */
+    --color-primary-light: #fce7f3;
+    --color-primary-dark: #ec4899;
+    /* CSS 변수에는 글꼴 스택을 문자열로 포함 */
+    --font-sans: 'Pretendard', system-ui, sans-serif;
+    --font-cute: 'Quicksand', 'Nunito', sans-serif;
+  }
+
   html {
-    /* 기본 글꼴 설정 (tailwind.config.js의 sans 키 참조) */
-    font-family: Pretendard, system-ui, sans-serif;
-    /* 기본 텍스트 색상 및 배경색 설정 (tailwind.config.js의 primary.light 참조) */
-    color: theme('colors.primary.dark'); /* 기본 텍스트 색상을 진한 핑크로 */
-    /* background-color: theme('colors.primary.light'); /* 전체 페이지 기본 배경색 */
-    /* 테마 기능 구현 시 이 부분을 동적으로 변경 */
+    font-family: var(--font-sans);
+    color: var(--color-primary-dark);
   }
 
   body {
     /* body 기본 스타일 리셋 또는 추가 설정 (Tailwind base가 대부분 처리) */
-     min-height: 100vh;
-     background-color: theme('colors.primary.light'); /* body에 배경색 적용 */
-     font-feature-settings: "tnum"; /* 숫자 고정폭 */
+    min-height: 100vh;
+    background-color: var(--color-primary-light);
+    font-feature-settings: "tnum"; /* 숫자 고정폭 */
   }
 
-  /* 기본 버튼 스타일 (둥글게) */
+  /* 기본 버튼 스타일 */
   button, input[type="button"], input[type="submit"] {
-    @apply rounded-lg px-4 py-2 transition-colors duration-200 ease-in-out;
-    /* 기본 버튼 스타일은 필요에 따라 커스텀 */
-    /* 예: @apply bg-primary text-white hover:bg-primary-medium; */
+    @apply px-4 py-2 transition-colors duration-200 ease-in-out;
   }
 
-  /* 기본 입력 필드 스타일 (둥글게) */
+  /* 기본 입력 필드 스타일 */
   input[type="text"], input[type="email"], input[type="password"], textarea, select {
-     @apply rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
-     /* 핑크 테마에 맞게 조정 */
-     @apply focus:ring-pink-500 border-pink-200;
+    @apply border border-pink-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent;
   }
 
-  /* 기본 H1~H6 스타일 (귀여운 글꼴 적용 예시) */
+  /* 기본 H1~H6 스타일 */
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Quicksand', 'Nunito', sans-serif; /* tailwind.config.js의 cute 키 참조 */
+    font-family: var(--font-cute);
     font-weight: 700;
-    /* color: theme('colors.primary.dark'); */ /* 기본 텍스트 색상 상속 */
+    /* color 속성은 html에서 상속받거나 필요시 개별 설정 */
   }
 }
 
