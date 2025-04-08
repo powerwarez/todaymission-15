@@ -7,6 +7,7 @@ import { MissionLog } from '../types';
 // 오디오 재생 함수
 const playSound = (soundFile: string) => {
   const audio = new Audio(soundFile);
+  audio.load();
   audio.play().catch(e => console.error("Error playing sound:", e));
 };
 
@@ -85,7 +86,7 @@ export const useMissionLogs = (date: Date) => {
         }
 
         setLogs((prev) => [...prev, data]);
-        playSound('/sound/high_rune.flac'); // 성공 시 사운드 재생
+        playSound('/sound/high_rune.flac');
 
         // 3. Check and award badge if all missions for the day are complete
         try {
