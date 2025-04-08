@@ -11,7 +11,14 @@ import ChallengeSettingsPage from './pages/ChallengeSettingsPage';
 const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const { session, loading } = useAuth();
   if (loading) {
-    return <div>Loading...</div>; // 로딩 중 표시
+    return (
+      <div className="w-full h-screen flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-lg">
+          <h1 className="text-2xl font-bold text-black">로딩 중...</h1>
+          <p className="mt-2 text-gray-600">잠시만 기다려주세요.</p>
+        </div>
+      </div>
+    );
   }
   return session ? children : <Navigate to="/login" replace />;
 };
@@ -20,7 +27,14 @@ const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({ children }) 
 const PublicRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const { session, loading } = useAuth();
   if (loading) {
-    return <div>Loading...</div>; // 로딩 중 표시
+    return (
+      <div className="w-full h-screen flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-lg">
+          <h1 className="text-2xl font-bold text-black">로딩 중...</h1>
+          <p className="mt-2 text-gray-600">잠시만 기다려주세요.</p>
+        </div>
+      </div>
+    );
   }
   return !session ? children : <Navigate to="/" replace />;
 };
