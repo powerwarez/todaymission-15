@@ -1,106 +1,147 @@
-import React from 'react';
-// import { useUserBadges } from '../hooks/useUserBadges'; // TODO: Implement this hook
-// import { useWeeklyMissionStats } from '../hooks/useWeeklyMissionStats'; // TODO: Implement this hook
-// import { Badge } from '../types'; // Unused for now
-import { EarnedBadge } from '../types';
-import { LuBadgeCheck, LuCalendarClock } from 'react-icons/lu';
+import React, { useState, useMemo } from 'react';
+import { useMissions } from '../hooks/useMissions'; // 전체 미션 목록 가져오기
+import { useMissionLogs } from '../hooks/useMissionLogs'; // 특정 날짜의 로그 가져오기
+import { useMonthlyMissionLogs } from '../hooks/useMonthlyMissionLogs'; // 월별 로그 훅 추가
+import MonthlyCalendar from '../components/MonthlyCalendar'; // 달력 컴포넌트 추가
+import { LuBadgeCheck, LuCalendarDays, LuChevronLeft, LuChevronRight } from 'react-icons/lu';
+import { Mission } from '../types'; // Mission 타입 가져오기
 
-// Placeholder data until hooks are implemented
-const placeholderBadges: EarnedBadge[] = [
-  // Add some placeholder badge objects if needed for layout testing
-  // { id: '1', user_id: 'user1', badge_id: 'b1', earned_at: new Date().toISOString(), badge: { id: 'b1', name: '첫 미션 달성', image_path: '/badges/first_mission.png', created_at: new Date().toISOString() } },
-  // { id: '2', user_id: 'user1', badge_id: 'b2', earned_at: new Date().toISOString(), badge: { id: 'b2', name: '일주일 연속', image_path: '/badges/week_streak.png', created_at: new Date().toISOString() } },
-];
+// 날짜를 YYYY-MM-DD 형식으로 포맷
+const formatDateInput = (date: Date): string => {
+  return date.toISOString().split('T')[0];
+};
 
 const HallOfFamePage: React.FC = () => {
-  // TODO: Replace placeholders with actual data hooks
-  const { badges: earnedBadges, loading: badgesLoading, error: badgesError } = {
-    badges: placeholderBadges,
-    loading: false,
-    error: null,
-  }// useUserBadges();
+  const today = new Date();
+  const [selectedDate, setSelectedDate] = useState(today); // 날짜별 기록 조회용
+  const [currentMonthDate, setCurrentMonthDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1)); // 달력용 (월 시작일)
 
-  // TODO: Implement weekly stats logic
-  const { weeklyStats, loading: statsLoading, error: statsError } = {
-    weeklyStats: null, // Replace with actual data structure
-    loading: false,
-    error: null,
-  } // useWeeklyMissionStats();
+  // 전체 미션 목록 로드
+  const { missions, loading: missionsLoading, error: missionsError } = useMissions();
 
-  // Use weeklyStats to avoid unused variable error (replace with actual usage later)
-  console.log('Weekly Stats (placeholder):', weeklyStats);
+  // 선택된 날짜의 미션 완료 로그 로드 (날짜별 기록)
+  const { logs: missionLogs, loading: dailyLogsLoading, error: dailyLogsError } = useMissionLogs(selectedDate);
 
-  const isLoading = badgesLoading || statsLoading;
-  const error = badgesError || statsError;
+  // 현재 월의 미션 완료 로그 로드 (달력)
+  const { monthlyLogs, loading: monthlyLogsLoading, error: monthlyLogsError } = useMonthlyMissionLogs(
+    currentMonthDate.getFullYear(),
+    currentMonthDate.getMonth() + 1 // getMonth()는 0부터 시작하므로 +1
+  );
 
-  // Function to get image URL from Supabase Storage (implement based on your bucket structure)
-  const getBadgeImageUrl = (imagePath: string): string => {
-    // Replace with your actual Supabase storage URL logic
-    // Example: return supabase.storage.from('badges').getPublicUrl(imagePath).data.publicUrl;
-    return imagePath || '/placeholder_badge.png'; // Return placeholder if path is empty
+  // 로딩 및 에러 상태 통합
+  const isLoading = missionsLoading || dailyLogsLoading || monthlyLogsLoading;
+  const error = missionsError || dailyLogsError || monthlyLogsError;
+
+  // --- 날짜별 기록 관련 로직 --- //
+  const completedMissionIdsForSelectedDate = useMemo(() => {
+    return new Set(missionLogs.map(log => log.mission_id));
+  }, [missionLogs]);
+
+  const displayedMissionsForSelectedDate = useMemo(() => {
+    return missions.map(mission => ({
+      ...mission,
+      isCompleted: completedMissionIdsForSelectedDate.has(mission.id)
+    })).sort((a, b) => a.order - b.order);
+  }, [missions, completedMissionIdsForSelectedDate]);
+
+  const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedDate(new Date(event.target.value + 'T00:00:00'));
   };
+  // --- 끝: 날짜별 기록 관련 로직 --- //
+
+  // --- 월별 달력 관련 로직 --- //
+  const handlePreviousMonth = () => {
+    setCurrentMonthDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentMonthDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
+  // --- 끝: 월별 달력 관련 로직 --- //
 
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-pink-700 mb-8">명예의 전당</h1>
 
-      {isLoading && <p>명예의 전당 정보를 불러오는 중...</p>}
+      {isLoading && <p>데이터를 불러오는 중...</p>}
       {error && <p className="text-red-500">오류: {error}</p>}
 
       {!isLoading && !error && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Badge Section */}
-          <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-pink-600 mb-6 flex items-center">
-              <LuBadgeCheck className="mr-2" /> 획득한 배지
-            </h2>
-            {earnedBadges.length === 0 ? (
-              <p className="text-center text-gray-500">아직 획득한 배지가 없어요. 미션을 완료하고 도전과제를 달성해 보세요!</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+          {/* 날짜별 기록 조회 섹션 */}
+          <div className="bg-white p-6 rounded-lg shadow-md">
+             <h2 className="text-xl font-semibold text-pink-600 mb-4 flex items-center">
+                <LuCalendarDays className="mr-2" /> 날짜별 기록 조회
+             </h2>
+             <div className="flex items-center space-x-4 mb-6">
+                <label htmlFor="record-date" className="text-gray-700">날짜 선택:</label>
+                <input
+                  type="date"
+                  id="record-date"
+                  value={formatDateInput(selectedDate)}
+                  onChange={handleDateChange}
+                  className="border border-pink-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  max={formatDateInput(today)} // 오늘 이후 날짜 선택 불가
+                />
+             </div>
+
+            <h3 className="text-lg font-medium text-gray-800 mb-4">
+              {selectedDate.toLocaleDateString('ko-KR')} 미션 기록
+            </h3>
+            {displayedMissionsForSelectedDate.length === 0 ? (
+              <p className="text-center text-gray-500">이 날짜에 등록된 미션이 없습니다.</p>
             ) : (
-              <div className="relative w-full aspect-square max-w-md mx-auto">
-                 {/* Basic Honeycomb Layout - Enhance with more precise positioning if needed */}
-                <div
-                    className="grid gap-1"
-                    style={{
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))',
-                        // Basic attempt at honeycomb - may need adjustments or a library
-                    }}
-                 >
-                  {earnedBadges.map((earnedBadge, _index) => ( // eslint-disable-line @typescript-eslint/no-unused-vars
-                     <div
-                       key={earnedBadge.id}
-                       className="relative aspect-square flex items-center justify-center group"
-                       style={{
-                         // Hexagon shape using clip-path (browser support varies)
-                         clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-                         backgroundColor: '#fce7f3', // light pink bg for hexagon
-                         // Add positioning logic here for spiral effect if desired
-                       }}
-                     >
-                       <img
-                         src={getBadgeImageUrl(earnedBadge.badge.image_path)}
-                         alt={earnedBadge.badge.name}
-                         className="w-3/4 h-3/4 object-contain transition-transform duration-300 group-hover:scale-110"
-                       />
-                       {/* Tooltip for badge name - basic example */}
-                       <span className="absolute bottom-0 mb-[-25px] left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                         {earnedBadge.badge.name}
-                       </span>
-                     </div>
-                  ))}
-                 </div>
-              </div>
+              <ul className="space-y-3 max-h-60 overflow-y-auto pr-2"> {/* 스크롤 추가 */}
+                {displayedMissionsForSelectedDate.map((mission: Mission & { isCompleted: boolean }) => (
+                  <li
+                    key={mission.id}
+                    className={`flex items-center justify-between p-3 rounded-lg transition-colors duration-200 text-sm ${
+                      mission.isCompleted
+                        ? 'bg-green-100 border-l-4 border-green-500'
+                        : 'bg-gray-100 border-l-4 border-gray-400'
+                    }`}
+                  >
+                    <span className={`flex-1 ${mission.isCompleted ? 'text-green-800 line-through' : 'text-gray-800'}`}>
+                      {mission.content}
+                    </span>
+                    {mission.isCompleted && (
+                      <LuBadgeCheck className="text-green-600 text-lg ml-2" />
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {displayedMissionsForSelectedDate.length > 0 && missionLogs.length === 0 && (
+                 <p className="mt-4 text-center text-gray-500">이 날짜에는 완료된 미션이 없어요.</p>
             )}
           </div>
 
-          {/* Weekly Stats Section */}
+          {/* 월별 달력 섹션 */}
           <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-pink-600 mb-6 flex items-center">
-                <LuCalendarClock className="mr-2" /> 주간 달성 현황
-            </h2>
-            <p className="text-gray-500">이 기능은 아직 준비 중입니다.</p>
-            {/* TODO: Display weekly completion stats here */}
-            {/* Example: A calendar view or a list showing completed missions per day */}
+            <div className="flex justify-between items-center mb-4">
+                 <h2 className="text-xl font-semibold text-pink-600 flex items-center">
+                     {/* <LuCalendarClock className="mr-2" /> 아이콘 제거 */}
+                     월간 달성 현황
+                 </h2>
+                 <div className="flex items-center space-x-2">
+                    <button onClick={handlePreviousMonth} className="p-2 rounded hover:bg-pink-100 text-pink-600">
+                        <LuChevronLeft size={20} />
+                    </button>
+                    <span className="text-lg font-medium text-gray-700">
+                        {currentMonthDate.getFullYear()}년 {currentMonthDate.getMonth() + 1}월
+                    </span>
+                    <button onClick={handleNextMonth} className="p-2 rounded hover:bg-pink-100 text-pink-600">
+                        <LuChevronRight size={20} />
+                    </button>
+                 </div>
+            </div>
+            <MonthlyCalendar
+              year={currentMonthDate.getFullYear()}
+              month={currentMonthDate.getMonth() + 1}
+              logs={monthlyLogs}
+              totalMissionsCount={missions.length}
+            />
           </div>
         </div>
       )}

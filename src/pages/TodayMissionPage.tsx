@@ -79,7 +79,7 @@ const TodayMissionPage: React.FC = () => {
       <ConfettiEffect run={showConfetti} recycle={false} onComplete={handleConfettiComplete} />
 
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-pink-700">오늘의 미션</h1>
+        <h1 className="text-3xl font-bold text-pink-700">고운이의 멋진 하루</h1>
         <div className="text-right">
             <p className="text-lg font-semibold text-pink-600">
                 {today.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
