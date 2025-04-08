@@ -62,38 +62,17 @@ const BadgeSettingsPage: React.FC = () => {
           });
         }
 
-        // 5. 배지 이미지 URL 생성 및 데이터 결합 (BadgeNotificationModal 방식 적용)
+        // 5. 배지 이미지 URL 사용 (DB 값을 그대로 사용)
         const displayDataPromises = (allBadges as Badge[]).map(async (badge) => {
-          let imageUrl: string | null = null;
-          console.log(`[${badge.name}] DB image_path:`, badge.image_path); // DB 값 로깅 유지
+          // DB에 저장된 image_path 값을 그대로 사용
+          const imageUrl = badge.image_path || '/placeholder_badge.png'; // 값이 없으면 플레이스홀더 사용
 
-          if (badge.image_path) {
-            const imagePath = badge.image_path;
-            if (imagePath.startsWith('http')) {
-              // 이미 완전한 URL인 경우, 이중 슬래시 정리
-              imageUrl = imagePath.replace(/([^:])\/\/+/g, "$1");
-            } else {
-              // 상대 경로인 경우, URL 직접 조합
-              const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-              const bucketName = 'badges'; // 버킷 이름 확인!
-              if (supabaseUrl) { // 환경 변수 존재하는지 확인
-                const cleanRelativePath = imagePath.replace(/^\/+|\/+$/g, ''); // 앞뒤 슬래시 제거
-                imageUrl = `${supabaseUrl}/storage/v1/object/public/${bucketName}/${cleanRelativePath}`;
-              } else {
-                console.error("VITE_SUPABASE_URL 환경 변수가 설정되지 않았습니다.");
-                imageUrl = '/placeholder_badge.png'; // 환경 변수 없으면 플레이스홀더
-              }
-            }
-          } else {
-            imageUrl = '/placeholder_badge.png'; // image_path 없으면 플레이스홀더
-          }
-
-          console.log(`[${badge.name}] Generated imageUrl (Manual):`, imageUrl); // 생성된 URL 로깅 유지
+          console.log(`[${badge.name}] Using DB image_path directly:`, imageUrl); // 확인용 로그
 
           return {
             ...badge,
             count: badgeCounts[badge.id] || 0,
-            imageUrl: imageUrl,
+            imageUrl: imageUrl, // DB 값을 그대로 할당
           };
         });
 
