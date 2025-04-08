@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
-import { Session, User } from '@supabase/supabase-js';
+import { Session, User, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 
 interface AuthContextType {
@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     try {
       const { data: authListener } = supabase.auth.onAuthStateChange(
-        (_event, session) => {
+        (_event: AuthChangeEvent, session: Session | null) => {
           setSession(session);
           setUser(session?.user ?? null);
           setLoading(false);

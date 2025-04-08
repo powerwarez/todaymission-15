@@ -1,9 +1,9 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-let supabase;
+let supabase: SupabaseClient;
 
 try {
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -15,7 +15,7 @@ try {
         onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
         signOut: () => Promise.resolve({ error: null })
       }
-    };
+    } as unknown as SupabaseClient;
   } else {
     supabase = createClient(supabaseUrl, supabaseAnonKey);
   }
@@ -28,7 +28,7 @@ try {
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
       signOut: () => Promise.resolve({ error: null })
     }
-  };
+  } as unknown as SupabaseClient;
 }
 
 export { supabase }; 
