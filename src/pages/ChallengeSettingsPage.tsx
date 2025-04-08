@@ -3,7 +3,7 @@ import { useMissions } from '../hooks/useMissions';
 import { Mission } from '../types';
 import { LuCirclePlus, LuTrash2, LuSave } from 'react-icons/lu';
 
-const ChallengeSettingsPage: React.FC = () => {
+const MissionSettingsPage: React.FC = () => {
   const { missions, loading, error, addMission, updateMission, deleteMission } = useMissions();
   const [newMissionContent, setNewMissionContent] = useState('');
   const [editingMission, setEditingMission] = useState<Mission | null>(null);
@@ -79,13 +79,13 @@ const ChallengeSettingsPage: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-pink-700 mb-6">도전과제 설정</h1>
+      <h1 className="text-3xl font-bold text-pink-700 mb-6">오늘의 미션 설정</h1>
 
       {loading && <p>로딩 중...</p>}
       {error && <p className="text-red-500">{error}</p>}
 
       <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 className="text-xl font-semibold text-pink-600 mb-4">오늘의 미션 목록</h2>
+        <h2 className="text-xl font-semibold text-pink-600 mb-4">오늘의 미션 목록 관리</h2>
         <p className="text-sm text-gray-500 mb-4">미션을 드래그하여 순서를 변경할 수 있습니다. 최대 10개, 최소 3개까지 설정 가능합니다.</p>
 
         <ul className="space-y-3 mb-6">
@@ -163,15 +163,8 @@ const ChallengeSettingsPage: React.FC = () => {
             <p className="text-sm text-gray-500">미션은 최대 10개까지 추가할 수 있습니다.</p>
         )}
       </div>
-
-      {/* 도전과제(배지) 설정 섹션 - 추후 구현 */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold text-pink-600 mb-4">도전과제 (배지) 설정</h2>
-        <p className="text-gray-500">이 기능은 아직 준비 중입니다.</p>
-        {/* Add challenge/badge creation/management UI here later */}
-      </div>
     </div>
   );
 };
 
-export default ChallengeSettingsPage; 
+export default MissionSettingsPage; 

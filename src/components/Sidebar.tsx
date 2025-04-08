@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LuLayoutDashboard, LuAward, LuSettings, LuChevronsLeft, LuChevronsRight, LuLogOut } from 'react-icons/lu'; // LogOut 아이콘 추가
+import { LuLayoutDashboard, LuAward, LuSettings, LuChevronsLeft, LuChevronsRight, LuLogOut, LuBadge } from 'react-icons/lu'; // LogOut, Badge 아이콘 추가
 import { useAuth } from '../contexts/AuthContext'; // useAuth 임포트
 
 interface SidebarProps {
@@ -15,7 +15,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isMinimized, toggleSidebar }) => {
   const menuItems = [
     { path: '/', name: '오늘의 미션', icon: LuLayoutDashboard },
     { path: '/hall-of-fame', name: '명예의 전당', icon: LuAward },
-    { path: '/settings', name: '도전과제 설정', icon: LuSettings },
+    { path: '/mission-settings', name: '오늘의 미션 설정', icon: LuSettings }, // 경로 및 이름 변경
+    { path: '/badge-settings', name: '도전과제 설정', icon: LuBadge }, // 새로운 항목 추가
   ];
 
   const handleLogout = async () => {
@@ -45,7 +46,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isMinimized, toggleSidebar }) => {
                 <Link
                   to={item.path}
                   className={`flex items-center p-2 rounded-lg hover:bg-pink-300 transition-colors ${
-                    location.pathname === item.path ? 'bg-pink-400 text-white' : ''
+                    // 현재 경로가 /settings 또는 /mission-settings일 때 활성화 (기존 경로 호환)
+                    (location.pathname === item.path || (item.path === '/mission-settings' && location.pathname === '/settings')) ? 'bg-pink-400 text-white' : ''
                   } ${
                     isMinimized ? 'justify-center' : ''
                   }`}

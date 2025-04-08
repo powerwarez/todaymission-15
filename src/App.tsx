@@ -5,7 +5,8 @@ import MainLayout from './layouts/MainLayout';
 import LoginPage from './pages/LoginPage';
 import TodayMissionPage from './pages/TodayMissionPage';
 import HallOfFamePage from './pages/HallOfFamePage';
-import ChallengeSettingsPage from './pages/ChallengeSettingsPage';
+import MissionSettingsPage from './pages/ChallengeSettingsPage';
+import BadgeSettingsPage from './pages/BadgeSettingsPage';
 
 // PrivateRoute 컴포넌트: 인증된 사용자만 접근 가능
 const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
@@ -54,8 +55,9 @@ const AppContent: React.FC = () => {
       >
         <Route index element={<TodayMissionPage />} />
         <Route path="hall-of-fame" element={<HallOfFamePage />} />
-        <Route path="settings" element={<ChallengeSettingsPage />} />
-        {/* 다른 보호된 라우트가 있다면 여기에 추가 */}
+        <Route path="mission-settings" element={<MissionSettingsPage />} />
+        <Route path="settings" element={<Navigate to="/mission-settings" replace />} />
+        <Route path="badge-settings" element={<BadgeSettingsPage />} />
       </Route>
 
       <Route
