@@ -41,10 +41,19 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
     setTimeout(onClose, 300);
   };
 
-  // 이미지 URL 생성 함수 (현재 사용되지 않음)
-  // const getBadgeImageUrl = (imagePath: string | undefined): string => {
-    // ... (이전 함수 내용)
-  // };
+  // 이미지 URL 생성 함수 주석 해제
+  const getBadgeImageUrl = (imagePath: string | undefined): string => {
+    if (!imagePath) return '/placeholder_badge.png';
+    if (imagePath.startsWith('http')) {
+      const cleanedUrl = imagePath.replace(/([^:]\/)\/+/g, "$1");
+      return cleanedUrl;
+    }
+    console.warn("Image path is not a full URL, constructing one (fallback):", imagePath)
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const bucketName = 'badges';
+    const cleanRelativePath = imagePath.replace(/^\/+|\/+$/g, '');
+    return `${supabaseUrl}/storage/v1/object/public/${bucketName}/${cleanRelativePath}`;
+  };
 
   return (
     <div
@@ -58,22 +67,20 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
         <div className="bg-white rounded-lg shadow-xl border border-pink-200 overflow-hidden">
           <div className="p-4">
             <div className="flex items-start">
-              {/* 이미지 표시 부분 주석 처리 */}
-              {/*
+              {/* 이미지 표시 부분 주석 해제 */}
               <div className="flex-shrink-0 pt-0.5">
                  <img
                     className="h-12 w-12 object-contain mr-3"
                     src={getBadgeImageUrl(badge.image_path)}
                     alt={badge.name}
-                    onError={(e) => { // 이미지 로드 에러 시 콘솔 로그 추가
+                    onError={(e) => {
                         console.error("Image load error for:", getBadgeImageUrl(badge.image_path));
-                        (e.target as HTMLImageElement).src = '/placeholder_badge.png'; // 에러 시 기본 이미지로 대체
+                        (e.target as HTMLImageElement).src = '/placeholder_badge.png';
                     }}
                   />
               </div>
-              */}
-              {/* 텍스트 내용 부분 (ml-3 제거하여 왼쪽 정렬) */}
-              <div className="w-0 flex-1">
+              {/* 텍스트 내용 부분 (ml-3 다시 추가) */}
+              <div className="ml-3 w-0 flex-1">
                 <p className="text-sm font-semibold text-pink-700 flex items-center">
                   <LuBadgeCheck className="mr-1 text-green-500" />
                   도전과제 달성!
