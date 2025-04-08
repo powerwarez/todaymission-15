@@ -92,7 +92,7 @@ const HallOfFamePage: React.FC = () => {
             {displayedMissionsForSelectedDate.length === 0 ? (
               <p className="text-center text-gray-500">이 날짜에 등록된 미션이 없습니다.</p>
             ) : (
-              <ul className="space-y-3 max-h-60 overflow-y-auto pr-2"> {/* 스크롤 추가 */}
+              <ul className="space-y-3 pr-2"> {/* max-h-60 overflow-y-auto 제거 */}
                 {displayedMissionsForSelectedDate.map((mission: Mission & { isCompleted: boolean }) => (
                   <li
                     key={mission.id}
