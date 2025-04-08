@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient'; // Supabase 클라이언트 직접 사용
 import { useAuth } from '../contexts/AuthContext'; // 사용자 정보 가져오기
 import { useMissions } from '../hooks/useMissions';
@@ -38,55 +38,72 @@ const TodayMissionPage: React.FC = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [snapshotChecked, setSnapshotChecked] = useState(false); // 스냅샷 확인/생성 완료 여부
+  const isSnapshotCheckRunning = useRef(false); // 스냅샷 체크 중복 실행 방지 플래그
 
-  // --- 스냅샷 확인 및 생성 로직 --- //
+  // --- 스냅샷 확인 및 생성 로직 수정 --- //
   useEffect(() => {
-    if (!user || missionsLoading || snapshotChecked) return; // 사용자, 미션 로딩 완료 및 스냅샷 확인 전이면 실행 안 함
+    // 사용자 로드 완료, 미션 로드 완료, 아직 스냅샷 확인 전, 중복 실행 중 아닐 때만 실행
+    if (user && !missionsLoading && !snapshotChecked && !isSnapshotCheckRunning.current) {
+      isSnapshotCheckRunning.current = true; // 실행 시작 플래그
+      console.log('[Snapshot Effect] Conditions met, starting check...');
 
-    const checkAndCreateSnapshot = async () => {
-      try {
-        // 1. 오늘 날짜의 스냅샷이 있는지 확인
-        const { data: existingSnapshot, error: checkError } = await supabase
-          .from('daily_mission_snapshots')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('date', formattedToday)
-          .maybeSingle();
+      const checkAndCreateSnapshot = async () => {
+        try {
+          // 미션 데이터가 실제로 로드되었는지 다시 확인 (missionsLoading만으로는 부족할 수 있음)
+          if (missions === null || missions.length === 0) {
+             console.log('[Snapshot Check] No missions loaded yet or empty, skipping snapshot creation for now.');
+             // 미션이 없으면 스냅샷 의미 없음, 체크 완료로 간주
+             setSnapshotChecked(true);
+             isSnapshotCheckRunning.current = false;
+             return;
+          }
 
-        if (checkError) throw checkError;
-
-        // 2. 스냅샷이 없으면 생성
-        if (!existingSnapshot) {
-          console.log(`Creating snapshot for ${formattedToday}`);
-          const { error: insertError } = await supabase
+          // 1. 오늘 날짜의 스냅샷 확인
+          console.log(`[Snapshot Check] Checking for snapshot on ${formattedToday} for user ${user.id}`);
+          const { data: existingSnapshot, error: checkError } = await supabase
             .from('daily_mission_snapshots')
-            .insert({
-              user_id: user.id,
-              date: formattedToday,
-              missions_snapshot: missions, // 현재 미션 목록 저장
-              total_missions_count: missions.length, // 현재 총 미션 개수 저장
-              completed_missions_count: 0, // 초기 완료 개수는 0
-            });
+            .select('id', { count: 'exact' }) // count만 가져와도 됨
+            .eq('user_id', user.id)
+            .eq('date', formattedToday)
+            .limit(1); // 하나만 찾으면 됨
 
-          if (insertError) throw insertError;
+          if (checkError) throw checkError;
+
+          // 2. 스냅샷 없으면 생성
+          if (!existingSnapshot || existingSnapshot.length === 0) {
+            console.log(`[Snapshot Create] No existing snapshot found. Creating for ${formattedToday}`);
+            const { error: insertError } = await supabase
+              .from('daily_mission_snapshots')
+              .insert({
+                user_id: user.id,
+                date: formattedToday,
+                missions_snapshot: missions,
+                total_missions_count: missions.length,
+                completed_missions_count: 0,
+              });
+
+            if (insertError) throw insertError;
+            console.log(`[Snapshot Create] Snapshot created successfully for ${formattedToday}`);
+          } else {
+            console.log(`[Snapshot Check] Snapshot already exists for ${formattedToday}`);
+          }
+          setSnapshotChecked(true); // 확인/생성 완료
+        } catch (err) {
+          console.error("[Snapshot Check/Create Error]:", err);
+          setSnapshotChecked(true); // 에러 발생 시에도 완료로 처리 (무한 루프 방지)
+        } finally {
+           isSnapshotCheckRunning.current = false; // 실행 종료 플래그
         }
-        setSnapshotChecked(true); // 확인/생성 완료 표시
-      } catch (err) {
-        console.error("Error checking/creating daily snapshot:", err);
-        // 에러가 발생해도 페이지 로딩은 계속되도록 처리 (선택적)
-        setSnapshotChecked(true); // 에러 발생 시에도 더 이상 시도하지 않도록 설정
-      }
-    };
+      };
 
-    // 미션 데이터 로딩이 완료된 후에 스냅샷 확인/생성 실행
-    if (!missionsLoading && missions.length > 0) { // 미션이 있을 때만 생성 시도
-        checkAndCreateSnapshot();
-    } else if (!missionsLoading && missions.length === 0) {
-        setSnapshotChecked(true); // 미션이 없으면 스냅샷 생성 불필요, 확인 완료로 처리
+      checkAndCreateSnapshot();
+    } else {
+        // 조건을 만족하지 못한 경우 로그 (디버깅용)
+        // console.log('[Snapshot Effect] Conditions not met or already checked/running.', { userId: !!user, missionsLoaded: !missionsLoading, snapshotChecked, isRunning: isSnapshotCheckRunning.current });
     }
-
-  }, [user, missions, missionsLoading, formattedToday, snapshotChecked]);
-  // --- 스냅샷 확인 및 생성 로직 끝 --- //
+    // 의존성 배열: user, missionsLoading만 사용. missions 배열 자체는 제외하여 불필요한 재실행 방지
+  }, [user, missionsLoading, snapshotChecked, formattedToday, missions]); // missions를 의존성에 다시 추가 (snapshot 생성 시 필요)
+  // --- 스냅샷 로직 끝 --- //
 
   // Load celebration sound
   useEffect(() => {
@@ -107,12 +124,11 @@ const TodayMissionPage: React.FC = () => {
 
   // Combine missions and logs data
   const missionsWithStatus = useMemo((): MissionWithLogs[] => {
-    if (missionsLoading || logsLoading) return []; // Return empty while loading
-
+    if (missionsLoading || logsLoading) return [];
     return missions.map(mission => ({
       ...mission,
       is_completed_today: logs.some(log => log.mission_id === mission.id),
-      logs: logs.filter(log => log.mission_id === mission.id) // Attach relevant logs if needed elsewhere
+      logs: logs.filter(log => log.mission_id === mission.id)
     }));
   }, [missions, logs, missionsLoading, logsLoading]);
 
@@ -139,7 +155,14 @@ const TodayMissionPage: React.FC = () => {
     setShowConfetti(false);
   };
 
-  const isLoading = missionsLoading || logsLoading || weekStatusLoading || !snapshotChecked; // 스냅샷 확인 전까지 로딩 상태 유지
+  // 로딩 상태 결정
+  const isLoading = useMemo(() => {
+      // 모든 데이터 로딩이 완료되고, 스냅샷 체크도 완료되었을 때만 로딩 해제
+      const dataLoading = missionsLoading || logsLoading || weekStatusLoading;
+      console.log('[Render Check] isLoading:', dataLoading || !snapshotChecked, { dataLoading, snapshotChecked });
+      return dataLoading || !snapshotChecked;
+  }, [missionsLoading, logsLoading, weekStatusLoading, snapshotChecked]);
+
   const error = missionsError || logsError || weekStatusError;
 
   // Simple weekday display (Korean)
