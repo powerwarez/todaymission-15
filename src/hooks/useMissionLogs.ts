@@ -88,12 +88,14 @@ export const useMissionLogs = (date: Date) => {
         setLogs((prev) => [...prev, data]);
         playSound('/sound/high_rune.flac');
 
-        // 3. Check and award badge if all missions for the day are complete
+        // 3. Check and award badge
         try {
+            console.log('[useMissionLogs] Calling check_and_award_all_missions_badge RPC...'); // RPC 호출 직전 로그
             const { data: badgeAwarded, error: badgeCheckError } = await supabase.rpc(
                 'check_and_award_all_missions_badge',
                 { check_user_id: user.id, check_date: formattedDate }
             );
+            console.log('[useMissionLogs] RPC Result - badgeAwarded:', badgeAwarded, 'badgeCheckError:', badgeCheckError); // RPC 결과 로그
 
             if (badgeCheckError) {
                 console.error('Error checking/awarding badge:', badgeCheckError);
