@@ -66,9 +66,8 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
       {badge && (
         <div className="bg-white rounded-lg shadow-xl border border-pink-200 overflow-hidden">
           <div className="p-4">
-            <div className="flex items-start">
-              {/* 이미지 표시 부분 주석 해제 */}
-              <div className="flex-shrink-0 pt-0.5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
                  <img
                     className="h-12 w-12 object-contain mr-3"
                     src={getBadgeImageUrl(badge.image_path)}
@@ -80,7 +79,6 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
                     }}
                   />
               </div>
-              {/* 텍스트 내용 부분 (ml-3 다시 추가) */}
               <div className="ml-3 w-0 flex-1">
                 <p className="text-sm font-semibold text-pink-700 flex items-center">
                   <LuBadgeCheck className="mr-1 text-green-500" />
@@ -91,7 +89,6 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
                   <p className="mt-1 text-sm text-gray-600">{badge.description}</p>
                 )}
               </div>
-              {/* 닫기 버튼 부분 */}
               <div className="ml-4 flex-shrink-0 flex">
                 <button
                   onClick={handleClose}
