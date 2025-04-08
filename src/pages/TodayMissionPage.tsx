@@ -5,13 +5,24 @@ import { useMissions } from '../hooks/useMissions';
 import { useMissionLogs } from '../hooks/useMissionLogs';
 import ConfettiEffect from '../components/ConfettiEffect';
 import { MissionWithLogs } from '../types'; // Combined type
-import { FaCheckCircle } from "react-icons/fa";
-import { LuCircle } from 'react-icons/lu';
+// import { FaCheckCircle } from "react-icons/fa"; // 버튼 제거로 불필요
+// import { LuCircle } from 'react-icons/lu'; // 버튼 제거로 불필요
 
 // 날짜를 YYYY-MM-DD 형식으로 포맷
 const formatDate = (date: Date): string => {
   return date.toISOString().split('T')[0];
 };
+
+// 완료 시 적용할 파스텔 무지개 색상 배열 (배경색, 테두리색, 텍스트색)
+const pastelRainbowColors = [
+  { bg: 'bg-red-100', border: 'border-red-400', text: 'text-red-800' },         // 빨
+  { bg: 'bg-orange-100', border: 'border-orange-400', text: 'text-orange-800' }, // 주
+  { bg: 'bg-yellow-100', border: 'border-yellow-400', text: 'text-yellow-800' },// 노
+  { bg: 'bg-green-100', border: 'border-green-400', text: 'text-green-800' },   // 초
+  { bg: 'bg-blue-100', border: 'border-blue-400', text: 'text-blue-800' },     // 파
+  { bg: 'bg-indigo-100', border: 'border-indigo-400', text: 'text-indigo-800' }, // 남
+  { bg: 'bg-violet-100', border: 'border-violet-400', text: 'text-violet-800' }, // 보
+];
 
 const TodayMissionPage: React.FC = () => {
   const { user } = useAuth(); // 사용자 정보 가져오기
@@ -156,27 +167,40 @@ const TodayMissionPage: React.FC = () => {
           {missionsWithStatus.length === 0 && (
             <p className="text-center text-gray-500 bg-white p-6 rounded-lg shadow">아직 설정된 미션이 없어요! "도전과제 설정"에서 오늘의 미션을 만들어 보세요.</p>
           )}
-          {missionsWithStatus.map((mission) => (
-            <div
-              key={mission.id}
-              className={`flex items-center p-4 rounded-lg shadow transition-all duration-300 ease-in-out ${
-                mission.is_completed_today ? 'bg-green-100 border-l-4 border-green-500' : 'bg-white hover:bg-pink-50'
-              }`}
-            >
-              <div className="flex-grow mr-4">
-                <p className={`text-lg font-medium ${mission.is_completed_today ? 'text-green-800 line-through' : 'text-gray-800'}`}>
-                  {mission.content}
-                </p>
-              </div>
-              <button
-                onClick={() => handleToggleComplete(mission)}
-                className={`p-2 rounded-full transition-colors ${mission.is_completed_today ? 'text-green-600 hover:bg-green-200' : 'text-gray-400 hover:bg-gray-200'}`}
-                aria-label={mission.is_completed_today ? '미션 완료 취소' : '미션 완료'}
+          {missionsWithStatus.map((mission, index) => {
+            // 완료 시 적용할 색상 결정 (index 기반)
+            const completedColor = pastelRainbowColors[index % pastelRainbowColors.length];
+            const missionStyle = mission.is_completed_today
+              ? `${completedColor.bg} border-l-4 ${completedColor.border}`
+              : 'bg-white hover:bg-pink-50';
+            const textStyle = mission.is_completed_today
+              ? `${completedColor.text} line-through`
+              : 'text-gray-800';
+
+            return (
+              <div
+                key={mission.id}
+                onClick={() => handleToggleComplete(mission)} // div 전체 클릭 핸들러
+                className={`flex items-center p-4 rounded-lg shadow transition-all duration-300 ease-in-out cursor-pointer ${missionStyle}`}
               >
-                {mission.is_completed_today ? <FaCheckCircle size={28} /> : <LuCircle size={28} />}
-              </button>
-            </div>
-          ))}
+                <div className="flex-grow mr-4">
+                  <p className={`text-lg font-medium ${textStyle}`}>
+                    {mission.content}
+                  </p>
+                </div>
+                {/* 버튼 제거 */}
+                {/*
+                <button
+                  onClick={() => handleToggleComplete(mission)}
+                  className={`p-2 rounded-full transition-colors ${mission.is_completed_today ? 'text-green-600 hover:bg-green-200' : 'text-gray-400 hover:bg-gray-200'}`}
+                  aria-label={mission.is_completed_today ? '미션 완료 취소' : '미션 완료'}
+                >
+                  {mission.is_completed_today ? <FaCheckCircle size={28} /> : <LuCircle size={28} />}
+                </button>
+                */}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
