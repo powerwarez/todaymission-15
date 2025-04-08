@@ -1,21 +1,19 @@
 import React from 'react';
-import { MissionLog } from '../types';
+import { DailyMissionSnapshot } from '../types'; // MissionLog 대신 Snapshot 타입 사용
 
 interface MonthlyCalendarProps {
   year: number;
   month: number;
-  logs: MissionLog[];
-  totalMissionsCount: number; // 해당 사용자의 총 미션 개수
+  snapshots: DailyMissionSnapshot[]; // 로그 대신 스냅샷 배열 받기
 }
 
-// 날짜별 완료 로그 수를 계산하는 헬퍼 함수
-const processLogs = (logs: MissionLog[]): Map<string, number> => {
-  const logsByDate = new Map<string, number>();
-  logs.forEach(log => {
-    const dateStr = log.completed_at; // YYYY-MM-DD 형식
-    logsByDate.set(dateStr, (logsByDate.get(dateStr) || 0) + 1);
+// 날짜별 스냅샷 데이터를 빠르게 찾기 위한 맵 생성
+const processSnapshots = (snapshots: DailyMissionSnapshot[]): Map<string, DailyMissionSnapshot> => {
+  const snapshotsByDate = new Map<string, DailyMissionSnapshot>();
+  snapshots.forEach(snapshot => {
+    snapshotsByDate.set(snapshot.date, snapshot); // date는 이미 YYYY-MM-DD 형식
   });
-  return logsByDate;
+  return snapshotsByDate;
 };
 
 // 날짜를 YYYY-MM-DD 형식으로 포맷
@@ -23,8 +21,8 @@ const formatDate = (date: Date): string => {
   return date.toISOString().split('T')[0];
 };
 
-const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ year, month, logs, totalMissionsCount }) => {
-  const logsByDate = processLogs(logs);
+const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ year, month, snapshots }) => {
+  const snapshotsByDate = processSnapshots(snapshots);
   const daysInMonth = new Date(year, month, 0).getDate();
   const firstDayOfMonth = new Date(year, month - 1, 1).getDay(); // 0 (Sun) - 6 (Sat)
 
@@ -33,14 +31,19 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ year, month, logs, to
 
   const getDayStyle = (day: number): string => {
     const dateStr = formatDate(new Date(year, month - 1, day));
-    const completedCount = logsByDate.get(dateStr) || 0;
+    const snapshot = snapshotsByDate.get(dateStr);
 
-    if (completedCount === 0) {
-      return 'bg-gray-100 text-gray-500'; // 완료 0개
+    if (!snapshot || snapshot.total_missions_count === 0) {
+        return 'bg-gray-100 text-gray-400'; // 스냅샷 없거나 총 미션 0개 (흐리게)
     }
-    if (totalMissionsCount === 0) return 'bg-gray-100 text-gray-500'; // 분모 0 방지
 
-    const completionRate = completedCount / totalMissionsCount;
+    const { completed_missions_count, total_missions_count } = snapshot;
+
+    if (completed_missions_count === 0) {
+      return 'bg-gray-200 text-gray-600'; // 완료 0개 (조금 더 진하게)
+    }
+
+    const completionRate = completed_missions_count / total_missions_count;
 
     if (completionRate >= 1) {
       return 'bg-green-500 text-white font-bold'; // 100% 완료
@@ -55,8 +58,11 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ year, month, logs, to
 
   const renderDay = (day: number) => {
     const dateStr = formatDate(new Date(year, month - 1, day));
-    const completedCount = logsByDate.get(dateStr) || 0;
+    const snapshot = snapshotsByDate.get(dateStr);
     const isToday = dateStr === formatDate(new Date());
+
+    const completedCount = snapshot?.completed_missions_count ?? 0;
+    const totalCount = snapshot?.total_missions_count;
 
     return (
       <div
@@ -64,9 +70,11 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ year, month, logs, to
         className={`h-16 flex flex-col items-center justify-center rounded-md transition-colors duration-200 ${getDayStyle(day)} ${isToday ? 'ring-2 ring-pink-500 ring-offset-1' : ''}`}
       >
         <span className="text-sm font-medium">{day}</span>
-        {totalMissionsCount > 0 && completedCount > 0 && (
-          <span className="text-xs mt-1">{`${completedCount}/${totalMissionsCount}`}</span>
+        {/* 스냅샷이 있고 총 미션 수가 0보다 클 때만 카운트 표시 */}
+        {snapshot && totalCount !== undefined && totalCount > 0 && (
+          <span className="text-xs mt-1">{`${completedCount}/${totalCount}`}</span>
         )}
+        {/* 스냅샷은 없지만 날짜는 있는 경우 (미래 날짜 등) 빈 칸 유지 */} 
       </div>
     );
   };

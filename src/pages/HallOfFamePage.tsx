@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { useMissions } from '../hooks/useMissions'; // 전체 미션 목록 가져오기
-import { useMissionLogs } from '../hooks/useMissionLogs'; // 특정 날짜의 로그 가져오기
-import { useMonthlyMissionLogs } from '../hooks/useMonthlyMissionLogs'; // 월별 로그 훅 추가
-import MonthlyCalendar from '../components/MonthlyCalendar'; // 달력 컴포넌트 추가
+// import { useMissions } from '../hooks/useMissions'; // 삭제: 스냅샷에서 미션 정보 가져옴
+import { useMissionLogs } from '../hooks/useMissionLogs';
+// import { useMonthlyMissionLogs } from '../hooks/useMonthlyMissionLogs'; // 삭제: 스냅샷 훅 사용
+import { useDailySnapshot } from '../hooks/useDailySnapshot'; // 일별 스냅샷 훅 추가
+import { useMonthlySnapshots } from '../hooks/useMonthlySnapshots'; // 월별 스냅샷 훅 추가
+import MonthlyCalendar from '../components/MonthlyCalendar';
 import { LuBadgeCheck, LuCalendarDays, LuChevronLeft, LuChevronRight } from 'react-icons/lu';
-import { Mission } from '../types'; // Mission 타입 가져오기
+import { Mission } from '../types'; // Mission 타입만 필요할 수 있음
 
 // 날짜를 YYYY-MM-DD 형식으로 포맷
 const formatDateInput = (date: Date): string => {
@@ -16,33 +18,33 @@ const HallOfFamePage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(today); // 날짜별 기록 조회용
   const [currentMonthDate, setCurrentMonthDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1)); // 달력용 (월 시작일)
 
-  // 전체 미션 목록 로드
-  const { missions, loading: missionsLoading, error: missionsError } = useMissions();
+  // --- 날짜별 기록 관련 --- //
+  const { snapshot: dailySnapshot, loading: dailySnapshotLoading, error: dailySnapshotError } = useDailySnapshot(selectedDate);
+  const { logs: missionLogsForSelectedDate, loading: dailyLogsLoading, error: dailyLogsError } = useMissionLogs(selectedDate);
 
-  // 선택된 날짜의 미션 완료 로그 로드 (날짜별 기록)
-  const { logs: missionLogs, loading: dailyLogsLoading, error: dailyLogsError } = useMissionLogs(selectedDate);
-
-  // 현재 월의 미션 완료 로그 로드 (달력)
-  const { monthlyLogs, loading: monthlyLogsLoading, error: monthlyLogsError } = useMonthlyMissionLogs(
+  // --- 월별 달력 관련 --- //
+  const { snapshots: monthlySnapshots, loading: monthlySnapshotsLoading, error: monthlySnapshotsError } = useMonthlySnapshots(
     currentMonthDate.getFullYear(),
-    currentMonthDate.getMonth() + 1 // getMonth()는 0부터 시작하므로 +1
+    currentMonthDate.getMonth() + 1
   );
 
   // 로딩 및 에러 상태 통합
-  const isLoading = missionsLoading || dailyLogsLoading || monthlyLogsLoading;
-  const error = missionsError || dailyLogsError || monthlyLogsError;
+  const isLoading = dailySnapshotLoading || dailyLogsLoading || monthlySnapshotsLoading;
+  const error = dailySnapshotError || dailyLogsError || monthlySnapshotsError;
 
-  // --- 날짜별 기록 관련 로직 --- //
+  // --- 날짜별 기록 표시 로직 (스냅샷 기반) --- //
   const completedMissionIdsForSelectedDate = useMemo(() => {
-    return new Set(missionLogs.map(log => log.mission_id));
-  }, [missionLogs]);
+    return new Set(missionLogsForSelectedDate.map(log => log.mission_id));
+  }, [missionLogsForSelectedDate]);
 
   const displayedMissionsForSelectedDate = useMemo(() => {
-    return missions.map(mission => ({
+    // 스냅샷이 있으면 스냅샷의 미션 목록 사용, 없으면 빈 배열
+    const missionsFromSnapshot: Mission[] = dailySnapshot?.missions_snapshot || []; // 타입 명시
+    return missionsFromSnapshot.map((mission: Mission) => ({ // 타입 명시
       ...mission,
       isCompleted: completedMissionIdsForSelectedDate.has(mission.id)
-    })).sort((a, b) => a.order - b.order);
-  }, [missions, completedMissionIdsForSelectedDate]);
+    })).sort((a: Mission, b: Mission) => a.order - b.order); // 타입 명시
+  }, [dailySnapshot, completedMissionIdsForSelectedDate]);
 
   const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedDate(new Date(event.target.value + 'T00:00:00'));
@@ -58,6 +60,15 @@ const HallOfFamePage: React.FC = () => {
     setCurrentMonthDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   };
   // --- 끝: 월별 달력 관련 로직 --- //
+
+  // --- 달력에 전달할 총 미션 개수 (현재 사용 안 함) --- //
+  // const latestTotalMissionsCount = useMemo(() => {
+  //     if (monthlySnapshots && monthlySnapshots.length > 0) {
+  //         return monthlySnapshots[monthlySnapshots.length - 1].total_missions_count;
+  //     }
+  //     return 0; // 스냅샷 없으면 0
+  // }, [monthlySnapshots]);
+  // --- 끝 --- //
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -89,9 +100,13 @@ const HallOfFamePage: React.FC = () => {
             <h3 className="text-lg font-medium text-gray-800 mb-4">
               {selectedDate.toLocaleDateString('ko-KR')} 미션 기록
             </h3>
-            {displayedMissionsForSelectedDate.length === 0 ? (
-              <p className="text-center text-gray-500">이 날짜에 등록된 미션이 없습니다.</p>
-            ) : (
+            {!dailySnapshot && !dailySnapshotLoading && (
+                 <p className="text-center text-gray-500">선택된 날짜의 기록(스냅샷)이 없습니다.</p>
+            )}
+            {dailySnapshot && displayedMissionsForSelectedDate.length === 0 && (
+              <p className="text-center text-gray-500">이 날짜의 스냅샷에 등록된 미션이 없습니다.</p>
+            )}
+            {dailySnapshot && displayedMissionsForSelectedDate.length > 0 && (
               <ul className="space-y-3 pr-2"> {/* max-h-60 overflow-y-auto 제거 */}
                 {displayedMissionsForSelectedDate.map((mission: Mission & { isCompleted: boolean }) => (
                   <li
@@ -112,7 +127,7 @@ const HallOfFamePage: React.FC = () => {
                 ))}
               </ul>
             )}
-            {displayedMissionsForSelectedDate.length > 0 && missionLogs.length === 0 && (
+            {dailySnapshot && displayedMissionsForSelectedDate.length > 0 && missionLogsForSelectedDate.length === 0 && (
                  <p className="mt-4 text-center text-gray-500">이 날짜에는 완료된 미션이 없어요.</p>
             )}
           </div>
@@ -121,7 +136,6 @@ const HallOfFamePage: React.FC = () => {
           <div className="bg-white p-6 rounded-lg shadow-md">
             <div className="flex justify-between items-center mb-4">
                  <h2 className="text-xl font-semibold text-pink-600 flex items-center">
-                     {/* <LuCalendarClock className="mr-2" /> 아이콘 제거 */}
                      월간 달성 현황
                  </h2>
                  <div className="flex items-center space-x-2">
@@ -139,8 +153,8 @@ const HallOfFamePage: React.FC = () => {
             <MonthlyCalendar
               year={currentMonthDate.getFullYear()}
               month={currentMonthDate.getMonth() + 1}
-              logs={monthlyLogs}
-              totalMissionsCount={missions.length}
+              snapshots={monthlySnapshots} // 로그 대신 스냅샷 전달
+              // totalMissionsCount는 이제 Calendar 내부에서 스냅샷 기준으로 처리하므로 제거
             />
           </div>
         </div>

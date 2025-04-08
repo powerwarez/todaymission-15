@@ -62,6 +62,7 @@ export const useMissionLogs = (date: Date) => {
       if (checkError) throw checkError;
       if (existingLog) return null; // Already logged
 
+      // 1. Insert the log
       const { data, error: insertError } = await supabase
         .from('mission_logs')
         .insert({ user_id: user.id, mission_id: missionId, completed_at: formattedDate })
@@ -69,7 +70,18 @@ export const useMissionLogs = (date: Date) => {
         .single();
 
       if (insertError) throw insertError;
+
+      // 2. If insert successful, increment snapshot count
       if (data) {
+        const { error: rpcError } = await supabase.rpc('increment_completed_count', {
+            snapshot_user_id: user.id,
+            snapshot_date: formattedDate
+        });
+        if (rpcError) {
+            console.error('Error incrementing snapshot count:', rpcError);
+            // Optionally handle rollback or notify user, though log is already added
+        }
+
         setLogs((prev) => [...prev, data]);
         playSound('/sound/high_rune.flac'); // 성공 시 사운드 재생
         return data;
@@ -85,6 +97,7 @@ export const useMissionLogs = (date: Date) => {
   const deleteLog = async (missionId: string) => {
     if (!user) return;
     try {
+      // 1. Delete the log
       const { error: deleteError } = await supabase
         .from('mission_logs')
         .delete()
@@ -93,6 +106,17 @@ export const useMissionLogs = (date: Date) => {
         .eq('completed_at', formattedDate);
 
       if (deleteError) throw deleteError;
+
+      // 2. If delete successful, decrement snapshot count
+      const { error: rpcError } = await supabase.rpc('decrement_completed_count', {
+          snapshot_user_id: user.id,
+          snapshot_date: formattedDate
+      });
+      if (rpcError) {
+          console.error('Error decrementing snapshot count:', rpcError);
+          // Optionally notify user
+      }
+
       setLogs((prev) => prev.filter((log) => log.mission_id !== missionId));
     } catch (err: unknown) {
       console.error('Error deleting mission log:', err);

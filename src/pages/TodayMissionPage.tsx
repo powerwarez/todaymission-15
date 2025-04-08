@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { supabase } from '../lib/supabaseClient'; // Supabase 클라이언트 직접 사용
+import { useAuth } from '../contexts/AuthContext'; // 사용자 정보 가져오기
 import { useMissions } from '../hooks/useMissions';
 import { useMissionLogs } from '../hooks/useMissionLogs';
 import ConfettiEffect from '../components/ConfettiEffect';
@@ -6,13 +8,71 @@ import { MissionWithLogs } from '../types'; // Combined type
 import { FaCheckCircle } from "react-icons/fa";
 import { LuCircle } from 'react-icons/lu';
 
+// 날짜를 YYYY-MM-DD 형식으로 포맷
+const formatDate = (date: Date): string => {
+  return date.toISOString().split('T')[0];
+};
+
 const TodayMissionPage: React.FC = () => {
+  const { user } = useAuth(); // 사용자 정보 가져오기
   const today = useMemo(() => new Date(), []); // Get today's date once
+  const formattedToday = useMemo(() => formatDate(today), [today]); // YYYY-MM-DD 형식
+
   const { missions, loading: missionsLoading, error: missionsError } = useMissions();
   const { logs, loading: logsLoading, error: logsError, addLog, deleteLog } = useMissionLogs(today);
 
   const [showConfetti, setShowConfetti] = useState(false);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+  const [snapshotChecked, setSnapshotChecked] = useState(false); // 스냅샷 확인/생성 완료 여부
+
+  // --- 스냅샷 확인 및 생성 로직 --- //
+  useEffect(() => {
+    if (!user || missionsLoading || snapshotChecked) return; // 사용자, 미션 로딩 완료 및 스냅샷 확인 전이면 실행 안 함
+
+    const checkAndCreateSnapshot = async () => {
+      try {
+        // 1. 오늘 날짜의 스냅샷이 있는지 확인
+        const { data: existingSnapshot, error: checkError } = await supabase
+          .from('daily_mission_snapshots')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('date', formattedToday)
+          .maybeSingle();
+
+        if (checkError) throw checkError;
+
+        // 2. 스냅샷이 없으면 생성
+        if (!existingSnapshot) {
+          console.log(`Creating snapshot for ${formattedToday}`);
+          const { error: insertError } = await supabase
+            .from('daily_mission_snapshots')
+            .insert({
+              user_id: user.id,
+              date: formattedToday,
+              missions_snapshot: missions, // 현재 미션 목록 저장
+              total_missions_count: missions.length, // 현재 총 미션 개수 저장
+              completed_missions_count: 0, // 초기 완료 개수는 0
+            });
+
+          if (insertError) throw insertError;
+        }
+        setSnapshotChecked(true); // 확인/생성 완료 표시
+      } catch (err) {
+        console.error("Error checking/creating daily snapshot:", err);
+        // 에러가 발생해도 페이지 로딩은 계속되도록 처리 (선택적)
+        setSnapshotChecked(true); // 에러 발생 시에도 더 이상 시도하지 않도록 설정
+      }
+    };
+
+    // 미션 데이터 로딩이 완료된 후에 스냅샷 확인/생성 실행
+    if (!missionsLoading && missions.length > 0) { // 미션이 있을 때만 생성 시도
+        checkAndCreateSnapshot();
+    } else if (!missionsLoading && missions.length === 0) {
+        setSnapshotChecked(true); // 미션이 없으면 스냅샷 생성 불필요, 확인 완료로 처리
+    }
+
+  }, [user, missions, missionsLoading, formattedToday, snapshotChecked]);
+  // --- 스냅샷 확인 및 생성 로직 끝 --- //
 
   // Load celebration sound
   useEffect(() => {
@@ -65,7 +125,7 @@ const TodayMissionPage: React.FC = () => {
     setShowConfetti(false);
   };
 
-  const isLoading = missionsLoading || logsLoading;
+  const isLoading = missionsLoading || logsLoading || !snapshotChecked; // 스냅샷 확인 전까지 로딩 상태 유지
   const error = missionsError || logsError;
 
   // Simple weekday display (Korean)
