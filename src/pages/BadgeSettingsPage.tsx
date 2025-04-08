@@ -65,11 +65,13 @@ const BadgeSettingsPage: React.FC = () => {
         // 5. 배지 이미지 URL 생성 및 데이터 결합
         const displayDataPromises = (allBadges as Badge[]).map(async (badge) => {
           let imageUrl: string | null = null;
+          console.log(`[${badge.name}] DB image_path:`, badge.image_path);
           if (badge.image_path) {
             // Supabase Storage에서 공개 URL 가져오기 (버킷 이름 확인 필요)
             // 예시: 'badges' 버킷 사용
             const { data: urlData } = supabase.storage.from('badges').getPublicUrl(badge.image_path);
             imageUrl = urlData?.publicUrl || null;
+            console.log(`[${badge.name}] Generated imageUrl:`, imageUrl);
           }
           return {
             ...badge,
