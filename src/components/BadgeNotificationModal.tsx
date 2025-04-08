@@ -29,24 +29,10 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
     setTimeout(onClose, 300);
   };
 
-  // Supabase Storage URL 생성 로직 수정
-  const getBadgeImageUrl = (imagePath: string | undefined): string => {
-    if (!imagePath) return '/placeholder_badge.png'; // 기본 이미지
-
-    // imagePath가 이미 전체 URL인 경우, 정리 후 그대로 반환
-    if (imagePath.startsWith('http')) {
-      // URL 내의 이중 슬래시(:// 제외)를 단일 슬래시로 변경
-      const cleanedUrl = imagePath.replace(/([^:]\/)\/+/g, "$1");
-      return cleanedUrl;
-    }
-
-    // Fallback (만약 imagePath가 상대 경로일 경우 - 현재 시나리오에서는 아님)
-    console.warn("Image path is not a full URL, constructing one (fallback):", imagePath)
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const bucketName = 'badges';
-    const cleanRelativePath = imagePath.replace(/^\/+|\/+$/g, '');
-    return `${supabaseUrl}/storage/v1/object/public/${bucketName}/${cleanRelativePath}`;
-  };
+  // 이미지 URL 생성 함수 (현재 사용되지 않음)
+  // const getBadgeImageUrl = (imagePath: string | undefined): string => {
+    // ... (이전 함수 내용)
+  // };
 
   return (
     <div
@@ -60,8 +46,9 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
         <div className="bg-white rounded-lg shadow-xl border border-pink-200 overflow-hidden">
           <div className="p-4">
             <div className="flex items-start">
+              {/* 이미지 표시 부분 주석 처리 */}
+              {/*
               <div className="flex-shrink-0 pt-0.5">
-                 {/* 배지 이미지 표시 (육각형 모양은 나중에 적용) */}
                  <img
                     className="h-12 w-12 object-contain mr-3"
                     src={getBadgeImageUrl(badge.image_path)}
@@ -72,7 +59,9 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
                     }}
                   />
               </div>
-              <div className="ml-3 w-0 flex-1">
+              */}
+              {/* 텍스트 내용 부분 (ml-3 제거하여 왼쪽 정렬) */}
+              <div className="w-0 flex-1">
                 <p className="text-sm font-semibold text-pink-700 flex items-center">
                   <LuBadgeCheck className="mr-1 text-green-500" />
                   도전과제 달성!
@@ -82,6 +71,7 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
                   <p className="mt-1 text-sm text-gray-600">{badge.description}</p>
                 )}
               </div>
+              {/* 닫기 버튼 부분 */}
               <div className="ml-4 flex-shrink-0 flex">
                 <button
                   onClick={handleClose}
