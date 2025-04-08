@@ -3,6 +3,12 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { MissionLog } from '../types';
 
+// 오디오 재생 함수
+const playSound = (soundFile: string) => {
+  const audio = new Audio(soundFile);
+  audio.play().catch(e => console.error("Error playing sound:", e));
+};
+
 // 날짜를 YYYY-MM-DD 형식의 문자열로 포맷하는 헬퍼 함수
 const formatDate = (date: Date): string => {
   return date.toISOString().split('T')[0];
@@ -65,6 +71,7 @@ export const useMissionLogs = (date: Date) => {
       if (insertError) throw insertError;
       if (data) {
         setLogs((prev) => [...prev, data]);
+        playSound('/sound/high_rune.flac'); // 성공 시 사운드 재생
         return data;
       }
       return null;

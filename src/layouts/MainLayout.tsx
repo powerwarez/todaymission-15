@@ -14,7 +14,7 @@ const MainLayout: React.FC = () => {
       <Sidebar isMinimized={isSidebarMinimized} toggleSidebar={toggleSidebar} />
       <main
         className={`flex-1 p-6 transition-all duration-300 ease-in-out ${
-          isSidebarMinimized ? 'ml-12' : 'ml-48' // 축소 시 ml-16->ml-12, 확장 시 ml-56->ml-48
+          isSidebarMinimized ? 'ml-12' : 'ml-12'
         }`}
       >
         <Outlet /> {/* Child routes will render here */}
