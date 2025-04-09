@@ -87,7 +87,6 @@ const App: React.FC = () => {
     showBadgeNotification,
     isLoadingBadge, 
     notificationQueue, // 추가됨
-    closeTimeoutRefs // 각 모달에서 사용
   } = useNotificationState();
 
   return (
@@ -102,9 +101,11 @@ const App: React.FC = () => {
             badge={badge} 
             // onClose는 이제 badgeId를 받아 handleCloseNotification 호출
             onClose={() => handleCloseNotification(badge.id)} 
-            closeTimeoutRefs={closeTimeoutRefs} // 타임아웃 관리를 위해 Ref 전달
             // 모달 위치를 조정하여 겹치지 않게 표시 (예: index 사용)
-            style={{ bottom: `${1 + index * 6}rem` }} // 각 모달을 위로 약간씩 올림
+            style={{ 
+              transform: `translateY(-${index * 110}%)`, // 각 모달을 위로 110% 만큼 이동
+              zIndex: 9999 - index // 위에 쌓이는 모달이 더 높은 z-index 가짐
+             }} 
           />
         ))}
         {/* 로딩 상태 표시 (선택 사항) */}
