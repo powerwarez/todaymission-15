@@ -7,15 +7,14 @@ import { useWeeklyCompletionStatus } from '../hooks/useWeeklyCompletionStatus'; 
 import WeeklyStatusDisplay from '../components/WeeklyStatusDisplay'; // 주간 현황 컴포넌트 임포트
 import ConfettiEffect from '../components/ConfettiEffect';
 import { MissionWithLogs } from '../types'; // Combined type
+import { toZonedTime, format } from 'date-fns-tz'; // date-fns-tz import
 // import { FaCheckCircle } from "react-icons/fa"; // 버튼 제거로 불필요
 // import { LuCircle } from 'react-icons/lu'; // 버튼 제거로 불필요
 
-// 날짜를 YYYY-MM-DD 형식으로 포맷
-const formatDate = (date: Date): string => {
-  return date.toISOString().split('T')[0];
-};
+// 시간대 설정 (HallOfFamePage와 동일하게)
+const timeZone = 'Asia/Seoul';
 
-// 완료 시 적용할 파스텔 무지개 색상 배열 (배경색, 테두리색, 텍스트색)
+// 완료 시 적용할 파스텔 무지개 색상 배열 (변경 없음)
 const pastelRainbowColors = [
   { bg: 'bg-red-100', border: 'border-red-400', text: 'text-red-800' },         // 빨
   { bg: 'bg-orange-100', border: 'border-orange-400', text: 'text-orange-800' }, // 주
@@ -28,11 +27,14 @@ const pastelRainbowColors = [
 
 const TodayMissionPage: React.FC = () => {
   const { user } = useAuth(); // 사용자 정보 가져오기
-  const today = useMemo(() => new Date(), []); // Get today's date once
-  const formattedToday = useMemo(() => formatDate(today), [today]); // YYYY-MM-DD 형식
+
+  // 오늘 날짜를 KST 기준으로 설정
+  const todayKSTObj = useMemo(() => toZonedTime(new Date(), timeZone), []);
+  const formattedTodayKST = useMemo(() => format(todayKSTObj, 'yyyy-MM-dd', { timeZone }), [todayKSTObj]);
 
   const { missions, loading: missionsLoading, error: missionsError } = useMissions();
-  const { logs, loading: logsLoading, error: logsError, addLog, deleteLog } = useMissionLogs(today);
+  // useMissionLogs 훅에 KST 기준 formatted string 전달
+  const { logs, loading: logsLoading, error: logsError, addLog, deleteLog } = useMissionLogs(formattedTodayKST);
   const { weekStatus, loading: weekStatusLoading, error: weekStatusError, refetch: refetchWeeklyStatus } = useWeeklyCompletionStatus(); // 주간 현황 데이터 로드
 
   const [showConfetti, setShowConfetti] = useState(false);
@@ -51,41 +53,43 @@ const TodayMissionPage: React.FC = () => {
         try {
           // 미션 데이터가 실제로 로드되었는지 다시 확인 (missionsLoading만으로는 부족할 수 있음)
           if (missions === null || missions.length === 0) {
-             console.log('[Snapshot Check] No missions loaded yet or empty, skipping snapshot creation for now.');
+             console.log('[Snapshot Check] No missions loaded yet or empty, skipping.');
              // 미션이 없으면 스냅샷 의미 없음, 체크 완료로 간주
              setSnapshotChecked(true);
              isSnapshotCheckRunning.current = false;
              return;
           }
 
-          // 1. 오늘 날짜의 스냅샷 확인
-          console.log(`[Snapshot Check] Checking for snapshot on ${formattedToday} for user ${user.id}`);
+          // 1. 오늘 날짜(KST)의 스냅샷 확인
+          console.log(`[Snapshot Check] Checking for snapshot on ${formattedTodayKST} for user ${user.id}`);
           const { data: existingSnapshot, error: checkError } = await supabase
             .from('daily_mission_snapshots')
             .select('id', { count: 'exact' }) // count만 가져와도 됨
             .eq('user_id', user.id)
-            .eq('date', formattedToday)
+            // KST 기준 날짜 문자열로 비교
+            .eq('date', formattedTodayKST)
             .limit(1); // 하나만 찾으면 됨
 
           if (checkError) throw checkError;
 
           // 2. 스냅샷 없으면 생성
           if (!existingSnapshot || existingSnapshot.length === 0) {
-            console.log(`[Snapshot Create] No existing snapshot found. Creating for ${formattedToday}`);
+            console.log(`[Snapshot Create] No existing snapshot found. Creating for ${formattedTodayKST}`);
             const { error: insertError } = await supabase
               .from('daily_mission_snapshots')
               .insert({
                 user_id: user.id,
-                date: formattedToday,
+                // KST 기준 날짜 문자열 사용
+                date: formattedTodayKST,
                 missions_snapshot: missions,
                 total_missions_count: missions.length,
                 completed_missions_count: 0,
               });
 
             if (insertError) throw insertError;
-            console.log(`[Snapshot Create] Snapshot created successfully for ${formattedToday}`);
+            console.log(`[Snapshot Create] Snapshot created successfully for ${formattedTodayKST}`);
           } else {
-            console.log(`[Snapshot Check] Snapshot already exists for ${formattedToday}`);
+            console.log(`[Snapshot Check] Snapshot already exists for ${formattedTodayKST}`);
           }
           setSnapshotChecked(true); // 확인/생성 완료
         } catch (err) {
@@ -97,15 +101,12 @@ const TodayMissionPage: React.FC = () => {
       };
 
       checkAndCreateSnapshot();
-    } else {
-        // 조건을 만족하지 못한 경우 로그 (디버깅용)
-        // console.log('[Snapshot Effect] Conditions not met or already checked/running.', { userId: !!user, missionsLoaded: !missionsLoading, snapshotChecked, isRunning: isSnapshotCheckRunning.current });
     }
-    // 의존성 배열: user, missionsLoading만 사용. missions 배열 자체는 제외하여 불필요한 재실행 방지
-  }, [user, missionsLoading, snapshotChecked, formattedToday, missions]); // missions를 의존성에 다시 추가 (snapshot 생성 시 필요)
+    // 의존성 배열에 formattedTodayKST 추가
+  }, [user, missionsLoading, snapshotChecked, formattedTodayKST, missions]);
   // --- 스냅샷 로직 끝 --- //
 
-  // Load celebration sound
+  // Load celebration sound (변경 없음)
   useEffect(() => {
     // You should host your own celebration sound or find a royalty-free one
     // Example path, replace with your actual sound file path
@@ -122,7 +123,7 @@ const TodayMissionPage: React.FC = () => {
     };
   }, []);
 
-  // Combine missions and logs data
+  // Combine missions and logs data (변경 없음)
   const missionsWithStatus = useMemo((): MissionWithLogs[] => {
     if (missionsLoading || logsLoading) return [];
     return missions.map(mission => ({
@@ -132,6 +133,7 @@ const TodayMissionPage: React.FC = () => {
     }));
   }, [missions, logs, missionsLoading, logsLoading]);
 
+  // handleToggleComplete (변경 없음, 내부의 addLog/deleteLog는 이미 수정된 훅 사용)
   const handleToggleComplete = async (mission: MissionWithLogs) => {
     try {
       if (mission.is_completed_today) {
@@ -161,7 +163,7 @@ const TodayMissionPage: React.FC = () => {
     setShowConfetti(false);
   };
 
-  // 로딩 상태 결정
+  // 로딩 상태 결정 (변경 없음)
   const isLoading = useMemo(() => {
       // 모든 데이터 로딩이 완료되고, 스냅샷 체크도 완료되었을 때만 로딩 해제
       const dataLoading = missionsLoading || logsLoading || weekStatusLoading;
@@ -171,9 +173,10 @@ const TodayMissionPage: React.FC = () => {
 
   const error = missionsError || logsError || weekStatusError;
 
-  // Simple weekday display (Korean)
+  // Simple weekday display (Korean) - Date 객체를 받으므로 변경 없음
   const getWeekdayString = (date: Date): string => {
     const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+    // Date 객체의 getDay()는 로컬 시간대 기준 요일을 반환하므로 그대로 사용 가능
     return weekdays[date.getDay()];
   }
 
@@ -185,9 +188,11 @@ const TodayMissionPage: React.FC = () => {
         <h1 className="text-3xl font-bold text-pink-700">고운이의 방울방울 하루 챌린지</h1>
         <div className="text-right">
             <p className="text-lg font-semibold text-pink-600">
-                {today.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                {/* 표시 날짜도 KST 기준으로 명확하게 */}
+                {format(todayKSTObj, 'yyyy년 M월 d일', { timeZone })}
             </p>
-            <p className="text-md text-pink-500">{getWeekdayString(today)}요일</p>
+            {/* 요일 표시는 로컬 Date 객체의 getDay() 사용 가능 */}
+            <p className="text-md text-pink-500">{getWeekdayString(new Date())}요일</p>
         </div>
       </div>
 

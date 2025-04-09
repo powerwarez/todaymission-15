@@ -11,37 +11,55 @@ const playSound = (soundFile: string) => {
   audio.play().catch(e => console.error("Error playing sound:", e));
 };
 
-// 날짜를 YYYY-MM-DD 형식의 문자열로 포맷하는 헬퍼 함수
-const formatDate = (date: Date): string => {
-  return date.toISOString().split('T')[0];
-};
-
-export const useMissionLogs = (date: Date) => {
+export const useMissionLogs = (formattedDate: string) => {
   const { user } = useAuth();
   const { showBadgeNotification } = useNotification();
   const [logs, setLogs] = useState<MissionLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const formattedDate = formatDate(date); // YYYY-MM-DD
-
   const fetchLogs = useCallback(async () => {
-    if (!user) return;
-    console.log('[useMissionLogs] Fetching logs...'); // 로딩 시작 로그
+    if (!user || !formattedDate) {
+      setLogs([]);
+      setLoading(false);
+      return;
+    }
+    console.log('[useMissionLogs] Fetching logs for date:', formattedDate);
     setLoading(true);
     setError(null);
     try {
+      // completed_at 이 date 타입이라고 가정하고 단순 비교
       const { data, error: fetchError } = await supabase
-        .from('mission_logs')
+        .from('mission_logs') // 테이블 이름 확인 필요
         .select('*')
         .eq('user_id', user.id)
         .eq('completed_at', formattedDate);
 
+      // 만약 completed_at 이 timestamptz 라면 아래 범위 쿼리 사용
+      /*
+      // KST 기준 시작 시각 (00:00:00)과 종료 시각 (다음 날 00:00:00) 계산
+      const startOfDayKST = toZonedTime(`${formattedDate}T00:00:00`, timeZone).toISOString(); // toZonedTime 사용 예시 (주의: toZonedTime은 Date 객체 반환 안 함)
+      const nextDay = new Date(new Date(formattedDate + 'T00:00:00Z').getTime() + 24 * 60 * 60 * 1000);
+      const endOfDayKST = toZonedTime(`${nextDay.toISOString().split('T')[0]}T00:00:00`, timeZone).toISOString();
+
+      console.log('[useMissionLogs] Query range (timestamptz):', startOfDayKST, endOfDayKST);
+
+      const { data, error: fetchError } = await supabase
+        .from('mission_logs') // 테이블 이름 확인 필요
+        .select('*')
+        .eq('user_id', user.id)
+        // completed_at 필터링: KST 기준 하루 범위
+        .gte('completed_at', startOfDayKST)
+        .lt('completed_at', endOfDayKST);
+      */
+
       if (fetchError) throw fetchError;
+      console.log('[useMissionLogs] Fetched logs:', data);
       setLogs(data || []);
     } catch (err: unknown) {
       console.error('Error fetching mission logs:', err);
       setError('미션 기록을 불러오는 중 오류가 발생했습니다.');
+      setLogs([]); // 에러 시 빈 배열로 설정
     } finally {
       setLoading(false);
     }
@@ -51,52 +69,53 @@ export const useMissionLogs = (date: Date) => {
     fetchLogs();
   }, [fetchLogs]);
 
+  // addLog 함수 수정 (completed_at 이 date 타입 가정)
   const addLog = async (missionId: string): Promise<MissionLog | null> => {
-    if (!user) return null;
+    if (!user || !formattedDate) return null;
     try {
-      // Check if log already exists for this mission on this date
+      const todayKSTString = formattedDate;
+
       const { data: existingLog, error: checkError } = await supabase
         .from('mission_logs')
         .select('id')
         .eq('user_id', user.id)
         .eq('mission_id', missionId)
-        .eq('completed_at', formattedDate)
-        .maybeSingle(); // Use maybeSingle to handle 0 or 1 result without error
+        .eq('completed_at', todayKSTString)
+        .maybeSingle();
 
       if (checkError) throw checkError;
-      if (existingLog) return null; // Already logged
+      if (existingLog) {
+         console.log('[useMissionLogs] Log already exists for mission:', missionId, 'on date:', todayKSTString);
+         return null;
+      }
 
-      // 1. Insert the log
       const { data, error: insertError } = await supabase
         .from('mission_logs')
-        .insert({ user_id: user.id, mission_id: missionId, completed_at: formattedDate })
+        .insert({ user_id: user.id, mission_id: missionId, completed_at: todayKSTString })
         .select()
         .single();
 
       if (insertError) throw insertError;
 
-      // 2. If insert successful, increment snapshot count
       if (data) {
         const { error: incrementError } = await supabase.rpc('increment_completed_count', {
             snapshot_user_id: user.id,
-            snapshot_date: formattedDate
+            snapshot_date: todayKSTString
         });
         if (incrementError) {
             console.error('Error incrementing snapshot count:', incrementError);
-            // 카운트 증가 실패 시 롤백은 복잡하므로 일단 로그만 남김
         }
 
         setLogs((prev) => [...prev, data]);
         playSound('/sound/high_rune.flac');
 
-        // 3. Check and award badge
         try {
-            console.log('[useMissionLogs] Calling check_and_award_all_missions_badge RPC...'); // RPC 호출 직전 로그
+            console.log('[useMissionLogs] Calling check_and_award_all_missions_badge RPC...');
             const { data: badgeAwarded, error: badgeCheckError } = await supabase.rpc(
                 'check_and_award_all_missions_badge',
-                { check_user_id: user.id, check_date: formattedDate }
+                { check_user_id: user.id, check_date: todayKSTString }
             );
-            console.log('[useMissionLogs] RPC Result - badgeAwarded:', badgeAwarded, 'badgeCheckError:', badgeCheckError); // RPC 결과 로그
+            console.log('[useMissionLogs] RPC Result - badgeAwarded:', badgeAwarded, 'badgeCheckError:', badgeCheckError);
 
             if (badgeCheckError) {
                 console.error('Error checking/awarding badge:', badgeCheckError);
@@ -107,7 +126,6 @@ export const useMissionLogs = (date: Date) => {
         } catch(badgeError) {
              console.error('Failed to call badge check RPC:', badgeError);
         }
-
         return data;
       }
       return null;
@@ -118,27 +136,27 @@ export const useMissionLogs = (date: Date) => {
     }
   };
 
+  // deleteLog 함수 수정 (completed_at 이 date 타입 가정)
   const deleteLog = async (missionId: string) => {
-    if (!user) return;
+    if (!user || !formattedDate) return;
     try {
-      // 1. Delete the log
+      const todayKSTString = formattedDate;
+
       const { error: deleteError } = await supabase
         .from('mission_logs')
         .delete()
         .eq('user_id', user.id)
         .eq('mission_id', missionId)
-        .eq('completed_at', formattedDate);
+        .eq('completed_at', todayKSTString);
 
       if (deleteError) throw deleteError;
 
-      // 2. If delete successful, decrement snapshot count
       const { error: decrementError } = await supabase.rpc('decrement_completed_count', {
           snapshot_user_id: user.id,
-          snapshot_date: formattedDate
+          snapshot_date: todayKSTString
       });
       if (decrementError) {
           console.error('Error decrementing snapshot count:', decrementError);
-          // 카운트 감소 실패 시 처리 (선택적)
       }
 
       setLogs((prev) => prev.filter((log) => log.mission_id !== missionId));
