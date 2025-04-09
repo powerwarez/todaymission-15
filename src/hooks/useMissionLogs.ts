@@ -154,15 +154,57 @@ export const useMissionLogs = (formattedDate: string) => {
         console.warn('[addLog] User or formattedDate not available.');
         return null;
     }
-
-    // 상태 로드 확인 (다른 상태는 함수 내부에서 가져옴)
+    
+    // 상태 로드 확인 (totalCompletedCount는 null일 수 있음)
     if (totalMissionsToday === null) {
         console.warn('[addLog] totalMissionsToday state not loaded yet.');
         return null;
     }
 
-    // 상태 예측 로직을 제거하고, 상태 업데이트 후 조건 확인
+    // 1. 현재 상태 가져오기 (상태 업데이트 전)
+    //    Note: 상태 값을 직접 사용. 상태 업데이트는 비동기이므로, 예측을 위해 현재 값을 사용.
+    const currentCompletedToday = _completedTodayCount;
+    const currentTotalCount = _totalCompletedCount ?? 0; // null이면 0으로 간주
+    const currentPreviouslyEarnedBadges = previouslyEarnedBadgeIds; // 현재 Set 복사
 
+    // 2. 다음 상태 예측
+    const newCompletedToday = currentCompletedToday + 1;
+    const newTotalCount = currentTotalCount + 1;
+
+    console.log('[addLog] Predicting badge status based on current state:', { 
+        currentCompletedToday, currentTotalCount, totalMissionsToday, 
+        newCompletedToday, newTotalCount 
+    });
+
+    // 3. 배지 획득 조건 예측 (모든 배지)
+    const newlyEarnedBadgeIds: string[] = [];
+    const badgesToUpdateInSet = new Set<string>();
+
+    // '첫 도전'
+    const firstMissionBadgeId = 'first_mission_completed';
+    if (newTotalCount === 1 && !currentPreviouslyEarnedBadges.has(firstMissionBadgeId)) {
+       console.log('🎉 Predicted badge earn: 첫 도전');
+       newlyEarnedBadgeIds.push(firstMissionBadgeId);
+       badgesToUpdateInSet.add(firstMissionBadgeId);
+    }
+
+    // '열정 가득'
+    const tenMissionsBadgeId = 'ten_missions_completed';
+    if (newTotalCount === 10 && !currentPreviouslyEarnedBadges.has(tenMissionsBadgeId)) {
+       console.log('🎉 Predicted badge earn: 열정 가득');
+       newlyEarnedBadgeIds.push(tenMissionsBadgeId);
+       badgesToUpdateInSet.add(tenMissionsBadgeId);
+    }
+
+    // '오늘의 영웅'
+    const dailyHeroBadgeId = 'daily_hero';
+    if (totalMissionsToday > 0 && newCompletedToday >= totalMissionsToday && currentCompletedToday < totalMissionsToday) {
+       console.log('🎉 Predicted badge earn: 오늘의 영웅');
+       // 오늘의 영웅은 반복 획득 가능하므로 previouslyEarnedBadgeIds에 추가하지 않음
+       newlyEarnedBadgeIds.push(dailyHeroBadgeId); 
+    }
+
+    // --- DB 작업 시작 ---
     try {
       const todayKSTString = formattedDate;
 
@@ -175,13 +217,12 @@ export const useMissionLogs = (formattedDate: string) => {
         .eq('completed_at', todayKSTString);
 
       if (checkError) throw checkError;
-      // count를 사용하여 로그 존재 여부 확인
       if (existingLogCount && existingLogCount > 0) {
          console.log('[useMissionLogs] Log already exists.');
          return null;
       }
 
-      // 1. 로그 삽입
+      // 4. 로그 삽입
       const { data: insertedLog, error: insertError } = await supabase
         .from('mission_logs')
         .insert({ user_id: user.id, mission_id: missionId, completed_at: todayKSTString })
@@ -191,69 +232,38 @@ export const useMissionLogs = (formattedDate: string) => {
       if (insertError) throw insertError;
       if (!insertedLog) return null;
 
-      // --- 삽입 성공 시 상태 업데이트 (함수형 업데이트 사용) ---
-      const earnedBadgeIds: string[] = []; // 획득한 배지 ID 저장 (const로 변경)
-      
-      setLogs((prevLogs) => [...prevLogs, insertedLog]);
-      
-      // 오늘 완료 카운트 업데이트 및 배지 확인
-      setCompletedTodayCount(prevCount => {
-          const newCompletedToday = prevCount + 1;
-          const currentCompletedToday = prevCount; // 업데이트 전 값
-          console.log('[addLog setCompletedTodayCount] Updated:', newCompletedToday, 'Previous:', currentCompletedToday, 'Total needed:', totalMissionsToday);
-          
-          // '오늘의 영웅' 예측 (상태 업데이트 *후* 확인)
-          const dailyHeroBadgeId = 'daily_hero';
-          if (totalMissionsToday > 0 && newCompletedToday >= totalMissionsToday && currentCompletedToday < totalMissionsToday) {
-             console.log('🎉 Condition met for badge: 오늘의 영웅');
-             earnedBadgeIds.push(dailyHeroBadgeId);
-          }
-          return newCompletedToday;
-      });
-
-      // 전체 완료 카운트 업데이트 및 배지 확인
-      setTotalCompletedCount(prevCount => {
-          if (prevCount === null) return 0; // 초기값 처리
-          const newTotalCount = prevCount + 1;
-          console.log('[addLog setTotalCompletedCount] Updated:', newTotalCount, 'Previous:', prevCount);
-
-          // '첫 도전' 예측
-          const firstMissionBadgeId = 'first_mission_completed';
-          if (newTotalCount === 1 && !previouslyEarnedBadgeIds.has(firstMissionBadgeId)) {
-             console.log('🎉 Condition met for badge: 첫 도전');
-             earnedBadgeIds.push(firstMissionBadgeId);
-             setPreviouslyEarnedBadgeIds(prevSet => new Set(prevSet).add(firstMissionBadgeId));
-          }
-
-          // '열정 가득' 예측
-          const tenMissionsBadgeId = 'ten_missions_completed';
-          if (newTotalCount === 10 && !previouslyEarnedBadgeIds.has(tenMissionsBadgeId)) {
-             console.log('🎉 Condition met for badge: 열정 가득');
-             earnedBadgeIds.push(tenMissionsBadgeId);
-             setPreviouslyEarnedBadgeIds(prevSet => new Set(prevSet).add(tenMissionsBadgeId));
-          }
-          return newTotalCount;
-      });
-
-      // 상태 업데이트가 반영된 후 (약간의 지연) 알림 표시
-      // 중요: earnedBadgeIds 배열은 클로저 문제로 인해 여기서 직접 사용
-      setTimeout(() => {
-          if (earnedBadgeIds.length > 0) {
-              console.log(`🔔 Showing notifications for earned badges: ${earnedBadgeIds.join(', ')}`);
-              for (const badgeId of earnedBadgeIds) {
-                  console.log(`🔔 Queueing badge notification: ${badgeId} (${badgeId === 'ten_missions_completed' ? '열정가득' : badgeId === 'daily_hero' ? '오늘의 영웅' : '첫 도전'})`);
-                  showBadgeNotification(badgeId);
-              }
-          }
-      }, 100); // 상태 업데이트 반영될 시간 확보
-
-      // 스냅샷 카운트 증가 RPC 호출
+      // 5. 스냅샷 카운트 증가 RPC 호출 (성공 여부 중요하지 않음)
       const { error: incrementError } = await supabase.rpc('increment_completed_count', {
           snapshot_user_id: user.id,
           snapshot_date: todayKSTString
       });
       if (incrementError) {
+          // 에러 로깅만 하고 진행
           console.error('Error incrementing snapshot count:', incrementError);
+      }
+      
+      // --- DB 작업 성공 후 상태 업데이트 및 알림 --- 
+
+      // 6. 알림 표시 (예측된 모든 배지 동시 추가)
+      if (newlyEarnedBadgeIds.length > 0) {
+          console.log(`🔔 Queueing all earned badges simultaneously: ${newlyEarnedBadgeIds.join(', ')}`);
+          for (const badgeId of newlyEarnedBadgeIds) {
+              console.log(`🔔 Queueing: ${badgeId} (${badgeId === 'ten_missions_completed' ? '열정가득' : badgeId === 'daily_hero' ? '오늘의 영웅' : '첫 도전'})`);
+              showBadgeNotification(badgeId);
+          }
+      }
+      
+      // 7. 상태 업데이트 (함수형 업데이트 사용)
+      setLogs((prevLogs) => [...prevLogs, insertedLog]);
+      setCompletedTodayCount(prevCount => prevCount + 1);
+      setTotalCompletedCount(prevCount => (prevCount ?? 0) + 1);
+      // 이전에 획득한 배지 Set 업데이트 (필요한 경우)
+      if (badgesToUpdateInSet.size > 0) {
+         setPreviouslyEarnedBadgeIds(prevSet => {
+            const newSet = new Set(prevSet);
+            badgesToUpdateInSet.forEach(id => newSet.add(id));
+            return newSet;
+         });
       }
 
       playSound('/sound/high_rune.flac'); 
