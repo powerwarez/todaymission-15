@@ -80,20 +80,39 @@ const AppContent: React.FC = () => {
 
 // 최상위 App 컴포넌트: Provider들로 감싸기
 const App: React.FC = () => {
-  // useNotificationState 훅에서 isLoadingBadge도 받음
-  const { currentBadge, handleCloseNotification, showBadgeNotification, isLoadingBadge } = useNotificationState();
+  // useNotificationState 훅에서 반환 값 변경 사항 반영
+  const {
+    displayedBadges,
+    handleCloseNotification, // 이제 badgeId를 인자로 받음
+    showBadgeNotification,
+    isLoadingBadge, 
+    notificationQueue, // 추가됨
+    closeTimeoutRefs // 각 모달에서 사용
+  } = useNotificationState();
 
   return (
     <AuthProvider>
       {/* Provider에는 show 함수만 포함된 객체를 value로 전달 */}
       <NotificationProvider value={{ showBadgeNotification }}>
         <AppContent />
-        {/* 모달은 App 레벨에서 상태를 직접 받아 렌더링 */}
-        <BadgeNotificationModal
-            badge={currentBadge}
-            onClose={handleCloseNotification}
-            isLoading={isLoadingBadge}
-        />
+        {/* 모달은 displayedBadges 배열을 순회하며 여러 개 렌더링 */}
+        {displayedBadges.map((badge, index) => (
+          <BadgeNotificationModal
+            key={badge.id} // 각 모달 인스턴스는 고유 키 필요
+            badge={badge} 
+            // onClose는 이제 badgeId를 받아 handleCloseNotification 호출
+            onClose={() => handleCloseNotification(badge.id)} 
+            closeTimeoutRefs={closeTimeoutRefs} // 타임아웃 관리를 위해 Ref 전달
+            // 모달 위치를 조정하여 겹치지 않게 표시 (예: index 사용)
+            style={{ bottom: `${1 + index * 6}rem` }} // 각 모달을 위로 약간씩 올림
+          />
+        ))}
+        {/* 로딩 상태 표시 (선택 사항) */}
+        {isLoadingBadge && notificationQueue.length > 0 && (
+          <div className="fixed bottom-5 right-5 z-[9998] p-2 bg-gray-700 text-white text-xs rounded shadow-lg">
+            새로운 배지 로딩 중...
+          </div>
+        )}
       </NotificationProvider>
     </AuthProvider>
   );
