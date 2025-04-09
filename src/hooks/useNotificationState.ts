@@ -64,59 +64,54 @@ export const useNotificationState = () => {
   }, []);
 
   const handleCloseNotification = useCallback(() => {
-    console.log('[StateHook] handleCloseNotification called. Setting currentBadge to null');
+    console.log(`[StateHook] handleCloseNotification called for badge: ${currentBadge?.id}. Setting currentBadge to null`);
     
-    // 기존 타임아웃 정리
+    // 기존 타임아웃 정리 (필요하면)
     if (closeTimeoutRef.current) {
       clearTimeout(closeTimeoutRef.current);
       closeTimeoutRef.current = undefined;
     }
     
-    // 현재 배지 즉시 제거 (모달 닫힘)
+    // 현재 배지 제거 (모달 닫힘)
     setCurrentBadge(null);
     
-    // 다음 배지 처리를 위한 타임아웃 설정 (애니메이션 완료 후)
-    closeTimeoutRef.current = window.setTimeout(() => {
-      console.log('[StateHook] Close animation finished, resetting processing flag');
-      
-      // 처리 플래그 초기화 - 중요! 다음 알림 처리를 위해 필수
-      isProcessingQueue.current = false;
-      
-      // 큐에 알림이 있으면 다음 알림 처리 시작
-      if (notificationQueue.length > 0) {
-        console.log('[StateHook] Found items in queue:', notificationQueue);
-        console.log('[StateHook] Queue not empty, processing next notification');
-        
-        // 다음 알림 처리 실행
-        setTimeout(() => {
-          processNextNotification();
-        }, 100);
-      } else {
-        console.log('[StateHook] Queue empty, no more notifications to process');
-      }
-    }, 400); // 모달 애니메이션(300ms) + 약간의 여유(100ms)
-  }, [notificationQueue, processNextNotification]);
+    // 처리 플래그 즉시 리셋
+    // 중요: 여기서 플래그를 리셋해야 useEffect가 다음 알림을 즉시 처리할 수 있음
+    console.log('[StateHook] Resetting processing flag immediately after setting badge to null');
+    isProcessingQueue.current = false;
+    
+    // 다음 알림 처리는 useEffect가 currentBadge === null 조건을 감지하여 처리하도록 함
+    // 여기에 직접 processNextNotification 호출 로직 제거
+    
+  }, [currentBadge]); // currentBadge 의존성 추가 (로그용)
 
-  // 큐 업데이트 감지하여 처리 시작
+  // 큐 업데이트 감지 및 다음 알림 처리 시작
   useEffect(() => {
+    console.log(`[StateHook useEffect Check] CurrentBadge: ${currentBadge?.id}, Queue Length: ${notificationQueue.length}, Processing: ${isProcessingQueue.current}`);
     // 현재 표시 중인 배지가 없고, 큐에 항목이 있으며, 처리 중이 아닐 때 다음 알림 처리
     if (currentBadge === null && notificationQueue.length > 0 && !isProcessingQueue.current) {
       console.log('[StateHook useEffect] Conditions met, triggering processNextNotification');
-      // 약간의 지연 후 알림 처리 (상태 변경 후)
-      setTimeout(() => {
+      // 상태 변경이 반영된 후 다음 틱에서 처리하도록 setTimeout 사용 (0ms 지연)
+      const timerId = setTimeout(() => {
+        console.log('[StateHook useEffect setTimeout] Calling processNextNotification');
         processNextNotification();
-      }, 100);
+      }, 0);
+      // 클린업 함수: 컴포넌트 언마운트 또는 의존성 변경 시 타이머 취소
+      return () => clearTimeout(timerId);
+    } else {
+      console.log('[StateHook useEffect] Conditions not met for processing next notification.');
     }
+    // processNextNotification 함수는 useCallback으로 감싸져 있으므로 의존성에 추가
   }, [notificationQueue, currentBadge, processNextNotification]);
 
-  // 컴포넌트 언마운트 시 타임아웃 정리
-  useEffect(() => {
+  // 컴포넌트 언마운트 시 타임아웃 정리 (closeTimeoutRef는 handleCloseNotification에서만 사용되므로 이 effect 불필요)
+  /* useEffect(() => {
     return () => {
       if (closeTimeoutRef.current) {
         clearTimeout(closeTimeoutRef.current);
       }
     };
-  }, []);
+  }, []); */
 
   return {
     currentBadge,
