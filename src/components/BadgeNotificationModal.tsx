@@ -27,47 +27,61 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({
   // 닫기 시작 함수 (타이머 또는 X 버튼에서 호출)
   const initiateClose = useCallback(() => {
     // 이미 닫는 중이거나 보이지 않으면 실행 안함
-    if (!internalVisible || isClosing.current) return;
+    if (isClosing.current) return;
 
+    // internalVisible 상태를 다시 체크할 필요 없이 바로 닫기 시작
     console.log(`[Modal initiateClose] Starting closing process for badge: ${badge.id}`);
     isClosing.current = true; // 닫기 시작 플래그
-    setInternalVisible(false); // 페이드 아웃 애니메이션 시작
 
     // 자동 닫기 타이머 클리어 (자체 관리)
     if (autoCloseTimerRef.current) {
+      console.log(`[Modal initiateClose] Clearing self auto-close timer for badge: ${badge.id}`);
       clearTimeout(autoCloseTimerRef.current);
       autoCloseTimerRef.current = undefined;
-      console.log(`[Modal initiateClose] Cleared self auto-close timer for badge: ${badge.id}`);
     }
     // 애니메이션 타이머 클리어 (중복 방지)
     if (closeAnimTimerRef.current) {
       clearTimeout(closeAnimTimerRef.current);
       closeAnimTimerRef.current = undefined;
     }
+    
+    // 페이드 아웃 애니메이션 시작 (상태 변경)
+    setInternalVisible(false); 
 
     // 애니메이션 시간 후 부모 onClose 호출
     closeAnimTimerRef.current = window.setTimeout(() => {
       console.log(`[Modal initiateClose] Animation finished, calling parent onClose for badge: ${badge.id}`);
-      onClose(); // 부모에게 알림 닫혔음을 알림 (badgeId는 부모가 알고 있음)
+      // 부모 컴포넌트에게 알림 (App.tsx에서 displayedBadges 업데이트)
+      onClose(); 
+      
+      // 타이머 정리 (필수)
       closeAnimTimerRef.current = undefined;
+      // isClosing 플래그는 여기서 리셋하면 안됨. 컴포넌트가 제거된 후에야 안전.
+      // isClosing.current = false; 
     }, 300); // CSS transition duration
+
   }, [onClose, badge.id]);
 
   // 모달 표시 및 자동 닫기 타이머 설정 Effect
   useEffect(() => {
-    console.log(`[Modal useEffect] Mounting or badge changed for ID: ${badge.id}`);
-    // 컴포넌트가 마운트되면 즉시 표시
-    setInternalVisible(true);
-    isClosing.current = false;
+    console.log(`[Modal useEffect] Setting up for badge: ${badge.id}`);
+    // 항상 마운트 시 표시 시작
+    isClosing.current = false; // 닫기 플래그 초기화
+    setInternalVisible(true); // 페이드 인 시작
 
-    // 자동 닫기 타이머 설정 (자체 관리)
+    // 기존 타이머 클리어 (마운트/업데이트 시)
+    if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
+    if (closeAnimTimerRef.current) clearTimeout(closeAnimTimerRef.current);
+    
+    // 새로운 자동 닫기 타이머 설정 (자체 관리)
     console.log(`[Modal useEffect] Starting auto-close timer (3s) for badge: ${badge.id}`);
     autoCloseTimerRef.current = window.setTimeout(() => {
       console.log(`[Modal setTimeout] Auto-closing modal for badge: ${badge.id}`);
-      initiateClose(); // 3초 후 닫기 시작
+      // initiateClose 호출 전 isClosing 상태 확인 불필요 (initiateClose 내부에서 확인)
+      initiateClose(); 
     }, 3000);
-    
-    // 클린업 함수: 언마운트 시 타이머 정리
+
+    // 클린업 함수: 언마운트 시 모든 타이머 정리
     return () => {
       console.log(`[Modal useEffect Cleanup] Clearing timers for badge: ${badge.id}`);
       if (autoCloseTimerRef.current) {
@@ -79,7 +93,6 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({
           closeAnimTimerRef.current = undefined;
       }
     };
-    // initiateClose는 useCallback으로 감싸져 있고 의존성이 변경되지 않는다면 포함 가능
   }, [badge.id, initiateClose]);
 
   // 이미지 URL 생성 함수 (변경 없음)

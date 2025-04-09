@@ -15,9 +15,9 @@ export const useNotificationState = () => {
   console.log('[StateHook] Running/Re-rendering. Queue:', notificationQueue, 'Displayed:', displayedBadges.map(b => b.id));
 
   // 큐에서 다음 항목 처리 함수
-  const processNextInQueue = useCallback(async () => {
-    // 다시 확인: 처리 중이거나 큐가 비었으면 중단
-    if (isProcessingQueue.current || notificationQueue.length === 0) {
+  const processNextInQueue = useCallback(async (queue: string[]) => {
+    // 함수 호출 시점의 큐 상태를 사용
+    if (isProcessingQueue.current || queue.length === 0) {
         console.log("[StateHook processNextInQueue] Skipping: Already processing or queue empty.");
         return;
     }
@@ -25,12 +25,12 @@ export const useNotificationState = () => {
     isProcessingQueue.current = true;
     setIsLoadingBadge(true);
     
-    // 큐의 첫 번째 항목 처리
-    const nextBadgeId = notificationQueue[0];
+    const nextBadgeId = queue[0];
     console.log(`[StateHook] Processing queue, next ID: ${nextBadgeId}`);
     
     // 상태 업데이트: 큐에서 처리 시작한 ID 제거 (함수형 업데이트)
-    setNotificationQueue(prevQueue => prevQueue.slice(1));
+    // 중요: 여기서 큐를 업데이트하면 useEffect가 다시 실행될 수 있음
+    setNotificationQueue(prevQueue => prevQueue.slice(1)); 
 
     try {
       const { data: badgeData, error: fetchError } = await supabase
@@ -43,13 +43,11 @@ export const useNotificationState = () => {
 
       if (badgeData) {
         console.log('[StateHook] Fetched badge data, adding to displayedBadges:', badgeData.id);
-        // 함수형 업데이트: 최신 상태 기반으로 추가
         setDisplayedBadges(prevBadges => {
-          // 이미 표시된 배지가 아닌 경우에만 추가
           if (!prevBadges.some(b => b.id === badgeData.id)) {
             return [...prevBadges, badgeData as Badge];
           }
-          return prevBadges; // 중복이면 변경 없음
+          return prevBadges;
         });
       } else {
         console.warn('[StateHook] Badge data not found for id:', nextBadgeId);
@@ -59,13 +57,12 @@ export const useNotificationState = () => {
     } finally {
        setIsLoadingBadge(false);
        // 처리가 끝났으므로 플래그 리셋
+       // 중요: 이 플래그가 false가 된 후 useEffect가 다시 트리거되어야 함
        isProcessingQueue.current = false;
        console.log('[StateHook] Finished processing ID:', nextBadgeId, 'Reset processing flag.');
-       
-       // finally 블록 내에서 다음 처리 시작 로직 제거
-       // 다음 처리는 useEffect가 notificationQueue 변경 + isProcessingQueue 상태를 보고 트리거
     }
-  }, [notificationQueue]); // notificationQueue가 변경될 때 이 함수 자체는 재생성되지만, 호출은 useEffect가 관리
+  // 의존성 배열에서 notificationQueue 제거. queue 인자를 통해 최신 상태 받음
+  }, []); 
 
   // 큐 상태 변경 감지 및 처리 시작
   useEffect(() => {
@@ -73,18 +70,17 @@ export const useNotificationState = () => {
     // 처리 중이 아니고 큐에 항목이 있을 때만 처리 시작
     if (!isProcessingQueue.current && notificationQueue.length > 0) {
       console.log("[StateHook useEffect] Triggering processNextInQueue.");
-      processNextInQueue();
+      // 현재 시점의 notificationQueue를 인자로 전달
+      processNextInQueue(notificationQueue);
     } else {
        console.log("[StateHook useEffect] Conditions not met, not triggering process.");
     }
-    // processNextInQueue 함수가 notificationQueue에 의존하므로, notificationQueue가 변경되면
-    // processNextInQueue 함수도 변경되고, 이 useEffect도 다시 실행됨.
-    // isProcessingQueue.current는 ref이므로 의존성 배열에 넣지 않아도 됨.
+    // processNextInQueue는 useCallback으로 감싸져 있고 의존성이 없으므로,
+    // 이 useEffect는 notificationQueue가 변경될 때만 실행됨.
   }, [notificationQueue, processNextInQueue]); 
 
   const showBadgeNotification = useCallback((badgeId: string) => {
     console.log(`[StateHook] Queuing badgeId: ${badgeId}`);
-    // 큐에 중복 ID가 없으면 추가 (함수형 업데이트)
     setNotificationQueue(prevQueue => {
       if (!prevQueue.includes(badgeId)) {
         return [...prevQueue, badgeId];
