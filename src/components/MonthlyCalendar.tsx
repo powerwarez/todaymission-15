@@ -1,5 +1,9 @@
 import React from 'react';
 import { DailyMissionSnapshot } from '../types'; // MissionLog 대신 Snapshot 타입 사용
+import { formatInTimeZone } from 'date-fns-tz'; // KST 포맷 함수 import
+
+// 시간대 정의
+const timeZone = 'Asia/Seoul';
 
 interface MonthlyCalendarProps {
   year: number;
@@ -16,21 +20,27 @@ const processSnapshots = (snapshots: DailyMissionSnapshot[]): Map<string, DailyM
   return snapshotsByDate;
 };
 
-// 날짜를 YYYY-MM-DD 형식으로 포맷
-const formatDate = (date: Date): string => {
-  return date.toISOString().split('T')[0];
+// KST 기준 날짜 포맷 함수
+const formatDateKST = (date: Date): string => {
+  return formatInTimeZone(date, timeZone, 'yyyy-MM-dd');
 };
 
 const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ year, month, snapshots }) => {
   const snapshotsByDate = processSnapshots(snapshots);
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const firstDayOfMonth = new Date(year, month - 1, 1).getDay(); // 0 (Sun) - 6 (Sat)
+  // year, month는 UTC 기준 월의 1일을 나타내는 Date 객체에서 추출된 값
+  // Date.UTC로 날짜 계산 후 getUTCDate() 사용
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  // Date.UTC로 날짜 계산 후 getUTCDay() 사용
+  const firstDayOfMonth = new Date(Date.UTC(year, month - 1, 1)).getUTCDay(); // 0 (Sun) - 6 (Sat)
 
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
   const leadingEmptyDays = Array.from({ length: firstDayOfMonth });
 
   const getDayStyle = (day: number): string => {
-    const dateStr = formatDate(new Date(year, month - 1, day));
+    // 해당 날짜 칸의 KST 기준 날짜 문자열 생성
+    // Date.UTC를 사용하여 명확하게 UTC 자정 기준으로 Date 객체 생성 후 KST로 포맷
+    const dateObjForDay = new Date(Date.UTC(year, month - 1, day));
+    const dateStr = formatDateKST(dateObjForDay);
     const snapshot = snapshotsByDate.get(dateStr);
 
     if (!snapshot || snapshot.total_missions_count === 0) {
@@ -57,9 +67,14 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ year, month, snapshot
   };
 
   const renderDay = (day: number) => {
-    const dateStr = formatDate(new Date(year, month - 1, day));
+    // 해당 날짜 칸의 KST 기준 날짜 문자열 생성
+    const dateObjForDay = new Date(Date.UTC(year, month - 1, day));
+    const dateStr = formatDateKST(dateObjForDay);
     const snapshot = snapshotsByDate.get(dateStr);
-    const isToday = dateStr === formatDate(new Date());
+
+    // 오늘 날짜 비교도 KST 기준으로
+    const todayStr = formatDateKST(new Date());
+    const isToday = dateStr === todayStr;
 
     const completedCount = snapshot?.completed_missions_count ?? 0;
     const totalCount = snapshot?.total_missions_count;
@@ -74,7 +89,7 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({ year, month, snapshot
         {snapshot && totalCount !== undefined && totalCount > 0 && (
           <span className="text-xs mt-1">{`${completedCount}/${totalCount}`}</span>
         )}
-        {/* 스냅샷은 없지만 날짜는 있는 경우 (미래 날짜 등) 빈 칸 유지 */} 
+        {/* 스냅샷은 없지만 날짜는 있는 경우 (미래 날짜 등) 빈 칸 유지 */}
       </div>
     );
   };
