@@ -1,47 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { Badge } from '../types'; // Badge 타입 정의 필요 (또는 필요한 속성만 정의)
+import React from 'react'; // useState, useEffect 제거 (useNotificationState에서 관리)
+import { Badge } from '../types'; // Badge 타입
 import { LuX, LuBadgeCheck } from 'react-icons/lu';
 
 interface BadgeNotificationModalProps {
-  badge: Badge | null; // 표시할 배지 정보 (null이면 숨김)
-  onClose: () => void; // 닫기 함수
+  badge: Badge | null;
+  onClose: () => void;
+  isLoading: boolean; // isLoading prop 추가
 }
 
-const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, onClose }) => {
-  const [isVisible, setIsVisible] = useState(false);
-  // console.log('[Modal] Rendering. Badge:', badge, 'isVisible:', isVisible);
-
-  useEffect(() => {
-    // console.log('[Modal useEffect] Running. New badge prop:', badge);
-    if (badge) {
-      // console.log('[Modal useEffect] Badge found, setting isVisible to true.');
-      setIsVisible(true);
-      // 5초 후에 자동으로 닫기
-      const timer = setTimeout(() => {
-        // console.log('[Modal setTimeout] Closing modal automatically.');
-        handleClose();
-      }, 5000);
-      return () => {
-        // console.log('[Modal useEffect Cleanup] Clearing timeout.');
-        clearTimeout(timer);
-      }
-    } else {
-      // console.log('[Modal useEffect] Badge is null, setting isVisible to false.');
-      // badge가 null이면 즉시 숨김 (이 경우는 handleClose를 통해 이미 false가 될 것임)
-      // 하지만 초기 렌더링 시 badge가 null이면 이 부분이 실행될 수 있음
-      setIsVisible(false);
-    }
-  }, [badge]); // badge 객체가 변경될 때마다 실행
+const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, isLoading, onClose }) => {
+  // isVisible 상태 및 관련 useEffect 제거 (이제 상위에서 isLoading과 badge로 제어)
 
   const handleClose = () => {
-    // console.log('[Modal handleClose] Setting isVisible to false.');
-    setIsVisible(false);
-    // 애니메이션 시간(300ms) 후 onClose 호출하여 부모 상태 업데이트
-    // console.log('[Modal handleClose] Calling parent onClose after 300ms.');
-    setTimeout(onClose, 300);
+    // 애니메이션 효과를 원한다면, 여기서 바로 onClose를 호출하는 대신
+    // 내부 상태(e.g., closing)를 변경하고 애니메이션 후 onClose 호출
+    onClose();
   };
 
-  // 이미지 URL 생성 함수 주석 해제
+  // 이미지 URL 생성 함수 (변경 없음)
   const getBadgeImageUrl = (imagePath: string | undefined): string => {
     if (!imagePath) return '/placeholder_badge.png';
     if (imagePath.startsWith('http')) {
@@ -55,19 +31,26 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
     return `${supabaseUrl}/storage/v1/object/public/${bucketName}/${cleanRelativePath}`;
   };
 
+  // badge가 null이고 로딩 중도 아닐 때 컴포넌트 자체를 렌더링하지 않음
+  if (!badge && !isLoading) {
+    return null;
+  }
+
   return (
+    // isVisible 대신 badge 존재 여부와 isLoading으로 표시 제어
     <div
-      className={`fixed bottom-5 right-5 z-[9999] w-full max-w-sm transition-all duration-300 ease-in-out ${
-        isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-      } ${
-        !badge ? 'pointer-events-none' : '' // 숨겨졌을 때 클릭 방지
+      className={`fixed bottom-5 right-5 z-[9999] w-full max-w-sm transition-opacity duration-300 ease-in-out ${
+        (badge || isLoading) ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}
     >
-      {badge && (
-        <div className="bg-white rounded-lg shadow-xl border border-pink-200 overflow-hidden">
-          <div className="p-4">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
+       {/* 모달 내용 렌더링 로직은 이전과 유사하게 isLoading과 badge 상태 사용 */}
+       <div className="bg-white rounded-lg shadow-xl border border-pink-200 overflow-hidden">
+         <div className="p-4">
+           {isLoading ? (
+             <p className="text-center text-gray-500">배지 정보 로딩 중...</p>
+           ) : badge ? (
+             <div className="flex items-center">
+               <div className="flex-shrink-0">
                  <img
                     className="h-12 w-12 object-contain mr-3"
                     src={getBadgeImageUrl(badge.image_path)}
@@ -98,10 +81,10 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
                   <LuX className="h-5 w-5" aria-hidden="true" />
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+             </div>
+           ) : null }
+         </div>
+       </div>
     </div>
   );
 };

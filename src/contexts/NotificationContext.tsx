@@ -2,7 +2,7 @@ import React, { createContext, useContext, ReactNode } from 'react';
 
 // Context가 제공할 값의 타입 정의 (show 함수만)
 interface NotificationContextType {
-  showBadgeNotification: (badgeId: string) => Promise<void>;
+  showBadgeNotification: (badgeId: string) => void;
 }
 
 // Context 생성

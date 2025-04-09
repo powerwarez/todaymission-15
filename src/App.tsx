@@ -80,8 +80,8 @@ const AppContent: React.FC = () => {
 
 // 최상위 App 컴포넌트: Provider들로 감싸기
 const App: React.FC = () => {
-  // useNotificationState 훅을 여기서 직접 사용
-  const { currentBadge, handleCloseNotification, showBadgeNotification } = useNotificationState();
+  // useNotificationState 훅에서 isLoadingBadge도 받음
+  const { currentBadge, handleCloseNotification, showBadgeNotification, isLoadingBadge } = useNotificationState();
 
   return (
     <AuthProvider>
@@ -92,6 +92,7 @@ const App: React.FC = () => {
         <BadgeNotificationModal
             badge={currentBadge}
             onClose={handleCloseNotification}
+            isLoading={isLoadingBadge}
         />
       </NotificationProvider>
     </AuthProvider>
