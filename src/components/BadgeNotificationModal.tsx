@@ -14,43 +14,48 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
   // useRef 초기값 undefined 명시
   const autoCloseTimerRef = useRef<number | undefined>(undefined);
   const closeAnimTimerRef = useRef<number | undefined>(undefined);
+  // 닫기 진행 중 상태 Ref (중복 호출 방지용)
+  const isClosing = useRef(false);
 
   // handleClose 정의를 useEffect보다 위로 이동하고 useCallback 적용
   const handleClose = useCallback(() => {
-      // 이미 닫는 중이면 중복 실행 방지
-      if (!internalVisible) return;
+    // 이미 닫는 중이거나 보이지 않으면 실행 안함
+    if (!internalVisible || isClosing.current) return;
 
-      console.log('[Modal handleClose] Start closing animation.');
-      setInternalVisible(false); // 페이드 아웃 시작
+    console.log('[Modal handleClose] Start closing animation.');
+    isClosing.current = true; // 닫기 시작 플래그
+    setInternalVisible(false); // 페이드 아웃 애니메이션 시작
 
-      // 진행 중인 자동 닫기 타이머가 있다면 취소
-      if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
-      // 이전 닫기 애니메이션 타이머도 취소
-      if (closeAnimTimerRef.current) clearTimeout(closeAnimTimerRef.current);
+    // 기존 타이머들 클리어
+    if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
+    if (closeAnimTimerRef.current) clearTimeout(closeAnimTimerRef.current);
 
-      // 애니메이션 시간 후 부모 onClose 호출 (window.setTimeout 사용)
-      closeAnimTimerRef.current = window.setTimeout(() => {
-           console.log('[Modal handleClose] Animation finished, calling parent onClose.');
-           onClose(); // 부모 상태 업데이트 요청 (currentBadge=null, isProcessingQueue=false)
-      }, 300); // opacity transition duration (300ms)
-  // internalVisible을 의존성에 추가하여 항상 최신 상태 참조
+    // 애니메이션 시간(300ms) 후 부모 onClose 호출
+    closeAnimTimerRef.current = window.setTimeout(() => {
+      console.log('[Modal handleClose] Animation finished, calling parent onClose.');
+      onClose(); // 부모에게 알림 닫혔음을 알림
+      isClosing.current = false; // 닫기 완료 플래그 리셋
+    }, 300); // CSS transition duration과 일치
   }, [internalVisible, onClose]);
 
   // 자동 닫기 및 표시 상태 관리
   useEffect(() => {
-    // 로딩 중 아니고 새 배지 있으면 표시 & 자동 닫기 설정
+    // 로딩 중 아니고 새 배지가 도착했을 때
     if (!isLoading && badge) {
       console.log('[Modal useEffect] Showing modal for badge:', badge.id);
-      // 이전 타이머들 취소
-      if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
+      // 진행 중인 닫기 애니메이션 타이머 취소 (필수)
       if (closeAnimTimerRef.current) clearTimeout(closeAnimTimerRef.current);
-      setInternalVisible(true); // 표시 시작
+      isClosing.current = false; // 닫기 플래그 리셋
+      setInternalVisible(true); // 모달 표시 (페이드 인)
 
+      // 새로운 자동 닫기 타이머 설정
+      // 이전 자동 닫기 타이머 취소
+      if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
       console.log('[Modal useEffect] Starting auto-close timer for badge:', badge.id);
-      autoCloseTimerRef.current = window.setTimeout(() => { // window.setTimeout 사용
+      autoCloseTimerRef.current = window.setTimeout(() => {
         console.log('[Modal setTimeout] Auto-closing modal for badge:', badge.id);
-        handleClose(); // 이제 useCallback으로 감싸진 함수 사용
-      }, 5000); // 5초
+        handleClose(); // 5초 후 닫기 함수 호출
+      }, 5000);
     } else if (!isLoading && !badge && internalVisible) {
        // 로딩중 아니면서, badge는 null인데 아직 internalVisible=true인 경우 (닫기 시작됨)
        // 이 경우는 handleClose에서 처리하므로 여기서 setInternalVisible(false)를 호출할 필요는 없음.
@@ -61,6 +66,7 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
     // Cleanup
     return () => {
       if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
+      // 닫기 애니메이션 타이머는 handleClose에서 관리하지만, 만약을 위해 여기서도 정리
       if (closeAnimTimerRef.current) clearTimeout(closeAnimTimerRef.current);
     };
   // useEffect 의존성 배열에 handleClose 추가
