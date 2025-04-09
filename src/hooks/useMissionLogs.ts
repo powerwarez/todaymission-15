@@ -109,24 +109,29 @@ export const useMissionLogs = (formattedDate: string) => {
         setLogs((prev) => [...prev, data]);
         playSound('/sound/high_rune.flac');
 
-        // 3. 배지 획득 여부 확인 및 알림 (새로운 RPC 호출)
+        // 3. 새로 획득한 배지 확인 및 알림 (새로운 RPC 호출)
         try {
-          console.log('[useMissionLogs] Calling check_if_daily_hero_earned_today RPC...');
-          const { data: wasEarnedToday, error: badgeCheckError } = await supabase.rpc(
-              'check_if_daily_hero_earned_today',
-              { p_user_id: user.id, p_check_date: todayKSTString } // KST 날짜 전달
+          console.log('[useMissionLogs] Calling get_newly_earned_badges_on_completion RPC...');
+          const { data: newlyEarnedBadgeIds, error: badgeCheckError } = await supabase.rpc(
+              'get_newly_earned_badges_on_completion',
+              { p_user_id: user.id, p_completed_date: todayKSTString }
           );
-          console.log('[useMissionLogs] RPC Result - wasEarnedToday:', wasEarnedToday, 'badgeCheckError:', badgeCheckError);
+          console.log('[useMissionLogs] RPC Result - newlyEarnedBadgeIds:', newlyEarnedBadgeIds, 'badgeCheckError:', badgeCheckError);
 
           if (badgeCheckError) {
-              console.error('Error checking if daily hero earned today:', badgeCheckError);
-          } else if (wasEarnedToday === true) {
-              console.log('🎉 Daily hero badge earned today!');
-              // 'daily_hero' 배지 ID를 challenges 테이블에서 확인하고 정확히 사용해야 함
-              showBadgeNotification('daily_hero');
+              console.error('Error checking for newly earned badges:', badgeCheckError);
+          } else if (newlyEarnedBadgeIds && newlyEarnedBadgeIds.length > 0) {
+              console.log(`🎉 Newly earned badges: ${newlyEarnedBadgeIds.join(', ')}`);
+              // 각 배지에 대해 알림 표시 (순차적 또는 한번에)
+              // 여기서는 첫 번째 배지만 알림 (필요시 수정)
+              if (newlyEarnedBadgeIds[0]) {
+                 showBadgeNotification(newlyEarnedBadgeIds[0]);
+              }
+              // 여러 개 동시 표시 로직 추가 가능
+              // newlyEarnedBadgeIds.forEach(badgeId => showBadgeNotification(badgeId));
           }
         } catch(badgeError) {
-           console.error('Failed to call badge check RPC:', badgeError);
+           console.error('Failed to call new badge check RPC:', badgeError);
         }
 
         return data;
