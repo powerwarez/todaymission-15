@@ -230,9 +230,12 @@ export const useMissionLogs = (formattedDate: string) => {
 
         // 알림 표시
         if (newlyEarnedBadgeIdsForNotification.length > 0) {
-            console.log(`🔔 Showing notifications for: ${newlyEarnedBadgeIdsForNotification.join(', ')}`);
-            // 모든 배지에 대해 알림 표시 (순차적으로 큐에 추가)
-            newlyEarnedBadgeIdsForNotification.forEach(badgeId => {
+            console.log(`🔔 Showing notifications for earned badges: ${newlyEarnedBadgeIdsForNotification.join(', ')}`);
+            
+            // 중요: 역순으로 추가하여 첫 번째 배지가 먼저 표시되도록 함
+            // (큐는 FIFO 방식으로 처리되므로 마지막에 추가된 항목이 나중에 처리됨)
+            [...newlyEarnedBadgeIdsForNotification].reverse().forEach(badgeId => {
+              console.log(`🔔 Queueing badge notification: ${badgeId}`);
               showBadgeNotification(badgeId);
             });
         }
