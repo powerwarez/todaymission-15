@@ -232,12 +232,11 @@ export const useMissionLogs = (formattedDate: string) => {
         if (newlyEarnedBadgeIdsForNotification.length > 0) {
             console.log(`🔔 Showing notifications for earned badges: ${newlyEarnedBadgeIdsForNotification.join(', ')}`);
             
-            // 중요: 역순으로 추가하여 첫 번째 배지가 먼저 표시되도록 함
-            // (큐는 FIFO 방식으로 처리되므로 마지막에 추가된 항목이 나중에 처리됨)
-            [...newlyEarnedBadgeIdsForNotification].reverse().forEach(badgeId => {
-              console.log(`🔔 Queueing badge notification: ${badgeId}`);
+            // 배지 ID를 획득 순서대로 처리 (첫 번째가 먼저 표시되도록)
+            for (const badgeId of newlyEarnedBadgeIdsForNotification) {
+              console.log(`🔔 Queueing badge notification: ${badgeId} (${badgeId === 'ten_missions_completed' ? '열정가득' : badgeId === 'daily_hero' ? '오늘의 영웅' : '첫 도전'})`);
               showBadgeNotification(badgeId);
-            });
+            }
         }
 
         // 스냅샷 카운트 증가는 DB 정합성을 위해 계속 호출

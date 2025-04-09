@@ -78,14 +78,23 @@ export const useNotificationState = () => {
     // 다음 배지 처리를 위한 타임아웃 설정 (애니메이션 완료 후)
     closeTimeoutRef.current = window.setTimeout(() => {
       console.log('[StateHook] Close animation finished, resetting processing flag');
+      
+      // 처리 플래그 초기화 - 중요! 다음 알림 처리를 위해 필수
       isProcessingQueue.current = false;
       
-      // 타임아웃 안에서 다음 알림 체크/처리
+      // 큐에 알림이 있으면 다음 알림 처리 시작
       if (notificationQueue.length > 0) {
+        console.log('[StateHook] Found items in queue:', notificationQueue);
         console.log('[StateHook] Queue not empty, processing next notification');
-        processNextNotification();
+        
+        // 다음 알림 처리 실행
+        setTimeout(() => {
+          processNextNotification();
+        }, 100);
+      } else {
+        console.log('[StateHook] Queue empty, no more notifications to process');
       }
-    }, 500); // 모달 애니메이션(300ms) + 약간의 여유(200ms)
+    }, 400); // 모달 애니메이션(300ms) + 약간의 여유(100ms)
   }, [notificationQueue, processNextNotification]);
 
   // 큐 업데이트 감지하여 처리 시작
@@ -93,7 +102,10 @@ export const useNotificationState = () => {
     // 현재 표시 중인 배지가 없고, 큐에 항목이 있으며, 처리 중이 아닐 때 다음 알림 처리
     if (currentBadge === null && notificationQueue.length > 0 && !isProcessingQueue.current) {
       console.log('[StateHook useEffect] Conditions met, triggering processNextNotification');
-      processNextNotification();
+      // 약간의 지연 후 알림 처리 (상태 변경 후)
+      setTimeout(() => {
+        processNextNotification();
+      }, 100);
     }
   }, [notificationQueue, currentBadge, processNextNotification]);
 

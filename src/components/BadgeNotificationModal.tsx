@@ -39,9 +39,12 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
     // 애니메이션 시간 후 부모 onClose 호출
     closeAnimTimerRef.current = window.setTimeout(() => {
       console.log('[Modal initiateClose] Animation finished, calling parent onClose.');
-      onClose(); // 부모에게 알림 닫혔음을 알림
-      isClosing.current = false; // 닫기 완료 플래그 리셋
-      closeAnimTimerRef.current = undefined; // 타이머 참조 초기화
+      // 부모에게 알림 닫혔음을 알림
+      onClose(); 
+      
+      // 타이머 정리 및 상태 리셋
+      closeAnimTimerRef.current = undefined;
+      isClosing.current = false;
     }, 300); // CSS transition duration
   }, [internalVisible, onClose]);
 
@@ -70,10 +73,11 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
       console.log('[Modal useEffect] Starting auto-close timer for badge:', badge.id);
       autoCloseTimerRef.current = window.setTimeout(() => {
         console.log('[Modal setTimeout] Auto-closing modal for badge:', badge.id);
-        initiateClose(); // 4초 후 닫기 시작
+        initiateClose(); // 3초 후 닫기 시작
       }, 3000);
-    } else if (internalVisible && (!badge || isLoading) && !isClosing.current) {
-       // badge가 null이 되거나 로딩 상태가 되면 (부모 상태 변경) 즉시 닫기 시작
+    } 
+    // badge가 null이 되거나 로딩 상태가 되면 즉시 닫기 시작 (이미 닫는 중이 아닐 경우에만)
+    else if (internalVisible && (!badge || isLoading) && !isClosing.current) {
        console.log('[Modal useEffect] Badge became null or isLoading became true, initiating close.');
        initiateClose();
     }
