@@ -19,9 +19,9 @@ export const useMissionLogs = (formattedDate: string) => {
   const [error, setError] = useState<string | null>(null);
 
   // 오늘 완료된 로그 수 상태 추가 (예측용)
-  const [completedTodayCount, setCompletedTodayCount] = useState(0);
+  const [_completedTodayCount, setCompletedTodayCount] = useState(0);
   // 전체 완료 로그 수 상태 추가 (예측용)
-  const [totalCompletedCount, setTotalCompletedCount] = useState<number | null>(null);
+  const [_totalCompletedCount, setTotalCompletedCount] = useState<number | null>(null);
   // 오늘 필요한 총 미션 수 상태 추가 (예측용)
   const [totalMissionsToday, setTotalMissionsToday] = useState<number | null>(null);
   // 이전에 획득한 배지 ID 목록 상태 추가 (예측용, Set 사용) - 최초 획득 확인용
