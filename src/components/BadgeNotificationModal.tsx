@@ -17,60 +17,60 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
   // 닫기 진행 중 상태 Ref (중복 호출 방지용)
   const isClosing = useRef(false);
 
-  // handleClose 정의를 useEffect보다 위로 이동하고 useCallback 적용
-  const handleClose = useCallback(() => {
+  // 닫기 시작 함수 (타이머 또는 X 버튼에서 호출)
+  const initiateClose = useCallback(() => {
     // 이미 닫는 중이거나 보이지 않으면 실행 안함
     if (!internalVisible || isClosing.current) return;
 
-    console.log('[Modal handleClose] Start closing animation.');
+    console.log('[Modal initiateClose] Starting closing process.');
     isClosing.current = true; // 닫기 시작 플래그
     setInternalVisible(false); // 페이드 아웃 애니메이션 시작
 
-    // 기존 타이머들 클리어
+    // 기존 타이머들 클리어 (중복 방지)
     if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
     if (closeAnimTimerRef.current) clearTimeout(closeAnimTimerRef.current);
 
-    // 애니메이션 시간(300ms) 후 부모 onClose 호출
+    // 애니메이션 시간 후 부모 onClose 호출
     closeAnimTimerRef.current = window.setTimeout(() => {
-      console.log('[Modal handleClose] Animation finished, calling parent onClose.');
+      console.log('[Modal initiateClose] Animation finished, calling parent onClose.');
       onClose(); // 부모에게 알림 닫혔음을 알림
       isClosing.current = false; // 닫기 완료 플래그 리셋
-    }, 300); // CSS transition duration과 일치
+    }, 300); // CSS transition duration
   }, [internalVisible, onClose]);
 
-  // 자동 닫기 및 표시 상태 관리
+  // 표시 상태 및 자동 닫기 타이머 관리 Effect
   useEffect(() => {
+    // 이전 타이머 정리 (중요)
+    const clearTimers = () => {
+        if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
+        if (closeAnimTimerRef.current) clearTimeout(closeAnimTimerRef.current);
+    }
+
     // 로딩 중 아니고 새 배지가 도착했을 때
     if (!isLoading && badge) {
-      console.log('[Modal useEffect] Showing modal for badge:', badge.id);
-      // 진행 중인 닫기 애니메이션 타이머 취소 (필수)
-      if (closeAnimTimerRef.current) clearTimeout(closeAnimTimerRef.current);
-      isClosing.current = false; // 닫기 플래그 리셋
+      console.log('[Modal useEffect] Received new badge:', badge.id);
+      clearTimers(); // 이전 타이머 확실히 제거
+      isClosing.current = false; // 새 배지이므로 닫기 플래그 리셋
       setInternalVisible(true); // 모달 표시 (페이드 인)
 
       // 새로운 자동 닫기 타이머 설정
-      // 이전 자동 닫기 타이머 취소
-      if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
       console.log('[Modal useEffect] Starting auto-close timer for badge:', badge.id);
       autoCloseTimerRef.current = window.setTimeout(() => {
         console.log('[Modal setTimeout] Auto-closing modal for badge:', badge.id);
-        handleClose(); // 5초 후 닫기 함수 호출
+        initiateClose(); // 5초 후 닫기 시작
       }, 5000);
-    } else if (!isLoading && !badge && internalVisible) {
-       // 로딩중 아니면서, badge는 null인데 아직 internalVisible=true인 경우 (닫기 시작됨)
-       // 이 경우는 handleClose에서 처리하므로 여기서 setInternalVisible(false)를 호출할 필요는 없음.
-       // 단, 외부에서 badge가 null로 바뀌면(예: 부모 상태 변경) internalVisible도 false로 맞춰줌
-       // setInternalVisible(false); // 이 줄은 handleClose를 통해 제어되므로 불필요
+    } else if (internalVisible && (!badge || isLoading)) {
+       // badge가 null이 되거나 로딩 상태가 되면 (부모 상태 변경) 즉시 닫기 시작
+       // (이미 닫기 진행 중이 아닐 경우에만)
+       if (!isClosing.current) {
+           console.log('[Modal useEffect] Badge became null or isLoading became true, initiating close.');
+           initiateClose();
+       }
     }
 
-    // Cleanup
-    return () => {
-      if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
-      // 닫기 애니메이션 타이머는 handleClose에서 관리하지만, 만약을 위해 여기서도 정리
-      if (closeAnimTimerRef.current) clearTimeout(closeAnimTimerRef.current);
-    };
-  // useEffect 의존성 배열에 handleClose 추가
-  }, [badge, isLoading, handleClose]);
+    // 컴포넌트 언마운트 시 타이머 정리
+    return clearTimers;
+  }, [badge, isLoading, initiateClose]); // initiateClose는 useCallback으로 감싸져 있음
 
   // 이미지 URL 생성 함수 (변경 없음)
   const getBadgeImageUrl = (imagePath: string | undefined): string => {
@@ -130,7 +130,7 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
                 </div>
                 <div className="ml-4 flex-shrink-0 flex">
                   <button
-                    onClick={handleClose} // X 버튼 클릭 시 내부 닫기 함수 호출
+                    onClick={initiateClose} // X 버튼 클릭 시 닫기 시작
                     className="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500"
                   >
                     <span className="sr-only">Close</span>
