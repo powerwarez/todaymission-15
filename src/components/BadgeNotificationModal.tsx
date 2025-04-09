@@ -1,4 +1,4 @@
-import React from 'react'; // useState, useEffect 제거 (useNotificationState에서 관리)
+import React, { useEffect } from 'react'; // useEffect 다시 추가
 import { Badge } from '../types'; // Badge 타입
 import { LuX, LuBadgeCheck } from 'react-icons/lu';
 
@@ -9,7 +9,29 @@ interface BadgeNotificationModalProps {
 }
 
 const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, isLoading, onClose }) => {
-  // isVisible 상태 및 관련 useEffect 제거 (이제 상위에서 isLoading과 badge로 제어)
+
+  // --- 자동 닫기 로직 추가 ---
+  useEffect(() => {
+    let timer: NodeJS.Timeout | undefined;
+    // 로딩 중이 아니고, 표시할 배지가 있을 때 타이머 설정
+    if (!isLoading && badge) {
+      console.log('[Modal useEffect] Starting auto-close timer for badge:', badge.id);
+      timer = setTimeout(() => {
+        console.log('[Modal setTimeout] Auto-closing modal for badge:', badge.id);
+        onClose(); // 5초 후 부모의 닫기 함수 호출
+      }, 5000); // 5초 (5000ms)
+    }
+
+    // Cleanup: 컴포넌트 언마운트 또는 badge/isLoading 변경 시 타이머 제거
+    return () => {
+      if (timer) {
+        console.log('[Modal useEffect Cleanup] Clearing timer.');
+        clearTimeout(timer);
+      }
+    };
+  }, [badge, isLoading, onClose]); // badge, isLoading, onClose 변경 시 effect 재실행
+  // --- 자동 닫기 로직 끝 ---
+
 
   const handleClose = () => {
     // 애니메이션 효과를 원한다면, 여기서 바로 onClose를 호출하는 대신
