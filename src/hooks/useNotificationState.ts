@@ -55,17 +55,25 @@ export const useNotificationState = () => {
     console.log('[StateHook] handleCloseNotification called. Setting currentBadge to null.');
     setCurrentBadge(null);
     isProcessingQueue.current = false;
-  }, []);
+    
+    setTimeout(() => {
+      if (notificationQueue.length > 0) {
+        console.log('[StateHook] Attempting to process next notification after close.');
+        processNextNotification();
+      }
+    }, 300);
+  }, [notificationQueue, processNextNotification]);
 
   useEffect(() => {
     if (!currentBadge && notificationQueue.length > 0 && !isProcessingQueue.current) {
         console.log('[StateHook useEffect] Triggering processNextNotification.');
         processNextNotification();
     }
-    if(currentBadge === null) {
+    
+    if (currentBadge === null) {
+        console.log('[StateHook useEffect] Resetting isProcessingQueue flag.');
         isProcessingQueue.current = false;
     }
-
   }, [notificationQueue, currentBadge, processNextNotification]);
 
   return {

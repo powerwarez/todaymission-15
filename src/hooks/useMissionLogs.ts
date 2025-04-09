@@ -231,12 +231,10 @@ export const useMissionLogs = (formattedDate: string) => {
         // 알림 표시
         if (newlyEarnedBadgeIdsForNotification.length > 0) {
             console.log(`🔔 Showing notifications for: ${newlyEarnedBadgeIdsForNotification.join(', ')}`);
-            // 각 배지에 대해 알림 표시 (현재는 첫 번째 것만)
-             if (newlyEarnedBadgeIdsForNotification[0]) {
-                 showBadgeNotification(newlyEarnedBadgeIdsForNotification[0]);
-             }
-            // 여러 개 동시 표시 로직 추가 가능
-            // newlyEarnedBadgeIdsForNotification.forEach(badgeId => showBadgeNotification(badgeId));
+            // 모든 배지에 대해 알림 표시 (순차적으로 큐에 추가)
+            newlyEarnedBadgeIdsForNotification.forEach(badgeId => {
+              showBadgeNotification(badgeId);
+            });
         }
 
         // 스냅샷 카운트 증가는 DB 정합성을 위해 계속 호출

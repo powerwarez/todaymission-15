@@ -57,8 +57,8 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({ badge, 
       console.log('[Modal useEffect] Starting auto-close timer for badge:', badge.id);
       autoCloseTimerRef.current = window.setTimeout(() => {
         console.log('[Modal setTimeout] Auto-closing modal for badge:', badge.id);
-        initiateClose(); // 5초 후 닫기 시작
-      }, 5000);
+        initiateClose(); // 4초 후 닫기 시작
+      }, 4000);
     } else if (internalVisible && (!badge || isLoading)) {
        // badge가 null이 되거나 로딩 상태가 되면 (부모 상태 변경) 즉시 닫기 시작
        // (이미 닫기 진행 중이 아닐 경우에만)
