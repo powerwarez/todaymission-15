@@ -109,23 +109,26 @@ export const useMissionLogs = (formattedDate: string) => {
         setLogs((prev) => [...prev, data]);
         playSound('/sound/high_rune.flac');
 
+        // 3. 배지 획득 여부 확인 및 알림 (새로운 RPC 호출)
         try {
-            console.log('[useMissionLogs] Calling check_and_award_all_missions_badge RPC...');
-            const { data: badgeAwarded, error: badgeCheckError } = await supabase.rpc(
-                'check_and_award_all_missions_badge',
-                { check_user_id: user.id, check_date: todayKSTString }
-            );
-            console.log('[useMissionLogs] RPC Result - badgeAwarded:', badgeAwarded, 'badgeCheckError:', badgeCheckError);
+          console.log('[useMissionLogs] Calling check_if_daily_hero_earned_today RPC...');
+          const { data: wasEarnedToday, error: badgeCheckError } = await supabase.rpc(
+              'check_if_daily_hero_earned_today',
+              { p_user_id: user.id, p_check_date: todayKSTString } // KST 날짜 전달
+          );
+          console.log('[useMissionLogs] RPC Result - wasEarnedToday:', wasEarnedToday, 'badgeCheckError:', badgeCheckError);
 
-            if (badgeCheckError) {
-                console.error('Error checking/awarding badge:', badgeCheckError);
-            } else if (badgeAwarded === true) {
-                console.log('🎉 Badge awarded: all_missions_today!');
-                showBadgeNotification('all_missions_today');
-            }
+          if (badgeCheckError) {
+              console.error('Error checking if daily hero earned today:', badgeCheckError);
+          } else if (wasEarnedToday === true) {
+              console.log('🎉 Daily hero badge earned today!');
+              // 'daily_hero' 배지 ID를 challenges 테이블에서 확인하고 정확히 사용해야 함
+              showBadgeNotification('daily_hero');
+          }
         } catch(badgeError) {
-             console.error('Failed to call badge check RPC:', badgeError);
+           console.error('Failed to call badge check RPC:', badgeError);
         }
+
         return data;
       }
       return null;
