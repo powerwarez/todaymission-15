@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useMissions } from "../hooks/useMissions";
 import MissionSettingItem from "../components/MissionSettingItem";
-import { LuPlus, LuSettings, LuAward } from "react-icons/lu";
+import { LuPlus, LuSettings } from "react-icons/lu";
 import WeeklyBadgeSetting from "../components/WeeklyBadgeSetting";
 
 const MissionSettingsPage: React.FC = () => {
@@ -10,7 +10,6 @@ const MissionSettingsPage: React.FC = () => {
   const { missions, loading, error, addMission, deleteMission, updateMission } =
     useMissions();
   const [newMissionContent, setNewMissionContent] = useState("");
-  const [showWeeklyBadgeSection, setShowWeeklyBadgeSection] = useState(false);
 
   const handleAddMission = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,10 +21,6 @@ const MissionSettingsPage: React.FC = () => {
     });
 
     setNewMissionContent("");
-  };
-
-  const toggleWeeklyBadgeSection = () => {
-    setShowWeeklyBadgeSection(!showWeeklyBadgeSection);
   };
 
   if (!user) {
@@ -99,20 +94,10 @@ const MissionSettingsPage: React.FC = () => {
 
       {/* 주간 배지 설정 섹션 */}
       <div className="mb-8">
-        <button
-          onClick={toggleWeeklyBadgeSection}
-          className="flex items-center px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-800 rounded-lg mb-4 transition-colors w-full justify-between"
-        >
-          <div className="flex items-center">
-            <LuAward className="mr-2" />
-            <span className="font-medium">주간 미션 배지 설정</span>
-          </div>
-          <span>{showWeeklyBadgeSection ? "접기" : "펼치기"}</span>
-        </button>
-
-        {showWeeklyBadgeSection && user && (
-          <WeeklyBadgeSetting userId={user.id} />
-        )}
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">
+          주간 미션 배지 설정
+        </h2>
+        {user && <WeeklyBadgeSetting userId={user.id} />}
       </div>
     </div>
   );

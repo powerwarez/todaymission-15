@@ -33,6 +33,7 @@ export interface Badge {
   image_path: string; // 배지 이미지 경로 (예: /badges/first_mission.png)
   created_at: string;
   badge_type?: string; // 배지 타입 (weekly, achievement 등)
+  created_by?: string; // 배지를 생성한 사용자 ID
 }
 
 // EarnedBadge (중간 테이블) 구조 정의 (예시)

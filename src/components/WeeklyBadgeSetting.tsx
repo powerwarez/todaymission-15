@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { Badge } from "../types";
-import { LuPlus, LuTrash, LuSave } from "react-icons/lu";
+import { LuPlus, LuTrash, LuSave, LuUpload } from "react-icons/lu";
 import { toast } from "react-hot-toast";
 
 interface WeeklyBadgeSettingProps {
@@ -15,6 +15,9 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showBadgeSelector, setShowBadgeSelector] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [userUploadedBadges, setUserUploadedBadges] = useState<Badge[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 최대 선택 가능한 배지 수
   const MAX_WEEKLY_BADGES = 5;
@@ -97,6 +100,14 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
       if (error) throw error;
 
       setAvailableBadges(data || []);
+      
+      // 사용자가 업로드한 배지 필터링
+      const userBadges = data?.filter(badge => 
+        badge.created_by === userId || 
+        badge.image_path?.includes(`/${userId}_`)
+      ) || [];
+      
+      setUserUploadedBadges(userBadges);
     } catch (err) {
       console.error("사용 가능한 배지 가져오기 오류:", err);
       setError("배지 목록을 가져오는 중 오류가 발생했습니다.");
@@ -172,6 +183,89 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
       toast.error("주간 배지 설정 저장에 실패했습니다.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 파일 업로드 버튼 클릭 처리
+  const handleUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // 파일 선택 처리
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !userId) return;
+
+    try {
+      setUploadingImage(true);
+      setError(null);
+
+      // 파일 타입 확인
+      if (!file.type.startsWith("image/")) {
+        setError("이미지 파일만 업로드할 수 있습니다.");
+        return;
+      }
+
+      // 파일 크기 확인 (5MB 제한)
+      if (file.size > 5 * 1024 * 1024) {
+        setError("파일 크기는 5MB 이하여야 합니다.");
+        return;
+      }
+
+      // 파일명 생성 (사용자 ID + 타임스탬프 + 원본 확장자)
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${userId}_${Date.now()}.${fileExt}`;
+      const filePath = `custom/${fileName}`;
+
+      // Supabase Storage에 업로드
+      const { error: uploadError } = await supabase.storage
+        .from("badges")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      // 업로드한 이미지 공개 URL 가져오기
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("badges").getPublicUrl(filePath);
+
+      // 새 배지 생성 - 배지 유형을 'weekly'로 지정
+      const newBadgeId = `custom_${Date.now()}`;
+      const newBadge: Badge = {
+        id: newBadgeId,
+        name: "나만의 배지",
+        description: "직접 업로드한 배지",
+        image_path: publicUrl,
+        created_at: new Date().toISOString(),
+        badge_type: "weekly",
+        created_by: userId
+      };
+
+      // 배지 DB에 저장
+      const { error: insertError } = await supabase
+        .from("badges")
+        .insert(newBadge);
+
+      if (insertError) throw insertError;
+
+      // 배지 목록 갱신 및 선택
+      setAvailableBadges(prev => [...prev, newBadge]);
+      setUserUploadedBadges(prev => [...prev, newBadge]);
+      
+      toast.success("배지 이미지 업로드 완료");
+    } catch (err) {
+      console.error("이미지 업로드 오류:", err);
+      setError("이미지 업로드 중 오류가 발생했습니다.");
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";  // 파일 입력 초기화
+      }
     }
   };
 
@@ -251,39 +345,103 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
           ></div>
           <div className="relative bg-white rounded-lg shadow-lg w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">배지 선택</h3>
+            
+            {/* 파일 업로드 인풋 (숨겨짐) */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            
+            {/* 배지 업로드 버튼 */}
+            <button
+              onClick={handleUploadClick}
+              disabled={uploadingImage}
+              className="w-full mb-4 flex items-center justify-center px-4 py-2 bg-blue-50 border border-blue-300 rounded-md text-blue-700 hover:bg-blue-100 transition-colors"
+            >
+              {uploadingImage ? (
+                <span className="mr-2 animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></span>
+              ) : (
+                <LuUpload className="mr-2" size={18} />
+              )}
+              나만의 배지 이미지 업로드
+            </button>
+            
+            {/* 내가 업로드한 배지 섹션 */}
+            {userUploadedBadges.length > 0 && (
+              <div className="mb-6">
+                <h4 className="font-medium text-gray-700 mb-2 pb-1 border-b">내가 업로드한 배지</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+                  {userUploadedBadges.map((badge) => (
+                    <button
+                      key={badge.id}
+                      onClick={() => handleBadgeSelect(badge)}
+                      className={`
+                        p-4 rounded-lg flex flex-col items-center justify-center text-center
+                        ${
+                          selectedBadges.includes(badge.id)
+                            ? "bg-pink-100 border-2 border-pink-400"
+                            : "bg-gray-50 hover:bg-gray-100 border-2 border-transparent"
+                        }
+                      `}
+                    >
+                      <div className="w-12 h-12 mb-2 flex items-center justify-center">
+                        <img
+                          src={getBadgeImageUrl(badge.image_path)}
+                          alt={badge.name}
+                          className="max-w-full max-h-full object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src =
+                              "/placeholder_badge.png";
+                          }}
+                        />
+                      </div>
+                      <span className="text-sm font-medium">{badge.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* 기본 제공 배지 섹션 */}
+            <h4 className="font-medium text-gray-700 mb-2 pb-1 border-b">기본 제공 배지</h4>
             {loading ? (
               <div className="flex justify-center py-8">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {availableBadges.map((badge) => (
-                  <button
-                    key={badge.id}
-                    onClick={() => handleBadgeSelect(badge)}
-                    className={`
-                      p-4 rounded-lg flex flex-col items-center justify-center text-center
-                      ${
-                        selectedBadges.includes(badge.id)
-                          ? "bg-pink-100 border-2 border-pink-400"
-                          : "bg-gray-50 hover:bg-gray-100 border-2 border-transparent"
-                      }
-                    `}
-                  >
-                    <div className="w-12 h-12 mb-2 flex items-center justify-center">
-                      <img
-                        src={getBadgeImageUrl(badge.image_path)}
-                        alt={badge.name}
-                        className="max-w-full max-h-full object-contain"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src =
-                            "/placeholder_badge.png";
-                        }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium">{badge.name}</span>
-                  </button>
-                ))}
+                {availableBadges
+                  .filter(badge => !userUploadedBadges.some(ub => ub.id === badge.id))
+                  .map((badge) => (
+                    <button
+                      key={badge.id}
+                      onClick={() => handleBadgeSelect(badge)}
+                      className={`
+                        p-4 rounded-lg flex flex-col items-center justify-center text-center
+                        ${
+                          selectedBadges.includes(badge.id)
+                            ? "bg-pink-100 border-2 border-pink-400"
+                            : "bg-gray-50 hover:bg-gray-100 border-2 border-transparent"
+                        }
+                      `}
+                    >
+                      <div className="w-12 h-12 mb-2 flex items-center justify-center">
+                        <img
+                          src={getBadgeImageUrl(badge.image_path)}
+                          alt={badge.name}
+                          className="max-w-full max-h-full object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src =
+                              "/placeholder_badge.png";
+                          }}
+                        />
+                      </div>
+                      <span className="text-sm font-medium">{badge.name}</span>
+                    </button>
+                  ))}
               </div>
             )}
             <div className="mt-6 flex justify-end">
