@@ -3,22 +3,6 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../contexts/AuthContext";
 import { EarnedBadge, Badge } from "../types";
 
-// Supabase JOIN 결과 타입 정의
-// any 타입 사용 대신 실제 데이터 구조에 맞게 타입 정의
-type SupabaseJoinResult = {
-  id: string;
-  user_id: string;
-  badge_id: string;
-  earned_at: string;
-  badges: {
-    id: string;
-    name: string;
-    description: string | null;
-    image_path: string;
-    created_at: string;
-  };
-};
-
 export const useEarnedBadges = () => {
   const { user } = useAuth();
   const [earnedBadges, setEarnedBadges] = useState<EarnedBadge[]>([]);
