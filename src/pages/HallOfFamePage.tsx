@@ -74,7 +74,45 @@ const HallOfFamePage: React.FC = () => {
     error: badgesError,
   } = useEarnedBadges();
 
-  // 로딩 및 에러 상태 통합
+  // --- 배지 탭 관련 상태 --- //
+  const [badgeTab, setBadgeTab] = useState<"all" | "mission" | "weekly">("all");
+
+  // 필터링된 배지 탭에 따라 배지 데이터 가져오기
+  const {
+    earnedBadges: allBadges,
+    loading: allBadgesLoading,
+    error: allBadgesError,
+  } = useEarnedBadges();
+  const {
+    earnedBadges: missionBadges,
+    loading: missionBadgesLoading,
+    error: missionBadgesError,
+  } = useEarnedBadges("mission");
+  const {
+    earnedBadges: weeklyBadges,
+    loading: weeklyBadgesLoading,
+    error: weeklyBadgesError,
+  } = useEarnedBadges("weekly");
+
+  // 현재 선택된 탭에 따라 표시할 배지 목록 결정
+  const displayedBadges = useMemo(() => {
+    switch (badgeTab) {
+      case "mission":
+        return missionBadges;
+      case "weekly":
+        return weeklyBadges;
+      case "all":
+      default:
+        return allBadges;
+    }
+  }, [badgeTab, allBadges, missionBadges, weeklyBadges]);
+
+  // 배지 관련 로딩 및 에러 상태 통합
+  const badgesLoading =
+    allBadgesLoading || missionBadgesLoading || weeklyBadgesLoading;
+  const badgesError = allBadgesError || missionBadgesError || weeklyBadgesError;
+
+  // 로딩 및 에러 상태 통합 (기존 코드 수정)
   const isLoading =
     dailySnapshotLoading ||
     dailyLogsLoading ||
@@ -285,18 +323,60 @@ const HallOfFamePage: React.FC = () => {
 
           {/* 획득한 배지 섹션 */}
           <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-pink-600 mb-6 flex items-center">
+            <h2 className="text-xl font-semibold text-pink-600 mb-4 flex items-center">
               <LuAward className="mr-2" /> 획득한 배지
             </h2>
 
-            {earnedBadges.length === 0 ? (
+            {/* 배지 탭 */}
+            <div className="flex border-b mb-6">
+              <button
+                className={`px-4 py-2 font-medium ${
+                  badgeTab === "all"
+                    ? "text-pink-600 border-b-2 border-pink-600"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+                onClick={() => setBadgeTab("all")}
+              >
+                전체 배지
+              </button>
+              <button
+                className={`px-4 py-2 font-medium ${
+                  badgeTab === "mission"
+                    ? "text-pink-600 border-b-2 border-pink-600"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+                onClick={() => setBadgeTab("mission")}
+              >
+                미션 배지
+              </button>
+              <button
+                className={`px-4 py-2 font-medium ${
+                  badgeTab === "weekly"
+                    ? "text-pink-600 border-b-2 border-pink-600"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+                onClick={() => setBadgeTab("weekly")}
+              >
+                주간 도전 배지
+              </button>
+            </div>
+
+            {badgesLoading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+              </div>
+            ) : displayedBadges.length === 0 ? (
               <p className="text-center text-gray-500 py-8">
-                아직 획득한 배지가 없습니다. 주간 미션을 완료하여 배지를
-                획득해보세요!
+                {badgeTab === "all" &&
+                  "아직 획득한 배지가 없습니다. 미션을 완료하여 배지를 획득해보세요!"}
+                {badgeTab === "mission" &&
+                  "아직 획득한 미션 배지가 없습니다. 미션을 완료하여 배지를 획득해보세요!"}
+                {badgeTab === "weekly" &&
+                  "아직 획득한 주간 도전 배지가 없습니다. 주간 미션을 완료하여 배지를 획득해보세요!"}
               </p>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {earnedBadges.map((earnedBadge) => {
+                {displayedBadges.map((earnedBadge) => {
                   const badge = earnedBadge.badge;
                   const earnedDate = new Date(earnedBadge.earned_at);
 
@@ -328,6 +408,14 @@ const HallOfFamePage: React.FC = () => {
                           {badge.description}
                         </p>
                       )}
+                      <span
+                        className="mt-2 px-2 py-0.5 text-xs rounded-full bg-opacity-20 text-center font-medium 
+                        ${earnedBadge.badge_type === 'weekly' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}"
+                      >
+                        {earnedBadge.badge_type === "weekly"
+                          ? "주간 도전"
+                          : "미션 완료"}
+                      </span>
                     </div>
                   );
                 })}

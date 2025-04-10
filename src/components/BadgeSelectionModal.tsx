@@ -12,7 +12,7 @@ import { useAuth } from "../contexts/AuthContext";
 // 배지 선택 모달 props 타입 정의
 interface BadgeSelectionModalProps {
   onClose: () => void;
-  onBadgeSelect: (badgeId: string) => void;
+  onBadgeSelect: (badgeId: string, badgeType: string) => void;
   showModal: boolean;
   preselectedBadges?: string[]; // 미리 선택된 배지 ID 목록
 }
@@ -84,8 +84,8 @@ const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
     // Confetti 효과 표시
     triggerConfetti();
 
-    // 선택한 배지 ID를 부모 컴포넌트로 전달
-    onBadgeSelect(badgeId);
+    // 배지 유형을 'weekly'로 지정하여 선택한 배지 ID를 부모 컴포넌트로 전달
+    onBadgeSelect(badgeId, "weekly");
   };
 
   // 파일 업로드 버튼 클릭 처리
@@ -136,7 +136,7 @@ const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
         data: { publicUrl },
       } = supabase.storage.from("badges").getPublicUrl(filePath);
 
-      // 새 배지 생성
+      // 새 배지 생성 - 배지 유형을 'weekly'로 지정
       const newBadgeId = `custom_${Date.now()}`;
       const newBadge: Badge = {
         id: newBadgeId,
@@ -144,6 +144,7 @@ const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
         description: "나만의 커스텀 배지",
         image_path: publicUrl,
         created_at: new Date().toISOString(),
+        badge_type: "weekly", // 배지 유형 지정
       };
 
       // 배지 DB에 저장
@@ -158,8 +159,8 @@ const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
       setSelectedBadge(newBadgeId);
       setShowConfetti(true);
 
-      // 선택한 배지 ID를 부모 컴포넌트로 전달
-      onBadgeSelect(newBadgeId);
+      // 배지 유형을 'weekly'로 지정하여 선택한 배지 ID를 부모 컴포넌트로 전달
+      onBadgeSelect(newBadgeId, "weekly");
     } catch (error) {
       console.error("이미지 업로드 오류:", error);
       setError("이미지 업로드 중 오류가 발생했습니다.");

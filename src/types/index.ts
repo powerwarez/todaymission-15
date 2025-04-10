@@ -1,4 +1,4 @@
-import { User } from '@supabase/supabase-js';
+import { User } from "@supabase/supabase-js";
 
 // Database table types (adjust based on your actual Supabase schema)
 export interface Mission {
@@ -32,6 +32,7 @@ export interface Badge {
   image_path: string; // path in Supabase Storage
   description?: string;
   created_at: string; // timestampz
+  badge_type?: "mission" | "weekly"; // 배지 유형 (미션 배지 또는 주간 배지)
 }
 
 export interface UserBadge {
@@ -39,6 +40,7 @@ export interface UserBadge {
   user_id: string; // uuid ref auth.users
   badge_id: string; // uuid ref badges
   earned_at: string; // timestampz
+  badge_type?: "mission" | "weekly"; // 배지 유형 (미션 배지 또는 주간 배지)
 }
 
 // Extended types for UI
@@ -52,4 +54,4 @@ export interface EarnedBadge extends UserBadge {
 }
 
 // Auth User type from Supabase
-export type AuthUser = User; 
+export type AuthUser = User;
