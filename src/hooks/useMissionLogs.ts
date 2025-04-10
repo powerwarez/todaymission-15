@@ -19,9 +19,9 @@ export const useMissionLogs = (formattedDate: string) => {
   const [error, setError] = useState<string | null>(null);
 
   // 오늘 완료된 로그 수 상태 추가 (예측용)
-  const [_completedTodayCount, setCompletedTodayCount] = useState(0);
+  const [completedTodayCount, setCompletedTodayCount] = useState(0);
   // 전체 완료 로그 수 상태 추가 (예측용)
-  const [_totalCompletedCount, setTotalCompletedCount] = useState<number | null>(null);
+  const [totalCompletedCount, setTotalCompletedCount] = useState<number | null>(null);
   // 오늘 필요한 총 미션 수 상태 추가 (예측용)
   const [totalMissionsToday, setTotalMissionsToday] = useState<number | null>(null);
   // 이전에 획득한 배지 ID 목록 상태 추가 (예측용, Set 사용) - 최초 획득 확인용
@@ -149,54 +149,44 @@ export const useMissionLogs = (formattedDate: string) => {
     fetchInitialData();
   }, [fetchInitialData]);
 
-  const addLog = async (missionId: string): Promise<MissionLog | null> => {
-    if (!user || !formattedDate) {
-        console.warn('[addLog] User or formattedDate not available.');
-        return null;
-    }
+  const addLog = async (missionId: string) => {
+    if (!user || !formattedDate) return null;
     
-    // 상태 로드 확인 (totalCompletedCount는 null일 수 있음)
+    // 상태 로드 확인 (totalMissionsToday는 null일 수 있음)
     if (totalMissionsToday === null) {
         console.warn('[addLog] totalMissionsToday state not loaded yet.');
         return null;
     }
-
-    // 1. 현재 상태 가져오기 (상태 업데이트 전)
-    //    Note: 상태 값을 직접 사용. 상태 업데이트는 비동기이므로, 예측을 위해 현재 값을 사용.
-    const currentCompletedToday = _completedTodayCount;
-    const currentTotalCount = _totalCompletedCount ?? 0; // null이면 0으로 간주
-    const currentPreviouslyEarnedBadges = previouslyEarnedBadgeIds; // 현재 Set 복사
-
+    
+    // 1. 현재 상태 스냅샷 (badge 체크 로직 이동을 위해 필요)
+    const currentCompletedToday = completedTodayCount;
+    const currentTotalCompleted = totalCompletedCount ?? 0;
+    
     // 2. 다음 상태 예측
     const newCompletedToday = currentCompletedToday + 1;
-    const newTotalCount = currentTotalCount + 1;
-
-    console.log('[addLog] Predicting badge status based on current state:', { 
-        currentCompletedToday, currentTotalCount, totalMissionsToday, 
-        newCompletedToday, newTotalCount 
-    });
-
-    // 3. 배지 획득 조건 예측 (모든 배지)
-    const newlyEarnedBadgeIds: string[] = [];
-    const badgesToUpdateInSet = new Set<string>();
-
-    // '첫 도전'
+    const newTotalCompleted = currentTotalCompleted + 1;
+    
+    // 3. 배지 획득 조건 한 번에 검사
+    const newlyEarnedBadgeIds: string[] = []; // 이번에 획득한 배지 IDs
+    const badgesToUpdateInSet = new Set<string>(); // 상태 업데이트 시 previouslyEarnedBadgeIds에 추가할 배지들
+    
+    // 첫 도전 배지 체크
     const firstMissionBadgeId = 'first_mission_completed';
-    if (newTotalCount === 1 && !currentPreviouslyEarnedBadges.has(firstMissionBadgeId)) {
-       console.log('🎉 Predicted badge earn: 첫 도전');
-       newlyEarnedBadgeIds.push(firstMissionBadgeId);
-       badgesToUpdateInSet.add(firstMissionBadgeId);
+    if (newTotalCompleted === 1 && !previouslyEarnedBadgeIds.has(firstMissionBadgeId)) {
+      console.log('🎉 Predicted badge earn: 첫 도전');
+      newlyEarnedBadgeIds.push(firstMissionBadgeId);
+      badgesToUpdateInSet.add(firstMissionBadgeId);
     }
-
-    // '열정 가득'
-    const tenMissionsBadgeId = 'ten_missions_completed';
-    if (newTotalCount === 10 && !currentPreviouslyEarnedBadges.has(tenMissionsBadgeId)) {
-       console.log('🎉 Predicted badge earn: 열정 가득');
-       newlyEarnedBadgeIds.push(tenMissionsBadgeId);
-       badgesToUpdateInSet.add(tenMissionsBadgeId);
+    
+    // 열정 가득 배지 체크 (10개 완료)
+    const passionBadgeId = 'ten_missions_completed';
+    if (newTotalCompleted >= 10 && !previouslyEarnedBadgeIds.has(passionBadgeId)) {
+      console.log('🎉 Predicted badge earn: 열정 가득');
+      newlyEarnedBadgeIds.push(passionBadgeId);
+      badgesToUpdateInSet.add(passionBadgeId);
     }
-
-    // '오늘의 영웅'
+    
+    // 오늘의 영웅 배지 체크 (오늘 할당량 모두 완료)
     const dailyHeroBadgeId = 'daily_hero';
     if (totalMissionsToday > 0 && newCompletedToday >= totalMissionsToday && currentCompletedToday < totalMissionsToday) {
        console.log('🎉 Predicted badge earn: 오늘의 영웅');
