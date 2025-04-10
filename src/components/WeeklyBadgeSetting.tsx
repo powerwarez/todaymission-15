@@ -253,3 +253,59 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
                     key={badge.id}
                     onClick={() => handleBadgeSelect(badge)}
                     className={`
+                      p-4 rounded-lg flex flex-col items-center justify-center text-center
+                      ${
+                        selectedBadges.includes(badge.id)
+                          ? "bg-pink-100 border-2 border-pink-400"
+                          : "bg-gray-50 hover:bg-gray-100 border-2 border-transparent"
+                      }
+                    `}
+                  >
+                    <div className="w-12 h-12 mb-2 flex items-center justify-center">
+                      <img
+                        src={getBadgeImageUrl(badge.image_path)}
+                        alt={badge.name}
+                        className="max-w-full max-h-full object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            "/placeholder_badge.png";
+                        }}
+                      />
+                    </div>
+                    <span className="text-sm font-medium">{badge.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowBadgeSelector(false)}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md text-gray-800 mr-2"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 설정 저장 버튼 */}
+      <div className="flex justify-end mt-6">
+        <button
+          onClick={saveWeeklyBadgeSettings}
+          disabled={loading}
+          className="flex items-center px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-md shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? (
+            <span className="mr-2 animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+          ) : (
+            <LuSave className="mr-2" size={18} />
+          )}
+          설정 저장
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default WeeklyBadgeSetting;
