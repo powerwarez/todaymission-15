@@ -10,7 +10,7 @@ import HallOfFamePage from "./pages/HallOfFamePage";
 import MissionSettingsPage from "./pages/ChallengeSettingsPage";
 import BadgeSettingsPage from "./pages/BadgeSettingsPage";
 import BadgeNotificationModal from "./components/BadgeNotificationModal";
-import BadgeSelectionModal from "./components/BadgeSelectionModal";
+import { BadgeSelectionModal } from "./components/BadgeSelectionModal";
 
 // PrivateRoute 컴포넌트: 인증된 사용자만 접근 가능
 const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({

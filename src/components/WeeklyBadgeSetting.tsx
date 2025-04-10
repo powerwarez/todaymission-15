@@ -48,15 +48,24 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
         // 배지 데이터 추출 및 변환
         const badgeData =
           data?.map(
-            (item) =>
-              ({
-                id: item.badges.id,
-                name: item.badges.name,
-                description: item.badges.description,
-                image_path: item.badges.image_path,
-                created_at: item.badges.created_at,
-                badge_type: item.badges.badge_type || "weekly",
-              } as Badge)
+            (item) => {
+              const badgeItem = item.badges as unknown as {
+                id: string;
+                name: string;
+                description: string;
+                image_path: string;
+                created_at: string;
+                badge_type?: string;
+              };
+              return {
+                id: badgeItem.id,
+                name: badgeItem.name,
+                description: badgeItem.description,
+                image_path: badgeItem.image_path,
+                created_at: badgeItem.created_at,
+                badge_type: badgeItem.badge_type || "weekly",
+              } as Badge;
+            }
           ) || [];
 
         setWeeklyBadges(badgeData);

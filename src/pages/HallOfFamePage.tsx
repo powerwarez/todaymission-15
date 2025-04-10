@@ -403,9 +403,9 @@ const HallOfFamePage: React.FC = () => {
                       )}
                       <span
                         className="mt-2 px-2 py-0.5 text-xs rounded-full bg-opacity-20 text-center font-medium 
-                        ${earnedBadge.badge_type === 'weekly' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}"
+                        ${earnedBadge.badge?.badge_type === 'weekly' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}"
                       >
-                        {earnedBadge.badge_type === "weekly"
+                        {earnedBadge.badge?.badge_type === "weekly"
                           ? "주간 도전"
                           : "미션 완료"}
                       </span>

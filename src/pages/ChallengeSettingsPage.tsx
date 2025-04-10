@@ -13,7 +13,10 @@ const MissionSettingsPage: React.FC = () => {
     if (!newMissionContent.trim()) return;
     // Calculate next order number
     const nextOrder = missions.length > 0 ? Math.max(...missions.map(m => m.order)) + 1 : 1;
-    const added = await addMission(newMissionContent, nextOrder);
+    const added = await addMission({
+      content: newMissionContent.trim(),
+      order: nextOrder
+    });
     if (added) {
       setNewMissionContent(''); // Clear input after successful add
     }

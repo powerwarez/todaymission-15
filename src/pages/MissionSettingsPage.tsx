@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
+import React, { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useMissions } from "../hooks/useMissions";
 import MissionSettingItem from "../components/MissionSettingItem";

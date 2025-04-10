@@ -35,12 +35,12 @@ export const useMissions = () => {
     fetchMissions();
   }, [fetchMissions]);
 
-  const addMission = async (content: string, order: number): Promise<Mission | null> => {
+  const addMission = async (missionData: { content: string; order: number }): Promise<Mission | null> => {
     if (!user) return null;
     try {
       const { data, error: insertError } = await supabase
         .from('missions')
-        .insert({ user_id: user.id, content, order })
+        .insert({ user_id: user.id, content: missionData.content, order: missionData.order })
         .select()
         .single();
 
