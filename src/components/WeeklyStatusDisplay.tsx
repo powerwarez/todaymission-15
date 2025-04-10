@@ -19,6 +19,7 @@ const WeeklyStatusDisplay: React.FC<WeeklyStatusDisplayProps> = ({ weekStatus, l
 
     let bgColor = '';
     let textColor = 'text-white';
+    let borderStyle = ''; // 테두리 스타일 추가
 
     if (status.isCompleted === true) {
       bgColor = 'bg-green-500';
@@ -28,7 +29,13 @@ const WeeklyStatusDisplay: React.FC<WeeklyStatusDisplayProps> = ({ weekStatus, l
       bgColor = 'bg-gray-200';
       textColor = 'text-gray-600';
     }
-    return `${baseStyle} ${sizeStyle} ${bgColor} ${textColor}`;
+
+    // 오늘 날짜인 경우 테두리 추가
+    if (status.isToday) {
+      borderStyle = 'border-4 border-pink-500 scale-110';
+    }
+
+    return `${baseStyle} ${sizeStyle} ${bgColor} ${textColor} ${borderStyle}`;
   };
 
   // 아이콘 렌더링 함수 제거
@@ -64,8 +71,9 @@ const WeeklyStatusDisplay: React.FC<WeeklyStatusDisplayProps> = ({ weekStatus, l
             title={status.isCompleted === true ? `완료 (${status.date})` : status.isCompleted === false ? `미완료 (${status.date})` : `기록 없음 (${status.date})`}
           >
             {/* 원 안에 요일 텍스트만 표시 */}
-            <span className="text-2xl leading-none">{dayNames[index]}</span> {/* 텍스트 크기 조정 */}
+            <span className={`text-2xl leading-none ${status.isToday ? 'animate-pulse' : ''}`}>{dayNames[index]}</span> {/* 오늘 날짜는 깜빡임 효과 추가 */}
           </div>
+          {status.isToday && <span className="text-xs text-pink-600 mt-1 font-bold">오늘</span>} {/* 오늘 날짜 아래에 텍스트 추가 */}
         </div>
       ))}
     </div>

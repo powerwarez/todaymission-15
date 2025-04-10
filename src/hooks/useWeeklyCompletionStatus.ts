@@ -1,25 +1,34 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
+import { toZonedTime, format } from 'date-fns-tz';
 // import { DailyMissionSnapshot } from '../types'; // 제거
 
-// 날짜를 YYYY-MM-DD 형식으로 포맷
+// 시간대 설정
+const timeZone = 'Asia/Seoul';
+
+// 날짜를 YYYY-MM-DD 형식으로 포맷 (KST 시간대 고려)
 const formatDate = (date: Date): string => {
-  return date.toISOString().split('T')[0];
+  return format(toZonedTime(date, timeZone), 'yyyy-MM-dd', { timeZone });
 };
 
-// 오늘을 기준으로 현재 주의 월요일과 금요일 날짜 객체 반환
+// 오늘을 기준으로 현재 주의 월요일과 금요일 날짜 객체 반환 (KST 기준)
 const getWeekDates = (today: Date): { monday: Date, friday: Date } => {
-  const currentDay = today.getDay(); // 0(일) ~ 6(토)
+  // 오늘 날짜를 KST로 변환
+  const todayKST = toZonedTime(today, timeZone);
+  // KST 기준 요일 (0:일요일, 1:월요일, ..., 6:토요일)
+  const currentDay = todayKST.getDay();
   const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay; // 일요일이면 이전 주 월요일로
   const diffToFriday = 5 - currentDay;
 
-  const monday = new Date(today);
-  monday.setDate(today.getDate() + diffToMonday);
+  // 월요일 계산
+  const monday = new Date(todayKST);
+  monday.setDate(todayKST.getDate() + diffToMonday);
   monday.setHours(0, 0, 0, 0); // 날짜 시작 시간으로 설정
 
-  const friday = new Date(today);
-  friday.setDate(today.getDate() + diffToFriday);
+  // 금요일 계산
+  const friday = new Date(todayKST);
+  friday.setDate(todayKST.getDate() + diffToFriday);
   friday.setHours(23, 59, 59, 999); // 날짜 종료 시간으로 설정 (포함하기 위해)
 
   return { monday, friday };
@@ -30,6 +39,7 @@ export interface WeekdayStatus {
   dayIndex: number; // 1(월) ~ 5(금)
   date: string; // YYYY-MM-DD
   isCompleted: boolean | null; // null: 데이터 없음, true: 완료, false: 미완료
+  isToday: boolean; // 오늘인지 여부 추가
 }
 
 // select로 가져올 스냅샷의 타입 정의
@@ -45,11 +55,14 @@ export const useWeeklyCompletionStatus = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 오늘 날짜는 한 번만 생성되도록 useMemo 사용 (이미 TodayMissionPage에서 사용하지만, 훅 독립성을 위해 추가)
+  // 오늘 날짜는 한 번만 생성되도록 useMemo 사용 (KST 기준)
   const today = useMemo(() => new Date(), []);
+  // KST로 변환된 오늘 날짜
+  const todayKST = useMemo(() => toZonedTime(today, timeZone), [today]);
 
-  // 이번 주 월/금 날짜 계산 결과를 useMemo로 캐싱
-  const { monday, friday } = useMemo(() => getWeekDates(today), [today]);
+  // 이번 주 월/금 날짜 계산 결과를 useMemo로 캐싱 (KST 기준)
+  const { monday, friday } = useMemo(() => getWeekDates(todayKST), [todayKST]);
+  // 포맷된 날짜 문자열도 KST 기준으로 생성
   const formattedMonday = useMemo(() => formatDate(monday), [monday]);
   const formattedFriday = useMemo(() => formatDate(friday), [friday]);
 
@@ -98,6 +111,10 @@ export const useWeeklyCompletionStatus = () => {
       // 4. 월요일부터 금요일까지 순회하며 상태 계산
       const statusResult: WeekdayStatus[] = [];
       const currentDay = new Date(monday); // useMemo로 캐싱된 monday 사용
+      
+      // 오늘 날짜 문자열 (KST 기준)
+      const todayStr = formatDate(todayKST);
+      
       for (let i = 1; i <= 5; i++) {
         const currentDateStr = formatDate(currentDay);
         const snapshot = snapshotsMap.get(currentDateStr);
@@ -130,6 +147,7 @@ export const useWeeklyCompletionStatus = () => {
           dayIndex: i,
           date: currentDateStr,
           isCompleted: isCompleted,
+          isToday: currentDateStr === todayStr // 오늘 날짜인지 확인
         });
 
         currentDay.setDate(currentDay.getDate() + 1);
