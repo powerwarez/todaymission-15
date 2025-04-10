@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { Badge } from "../types";
-import { LuPlus, LuUpload, LuTrash, LuSave } from "react-icons/lu";
+import { LuPlus, LuTrash, LuSave } from "react-icons/lu";
 import { toast } from "react-hot-toast";
 
 interface WeeklyBadgeSettingProps {
@@ -13,7 +13,6 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
   const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
   const [availableBadges, setAvailableBadges] = useState<Badge[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showBadgeSelector, setShowBadgeSelector] = useState(false);
 
@@ -253,68 +252,4 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
                   <button
                     key={badge.id}
                     onClick={() => handleBadgeSelect(badge)}
-                    className={`p-4 rounded-lg flex flex-col items-center transition-all ${
-                      selectedBadges.includes(badge.id)
-                        ? "bg-pink-100 ring-2 ring-pink-500"
-                        : "bg-gray-100 hover:bg-pink-50"
-                    }`}
-                    disabled={
-                      selectedBadges.length >= MAX_WEEKLY_BADGES &&
-                      !selectedBadges.includes(badge.id)
-                    }
-                  >
-                    <div className="w-16 h-16 mb-2 flex items-center justify-center">
-                      <img
-                        src={getBadgeImageUrl(badge.image_path)}
-                        alt={badge.name}
-                        className="max-w-full max-h-full object-contain"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src =
-                            "/placeholder_badge.png";
-                        }}
-                      />
-                    </div>
-                    <h4 className="text-sm font-medium text-center">
-                      {badge.name}
-                    </h4>
-                  </button>
-                ))}
-              </div>
-            )}
-            <div className="flex justify-end mt-4">
-              <button
-                onClick={() => setShowBadgeSelector(false)}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md text-gray-800 ml-2"
-              >
-                닫기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 저장 버튼 */}
-      <div className="flex justify-end mt-4">
-        <button
-          onClick={saveWeeklyBadgeSettings}
-          className="flex items-center px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={loading || selectedBadges.length === 0}
-        >
-          {loading ? (
-            <>
-              <div className="animate-spin h-4 w-4 mr-2 border-b-2 border-white"></div>
-              저장 중...
-            </>
-          ) : (
-            <>
-              <LuSave className="mr-2" />
-              설정 저장
-            </>
-          )}
-        </button>
-      </div>
-    </div>
-  );
-};
-
-export default WeeklyBadgeSetting;
+                    className={`

@@ -67,13 +67,6 @@ const HallOfFamePage: React.FC = () => {
     error: monthlySnapshotsError,
   } = useMonthlySnapshots(currentYear, currentMonth);
 
-  // --- 배지 관련 데이터 가져오기 --- //
-  const {
-    earnedBadges,
-    loading: badgesLoading,
-    error: badgesError,
-  } = useEarnedBadges();
-
   // --- 배지 탭 관련 상태 --- //
   const [badgeTab, setBadgeTab] = useState<"all" | "mission" | "weekly">("all");
 

@@ -17,7 +17,7 @@ interface BadgeSelectionModalProps {
   preselectedBadges?: string[]; // 미리 선택된 배지 ID 목록
 }
 
-const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
+export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
   onClose,
   onBadgeSelect,
   showModal,
@@ -328,5 +328,3 @@ const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
     </div>
   );
 };
-
-export default BadgeSelectionModal;
