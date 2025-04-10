@@ -18,16 +18,37 @@ const WeeklyStatusDisplay: React.FC<WeeklyStatusDisplayProps> = ({ weekStatus, l
     const sizeStyle = 'h-12 w-12';
 
     let bgColor = '';
-    let textColor = 'text-white';
+    let textColor = 'text-gray-700';
     let borderStyle = ''; // 테두리 스타일 추가
-
-    if (status.isCompleted === true) {
-      bgColor = 'bg-green-500';
-    } else if (status.isCompleted === false) {
-      bgColor = 'bg-red-400';
+    
+    // 진행률에 따른 색상 처리
+    if (status.totalMissions > 0) {
+      const ratio = status.completionRatio;
+      
+      if (ratio >= 1.0) {
+        // 100% 완료: 진한 녹색
+        bgColor = 'bg-green-500';
+        textColor = 'text-white';
+      } else if (ratio > 0) {
+        // 일부 완료: 진행도에 따라 색상 강도 결정
+        // 회색 -> 연한 녹색 -> 중간 녹색으로 단계별 변경
+        if (ratio < 0.25) {
+          bgColor = 'bg-gray-300';
+        } else if (ratio < 0.5) {
+          bgColor = 'bg-green-100';
+        } else if (ratio < 0.75) {
+          bgColor = 'bg-green-200';
+        } else {
+          bgColor = 'bg-green-300';
+        }
+      } else {
+        // 미완료: 회색 배경
+        bgColor = 'bg-gray-200';
+      }
     } else {
-      bgColor = 'bg-gray-200';
-      textColor = 'text-gray-600';
+      // 미션이 없는 경우: 연한 회색
+      bgColor = 'bg-gray-100';
+      textColor = 'text-gray-400';
     }
 
     // 오늘 날짜인 경우 테두리 추가
@@ -68,7 +89,11 @@ const WeeklyStatusDisplay: React.FC<WeeklyStatusDisplayProps> = ({ weekStatus, l
         <div key={status.dayIndex} className="flex flex-col items-center"> 
           <div
             className={getStatusIndicatorStyle(status)}
-            title={status.isCompleted === true ? `완료 (${status.date})` : status.isCompleted === false ? `미완료 (${status.date})` : `기록 없음 (${status.date})`}
+            title={
+              status.totalMissions > 0 
+                ? `${status.completedMissions}/${status.totalMissions} 미션 완료 (${status.date})` 
+                : `미션 없음 (${status.date})`
+            }
           >
             {/* 원 안에 요일 텍스트만 표시 */}
             <span className={`text-2xl leading-none ${status.isToday ? 'animate-pulse' : ''}`}>{dayNames[index]}</span> {/* 오늘 날짜는 깜빡임 효과 추가 */}

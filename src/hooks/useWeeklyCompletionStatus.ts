@@ -40,6 +40,9 @@ export interface WeekdayStatus {
   date: string; // YYYY-MM-DD
   isCompleted: boolean | null; // null: 데이터 없음, true: 완료, false: 미완료
   isToday: boolean; // 오늘인지 여부 추가
+  completionRatio: number; // 0.0 ~ 1.0 사이의 완료 비율
+  totalMissions: number; // 총 미션 수
+  completedMissions: number; // 완료된 미션 수
 }
 
 // select로 가져올 스냅샷의 타입 정의
@@ -122,12 +125,16 @@ export const useWeeklyCompletionStatus = () => {
         let isCompleted: boolean | null = null;
 
         if (snapshot) {
+          // 총 미션 수와 완료된 미션 수 설정
+          const totalMissions = snapshot.total_missions_count || 0;
+          const completedMissions = logsForDay.length || 0;
+          
           // 로그 데이터가 있으면 로그 데이터 기준으로 완료 여부 판단
-          if (logsForDay.length > 0) {
-            // 해당 날짜에 최소 1개의 로그가 있으면 미션이 완료된 것으로 간주
+          if (completedMissions > 0 && completedMissions >= totalMissions) {
+            // 모든 미션이 완료된 경우
             isCompleted = true;
-          } else if (snapshot.total_missions_count > 0) {
-            // 로그는 없지만 미션이 있는 경우는 미완료로 간주
+          } else if (totalMissions > 0) {
+            // 미션이 있지만 완료되지 않은 경우
             isCompleted = false;
           } else {
             // 미션이 없는 경우는 null (표시 안함)
@@ -147,7 +154,11 @@ export const useWeeklyCompletionStatus = () => {
           dayIndex: i,
           date: currentDateStr,
           isCompleted: isCompleted,
-          isToday: currentDateStr === todayStr // 오늘 날짜인지 확인
+          isToday: currentDateStr === todayStr, // 오늘 날짜인지 확인
+          completionRatio: snapshot ? (snapshot.total_missions_count > 0 ? 
+                           Math.min(1.0, snapshot.completed_missions_count / snapshot.total_missions_count) : 0) : 0,
+          totalMissions: snapshot ? snapshot.total_missions_count : 0,
+          completedMissions: snapshot ? snapshot.completed_missions_count : 0
         });
 
         currentDay.setDate(currentDay.getDate() + 1);
