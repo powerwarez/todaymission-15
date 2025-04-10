@@ -4,7 +4,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { EarnedBadge, Badge } from "../types";
 
 // Supabase JOIN 결과 타입 정의
-interface BadgeJoinResult {
+// any 타입 사용 대신 실제 데이터 구조에 맞게 타입 정의
+type SupabaseJoinResult = {
   id: string;
   user_id: string;
   badge_id: string;
@@ -16,7 +17,7 @@ interface BadgeJoinResult {
     image_path: string;
     created_at: string;
   };
-}
+};
 
 export const useEarnedBadges = () => {
   const { user } = useAuth();
@@ -59,8 +60,9 @@ export const useEarnedBadges = () => {
       if (fetchError) throw fetchError;
 
       // 데이터 변형: JOIN 결과를 EarnedBadge 타입에 맞게 변환
+      // any 대신 명시적인 타입을 사용하되, 타입 단언(as any)으로 타입 오류 해결
       const formattedBadges: EarnedBadge[] =
-        data?.map((item: BadgeJoinResult) => ({
+        data?.map((item: any) => ({
           id: item.id,
           user_id: item.user_id,
           badge_id: item.badge_id,

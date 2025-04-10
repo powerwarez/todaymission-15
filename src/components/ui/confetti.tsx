@@ -1,98 +1,82 @@
-import type { ReactNode } from "react";
-import React, {
-  createContext,
-  forwardRef,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-} from "react";
-import type {
-  GlobalOptions as ConfettiGlobalOptions,
-  CreateTypes as ConfettiInstance,
-  Options as ConfettiOptions,
-} from "canvas-confetti";
-import confetti from "canvas-confetti";
+import React, { forwardRef, useImperativeHandle, useRef } from "react";
+import ReactConfetti from "react-confetti";
 
-type Api = {
-  fire: (options?: ConfettiOptions) => void;
-};
+// Confetti에 사용할 옵션 타입 정의
+export interface ConfettiOptions {
+  particleCount?: number;
+  angle?: number;
+  spread?: number;
+  startVelocity?: number;
+  decay?: number;
+  gravity?: number;
+  ticks?: number;
+  origin?: {
+    x?: number;
+    y?: number;
+  };
+  colors?: string[];
+  shapes?: ("square" | "circle")[];
+  scalar?: number;
+  zIndex?: number;
+  drift?: number;
+  random?: () => number;
+}
 
-type Props = React.ComponentPropsWithRef<"canvas"> & {
-  options?: ConfettiOptions;
-  globalOptions?: ConfettiGlobalOptions;
-  manualstart?: boolean;
-  children?: ReactNode;
-};
+// Confetti에 외부에서 접근할 메서드 정의
+export interface ConfettiRef {
+  trigger: (options?: ConfettiOptions) => void;
+}
 
-export type ConfettiRef = Api | null;
+// Confetti 컴포넌트 props 타입 정의
+interface ConfettiProps {
+  width?: number;
+  height?: number;
+}
 
-const ConfettiContext = createContext({} as Api);
+// Confetti 컴포넌트 구현
+export const Confetti = forwardRef<ConfettiRef, ConfettiProps>(
+  ({ width, height }, ref) => {
+    const [confetti, setConfetti] = React.useState({
+      active: false,
+      config: {} as ConfettiOptions,
+    });
 
-const Confetti = forwardRef<ConfettiRef, Props>((props, ref) => {
-  const {
-    options,
-    globalOptions = { resize: true, useWorker: true },
-    manualstart = false,
-    children,
-    ...rest
-  } = props;
-  const instanceRef = useRef<confetti.CreateTypes | null>(null);
-
-  const canvasRef = useCallback(
-    (node: HTMLCanvasElement) => {
-      if (node !== null) {
-        // Canvas is mounted => create the confetti instance
-        if (instanceRef.current) return; // if not already created
-        instanceRef.current = confetti.create(node, {
-          ...globalOptions,
-          resize: true,
+    useImperativeHandle(ref, () => ({
+      trigger: (options: ConfettiOptions = {}) => {
+        setConfetti({
+          active: true,
+          config: options,
         });
-      } else {
-        // Canvas is unmounted => reset and destroy instanceRef
-        if (instanceRef.current) {
-          instanceRef.current.reset();
-          instanceRef.current = null;
-        }
-      }
-    },
-    [globalOptions]
-  );
 
-  // `fire` is a function that calls the instance() with `opts` merged with `options`
-  const fire = useCallback(
-    (opts = {}) => instanceRef.current?.({ ...options, ...opts }),
-    [options]
-  );
+        // 지속 시간 설정 (옵션에 지정된 ticks 또는 기본값 사용)
+        setTimeout(() => {
+          setConfetti((prev) => ({ ...prev, active: false }));
+        }, options.ticks || 200);
+      },
+    }));
 
-  const api = useMemo(
-    () => ({
-      fire,
-    }),
-    [fire]
-  );
+    if (!confetti.active) return null;
 
-  useImperativeHandle(ref, () => api, [api]);
-
-  useEffect(() => {
-    if (!manualstart) {
-      fire();
-    }
-  }, [manualstart, fire]);
-
-  return (
-    <>
-      <canvas
-        ref={canvasRef}
-        className="fixed inset-0 z-[99999] pointer-events-none"
-        {...rest}
+    return (
+      <ReactConfetti
+        width={width || window.innerWidth}
+        height={height || window.innerHeight}
+        numberOfPieces={confetti.config.particleCount || 200}
+        recycle={false}
       />
-      {children}
-    </>
-  );
-});
+    );
+  }
+);
 
 Confetti.displayName = "Confetti";
 
-export { Confetti };
+// 편의를 위한 훅
+export const useConfetti = () => {
+  const confettiRef = useRef<ConfettiRef>(null);
+
+  const confetti = (options?: ConfettiOptions) => {
+    confettiRef.current?.trigger(options);
+  };
+
+  return { confetti, confettiRef };
+};

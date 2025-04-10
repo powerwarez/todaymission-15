@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { Badge } from "../types";
-import { Confetti } from "../components/ui/confetti";
-import { LuX, LuUpload, LuImage } from "react-icons/lu";
+import {
+  Confetti,
+  ConfettiOptions,
+  ConfettiRef,
+} from "../components/ui/confetti";
+import { LuX, LuUpload } from "react-icons/lu";
 import { useAuth } from "../contexts/AuthContext";
 
 // 배지 선택 모달 props 타입 정의
@@ -27,7 +31,7 @@ const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const confettiRef = useRef(null);
+  const confettiRef = useRef<ConfettiRef>(null);
 
   // 배지 목록 가져오기
   useEffect(() => {
@@ -76,6 +80,9 @@ const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
   const handleBadgeSelect = (badgeId: string) => {
     setSelectedBadge(badgeId);
     setShowConfetti(true);
+
+    // Confetti 효과 표시
+    triggerConfetti();
 
     // 선택한 배지 ID를 부모 컴포넌트로 전달
     onBadgeSelect(badgeId);
@@ -167,6 +174,30 @@ const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
     setShowConfetti(false);
     setError(null);
     onClose();
+  };
+
+  // Confetti 효과 트리거 (배지 선택 시)
+  const triggerConfetti = () => {
+    if (!confettiRef.current) return;
+
+    const options: ConfettiOptions = {
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      gravity: 0.8,
+      startVelocity: 30,
+      ticks: 300,
+      colors: [
+        "#FF0000",
+        "#FFA500",
+        "#FFFF00",
+        "#00FF00",
+        "#0000FF",
+        "#4B0082",
+        "#9400D3",
+      ],
+    };
+    confettiRef.current.trigger(options);
   };
 
   if (!showModal) return null;
@@ -292,9 +323,7 @@ const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
       </div>
 
       {/* Confetti 컴포넌트 */}
-      {showConfetti && (
-        <Confetti ref={confettiRef} options={{ recycle: false }} />
-      )}
+      {showConfetti && <Confetti ref={confettiRef} />}
     </div>
   );
 };
