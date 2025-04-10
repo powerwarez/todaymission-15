@@ -71,21 +71,59 @@ export const useWeeklyCompletionStatus = () => {
 
       if (fetchError) throw fetchError;
 
-      // 2. 스냅샷 데이터를 날짜별 Map으로 변환
+      // 2. 해당 주의 로그 데이터도 가져오기 (직접 로그 확인 추가)
+      const { data: weeklyLogs, error: logsError } = await supabase
+        .from('mission_logs')
+        .select('mission_id, completed_at')
+        .eq('user_id', user.id)
+        .gte('completed_at', formattedMonday)
+        .lte('completed_at', formattedFriday);
+
+      if (logsError) throw logsError;
+
+      // 날짜별 로그 맵 생성
+      const logsByDate = new Map<string, string[]>();
+      (weeklyLogs || []).forEach(log => {
+        const date = log.completed_at;
+        if (!logsByDate.has(date)) {
+          logsByDate.set(date, []);
+        }
+        logsByDate.get(date)?.push(log.mission_id);
+      });
+
+      // 3. 스냅샷 데이터를 날짜별 Map으로 변환
       const snapshotsMap = new Map<string, PartialSnapshot>();
       (snapshots || []).forEach(snap => snapshotsMap.set(snap.date, snap as PartialSnapshot));
 
-      // 3. 월요일부터 금요일까지 순회하며 상태 계산
+      // 4. 월요일부터 금요일까지 순회하며 상태 계산
       const statusResult: WeekdayStatus[] = [];
       const currentDay = new Date(monday); // useMemo로 캐싱된 monday 사용
       for (let i = 1; i <= 5; i++) {
         const currentDateStr = formatDate(currentDay);
         const snapshot = snapshotsMap.get(currentDateStr);
+        const logsForDay = logsByDate.get(currentDateStr) || [];
         let isCompleted: boolean | null = null;
 
         if (snapshot) {
-          isCompleted = snapshot.total_missions_count > 0 &&
-                        snapshot.completed_missions_count >= snapshot.total_missions_count;
+          // 로그 데이터가 있으면 로그 데이터 기준으로 완료 여부 판단
+          if (logsForDay.length > 0) {
+            // 해당 날짜에 최소 1개의 로그가 있으면 미션이 완료된 것으로 간주
+            isCompleted = true;
+          } else if (snapshot.total_missions_count > 0) {
+            // 로그는 없지만 미션이 있는 경우는 미완료로 간주
+            isCompleted = false;
+          } else {
+            // 미션이 없는 경우는 null (표시 안함)
+            isCompleted = null;
+          }
+        } else {
+          // 스냅샷 자체가 없는 경우
+          // 로그 데이터가 있으면 완료로 판단 (스냅샷은 없지만 로그가 있는 경우)
+          if (logsForDay.length > 0) {
+            isCompleted = true;
+          } else {
+            isCompleted = null; // 데이터 없음
+          }
         }
 
         statusResult.push({
