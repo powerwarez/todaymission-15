@@ -3,7 +3,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 
 const MainLayout: React.FC = () => {
-  const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
+  const [isSidebarMinimized, setIsSidebarMinimized] = useState(true);
 
   const toggleSidebar = () => {
     setIsSidebarMinimized(!isSidebarMinimized);
