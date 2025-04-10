@@ -11,7 +11,6 @@ import {
   LuCalendarDays,
   LuChevronLeft,
   LuChevronRight,
-  LuMedal,
   LuAward,
 } from "react-icons/lu";
 import { Mission } from "../types"; // Mission 타입만 필요할 수 있음
