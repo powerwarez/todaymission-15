@@ -192,7 +192,7 @@ const TodayMissionPage: React.FC = () => {
                 {format(todayKSTObj, 'yyyy년 M월 d일', { timeZone })}
             </p>
             {/* 요일 표시는 로컬 Date 객체의 getDay() 사용 가능 */}
-            <p className="text-md text-pink-500">{getWeekdayString(new Date())}요일</p>
+            <p className="text-md text-pink-500">{getWeekdayString(todayKSTObj)}요일</p>
         </div>
       </div>
 
