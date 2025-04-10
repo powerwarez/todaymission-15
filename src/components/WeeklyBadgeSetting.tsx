@@ -91,23 +91,41 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
     try {
       setLoading(true);
 
-      // badge_type='weekly'인 배지 또는 badge_type이 없는 배지 가져오기
-      const { data, error } = await supabase
+      // 기본 배지 가져오기 (badges 테이블)
+      const { data: regularBadges, error: regularError } = await supabase
         .from("badges")
         .select("*")
         .or("badge_type.eq.weekly,badge_type.is.null");
 
-      if (error) throw error;
+      if (regularError) throw regularError;
 
-      setAvailableBadges(data || []);
+      // 사용자 커스텀 배지 가져오기 (custom_badges 테이블)
+      const { data: customBadges, error: customError } = await supabase
+        .from("custom_badges")
+        .select("*")
+        .eq("user_id", userId);
+
+      if (customError) throw customError;
+
+      // 커스텀 배지 데이터를 Badge 형식으로 변환
+      const formattedCustomBadges = customBadges?.map(badge => ({
+        id: badge.badge_id || `custom_${badge.id}`,
+        name: badge.name,
+        description: badge.description || "",
+        image_path: badge.image_path,
+        created_at: badge.created_at,
+        badge_type: badge.badge_type || "weekly",
+        created_by: badge.user_id,
+        is_custom: true
+      })) as Badge[];
+
+      // 모든 배지 합치기
+      const allBadges = [...(regularBadges || []), ...(formattedCustomBadges || [])];
       
-      // 사용자가 업로드한 배지 필터링
-      const userBadges = data?.filter(badge => 
-        badge.created_by === userId || 
-        badge.image_path?.includes(`/${userId}_`)
-      ) || [];
+      setAvailableBadges(allBadges);
       
-      setUserUploadedBadges(userBadges);
+      // 사용자가 업로드한 커스텀 배지 설정
+      setUserUploadedBadges(formattedCustomBadges || []);
     } catch (err) {
       console.error("사용 가능한 배지 가져오기 오류:", err);
       setError("배지 목록을 가져오는 중 오류가 발생했습니다.");
@@ -192,8 +210,32 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
       const publicUrl = urlData.publicUrl;
       console.log("공개 URL:", publicUrl);
 
-      // 새 배지 생성 - 배지 유형을 'weekly'로 지정하고 created_by 설정
+      // 새 배지 ID 생성
       const newBadgeId = `custom_${Date.now()}`;
+      
+      // custom_badges 테이블에 저장
+      const { data: customBadgeData, error: customInsertError } = await supabase
+        .from("custom_badges")
+        .insert({
+          name: "나만의 배지",
+          description: "직접 업로드한 배지",
+          image_path: publicUrl,
+          badge_type: "weekly",
+          user_id: userId,
+          badge_id: newBadgeId
+        })
+        .select()
+        .single();
+
+      if (customInsertError) {
+        console.error("커스텀 배지 저장 오류:", customInsertError);
+        toast.error("배지를 저장하지 못했습니다. 이 세션에서만 사용할 수 있습니다.");
+      } else {
+        console.log("커스텀 배지 저장 성공:", customBadgeData);
+        toast.success("배지가 저장되었습니다.");
+      }
+
+      // 새로운 배지 객체 생성
       const newBadge: Badge = {
         id: newBadgeId,
         name: "나만의 배지",
@@ -203,22 +245,6 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
         badge_type: "weekly",
         created_by: userId
       };
-
-      // 배지 DB에 저장
-      const { data: badgeData, error: insertError } = await supabase
-        .from("badges")
-        .insert(newBadge)
-        .select()
-        .single();
-
-      if (insertError) {
-        console.error("배지 저장 오류:", insertError);
-        // 저장 실패 시 로컬에서만 사용
-        toast.error("배지를 데이터베이스에 저장하지 못했습니다. 이 세션에서만 사용할 수 있습니다.");
-      } else {
-        console.log("배지 저장 성공:", badgeData);
-        toast.success("배지가 저장되었습니다.");
-      }
 
       // 배지 목록에 추가하고 자동 선택
       setAvailableBadges(prev => [...prev, newBadge]);
@@ -439,7 +465,7 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {availableBadges
-                  .filter(badge => !userUploadedBadges.some(ub => ub.id === badge.id))
+                  .filter(badge => !badge.is_custom)
                   .map((badge) => (
                     <button
                       key={badge.id}

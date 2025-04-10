@@ -34,6 +34,7 @@ export interface Badge {
   created_at: string;
   badge_type?: string; // 배지 타입 (weekly, achievement 등)
   created_by?: string; // 배지를 생성한 사용자 ID
+  is_custom?: boolean; // 사용자가 직접 업로드한 커스텀 배지인지 여부
 }
 
 // EarnedBadge (중간 테이블) 구조 정의 (예시)
