@@ -139,11 +139,112 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
     }
   };
 
+  // 파일 선택 처리
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !userId) return;
+
+    try {
+      setUploadingImage(true);
+      setError(null);
+
+      // 파일 타입 확인
+      if (!file.type.startsWith("image/")) {
+        setError("이미지 파일만 업로드할 수 있습니다.");
+        return;
+      }
+
+      // 파일 크기 확인 (5MB 제한)
+      if (file.size > 5 * 1024 * 1024) {
+        setError("파일 크기는 5MB 이하여야 합니다.");
+        return;
+      }
+
+      // 파일명 생성 (사용자 ID + 타임스탬프 + 원본 확장자)
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${userId}_${Date.now()}.${fileExt}`;
+      const filePath = `custom/${fileName}`;
+
+      // Supabase Storage에 업로드
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("badges")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error("스토리지 업로드 오류:", uploadError);
+        throw new Error(`이미지 업로드 실패: ${uploadError.message}`);
+      }
+
+      console.log("업로드 성공:", uploadData);
+
+      // 업로드한 이미지 공개 URL 가져오기
+      const { data: urlData } = supabase.storage
+        .from("badges")
+        .getPublicUrl(filePath);
+
+      if (!urlData || !urlData.publicUrl) {
+        throw new Error("업로드된 이미지의 URL을 가져올 수 없습니다");
+      }
+
+      const publicUrl = urlData.publicUrl;
+      console.log("공개 URL:", publicUrl);
+
+      // 새 배지 생성 - 배지 유형을 'weekly'로 지정하고 created_by 설정
+      const newBadgeId = `custom_${Date.now()}`;
+      const newBadge: Badge = {
+        id: newBadgeId,
+        name: "나만의 배지",
+        description: "직접 업로드한 배지",
+        image_path: publicUrl,
+        created_at: new Date().toISOString(),
+        badge_type: "weekly",
+        created_by: userId
+      };
+
+      // 배지 DB에 저장
+      const { data: badgeData, error: insertError } = await supabase
+        .from("badges")
+        .insert(newBadge)
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error("배지 저장 오류:", insertError);
+        // 저장 실패 시 로컬에서만 사용
+        toast.error("배지를 데이터베이스에 저장하지 못했습니다. 이 세션에서만 사용할 수 있습니다.");
+      } else {
+        console.log("배지 저장 성공:", badgeData);
+        toast.success("배지가 저장되었습니다.");
+      }
+
+      // 배지 목록에 추가하고 자동 선택
+      setAvailableBadges(prev => [...prev, newBadge]);
+      setUserUploadedBadges(prev => [...prev, newBadge]);
+      
+      // 자동으로 최신 업로드 배지 선택
+      if (selectedBadges.length < MAX_WEEKLY_BADGES) {
+        setSelectedBadges(prev => [...prev, newBadgeId]);
+        setWeeklyBadges(prev => [...prev, newBadge]);
+      }
+    } catch (err) {
+      console.error("이미지 업로드 오류:", err);
+      setError(`이미지 업로드 중 오류가 발생했습니다: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";  // 파일 입력 초기화
+      }
+    }
+  };
+
   // 이미지 URL 생성 함수
   const getBadgeImageUrl = (imagePath: string): string => {
     if (!imagePath) return "/placeholder_badge.png";
     if (imagePath.startsWith("http")) {
-      return imagePath.replace(/([^:]\/)\/+/g, "$1");
+      return imagePath;
     }
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const bucketName = "badges";
@@ -190,82 +291,6 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
   const handleUploadClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
-    }
-  };
-
-  // 파일 선택 처리
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !userId) return;
-
-    try {
-      setUploadingImage(true);
-      setError(null);
-
-      // 파일 타입 확인
-      if (!file.type.startsWith("image/")) {
-        setError("이미지 파일만 업로드할 수 있습니다.");
-        return;
-      }
-
-      // 파일 크기 확인 (5MB 제한)
-      if (file.size > 5 * 1024 * 1024) {
-        setError("파일 크기는 5MB 이하여야 합니다.");
-        return;
-      }
-
-      // 파일명 생성 (사용자 ID + 타임스탬프 + 원본 확장자)
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${userId}_${Date.now()}.${fileExt}`;
-      const filePath = `custom/${fileName}`;
-
-      // Supabase Storage에 업로드
-      const { error: uploadError } = await supabase.storage
-        .from("badges")
-        .upload(filePath, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-
-      // 업로드한 이미지 공개 URL 가져오기
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("badges").getPublicUrl(filePath);
-
-      // 새 배지 생성 - 배지 유형을 'weekly'로 지정
-      const newBadgeId = `custom_${Date.now()}`;
-      const newBadge: Badge = {
-        id: newBadgeId,
-        name: "나만의 배지",
-        description: "직접 업로드한 배지",
-        image_path: publicUrl,
-        created_at: new Date().toISOString(),
-        badge_type: "weekly",
-        created_by: userId
-      };
-
-      // 배지 DB에 저장
-      const { error: insertError } = await supabase
-        .from("badges")
-        .insert(newBadge);
-
-      if (insertError) throw insertError;
-
-      // 배지 목록 갱신 및 선택
-      setAvailableBadges(prev => [...prev, newBadge]);
-      setUserUploadedBadges(prev => [...prev, newBadge]);
-      
-      toast.success("배지 이미지 업로드 완료");
-    } catch (err) {
-      console.error("이미지 업로드 오류:", err);
-      setError("이미지 업로드 중 오류가 발생했습니다.");
-    } finally {
-      setUploadingImage(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";  // 파일 입력 초기화
-      }
     }
   };
 
