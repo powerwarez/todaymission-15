@@ -1,18 +1,21 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { NotificationProvider } from './contexts/NotificationContext';
-import { useNotificationState } from './hooks/useNotificationState';
-import MainLayout from './layouts/MainLayout';
-import LoginPage from './pages/LoginPage';
-import TodayMissionPage from './pages/TodayMissionPage';
-import HallOfFamePage from './pages/HallOfFamePage';
-import MissionSettingsPage from './pages/ChallengeSettingsPage';
-import BadgeSettingsPage from './pages/BadgeSettingsPage';
-import BadgeNotificationModal from './components/BadgeNotificationModal';
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
+import { useNotificationState } from "./hooks/useNotificationState";
+import MainLayout from "./layouts/MainLayout";
+import LoginPage from "./pages/LoginPage";
+import TodayMissionPage from "./pages/TodayMissionPage";
+import HallOfFamePage from "./pages/HallOfFamePage";
+import MissionSettingsPage from "./pages/ChallengeSettingsPage";
+import BadgeSettingsPage from "./pages/BadgeSettingsPage";
+import BadgeNotificationModal from "./components/BadgeNotificationModal";
+import BadgeSelectionModal from "./components/BadgeSelectionModal";
 
 // PrivateRoute 컴포넌트: 인증된 사용자만 접근 가능
-const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
+const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({
+  children,
+}) => {
   const { session, loading } = useAuth();
   if (loading) {
     return (
@@ -28,7 +31,9 @@ const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({ children }) 
 };
 
 // PublicRoute 컴포넌트: 인증되지 않은 사용자만 접근 가능 (예: 로그인 페이지)
-const PublicRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
+const PublicRoute: React.FC<{ children: React.ReactElement }> = ({
+  children,
+}) => {
   const { session, loading } = useAuth();
   if (loading) {
     return (
@@ -59,7 +64,10 @@ const AppContent: React.FC = () => {
         <Route index element={<TodayMissionPage />} />
         <Route path="hall-of-fame" element={<HallOfFamePage />} />
         <Route path="mission-settings" element={<MissionSettingsPage />} />
-        <Route path="settings" element={<Navigate to="/mission-settings" replace />} />
+        <Route
+          path="settings"
+          element={<Navigate to="/mission-settings" replace />}
+        />
         <Route path="badge-settings" element={<BadgeSettingsPage />} />
       </Route>
 
@@ -85,8 +93,12 @@ const App: React.FC = () => {
     displayedBadges,
     handleCloseNotification, // 이제 badgeId를 인자로 받음
     showBadgeNotification,
-    isLoadingBadge, 
+    isLoadingBadge,
     notificationQueue, // 추가됨
+    showBadgeSelectionModal, // 추가: 배지 선택 모달 표시 여부
+    handleCloseBadgeSelectionModal, // 추가: 배지 선택 모달 닫기 함수
+    handleBadgeSelect, // 추가: 배지 선택 처리 함수
+    weeklyStreakAchieved, // 추가: 주간 스트릭 달성 여부
   } = useNotificationState();
 
   return (
@@ -98,14 +110,14 @@ const App: React.FC = () => {
         {displayedBadges.map((badge, index) => (
           <BadgeNotificationModal
             key={badge.id} // 각 모달 인스턴스는 고유 키 필요
-            badge={badge} 
+            badge={badge}
             // onClose는 이제 badgeId를 받아 handleCloseNotification 호출
-            onClose={() => handleCloseNotification(badge.id)} 
+            onClose={() => handleCloseNotification(badge.id)}
             // 모달 위치를 조정하여 겹치지 않게 표시 (예: index 사용)
-            style={{ 
+            style={{
               transform: `translateY(-${index * 110}%)`, // 각 모달을 위로 110% 만큼 이동
-              zIndex: 9999 - index // 위에 쌓이는 모달이 더 높은 z-index 가짐
-             }} 
+              zIndex: 9999 - index, // 위에 쌓이는 모달이 더 높은 z-index 가짐
+            }}
           />
         ))}
         {/* 로딩 상태 표시 (선택 사항) */}
@@ -113,6 +125,15 @@ const App: React.FC = () => {
           <div className="fixed bottom-5 right-5 z-[9998] p-2 bg-gray-700 text-white text-xs rounded shadow-lg">
             새로운 배지 로딩 중...
           </div>
+        )}
+
+        {/* 주간 스트릭 달성 시 배지 선택 모달 */}
+        {showBadgeSelectionModal && weeklyStreakAchieved && (
+          <BadgeSelectionModal
+            showModal={showBadgeSelectionModal}
+            onClose={handleCloseBadgeSelectionModal}
+            onBadgeSelect={handleBadgeSelect}
+          />
         )}
       </NotificationProvider>
     </AuthProvider>
