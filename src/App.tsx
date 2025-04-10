@@ -7,7 +7,7 @@ import MainLayout from "./layouts/MainLayout";
 import LoginPage from "./pages/LoginPage";
 import TodayMissionPage from "./pages/TodayMissionPage";
 import HallOfFamePage from "./pages/HallOfFamePage";
-import MissionSettingsPage from "./pages/ChallengeSettingsPage";
+import MissionSettingsPage from "./pages/MissionSettingsPage";
 import BadgeSettingsPage from "./pages/BadgeSettingsPage";
 import BadgeNotificationModal from "./components/BadgeNotificationModal";
 import { BadgeSelectionModal } from "./components/BadgeSelectionModal";

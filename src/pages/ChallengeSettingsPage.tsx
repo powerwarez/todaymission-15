@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useMissions } from '../hooks/useMissions';
 import { Mission } from '../types';
-import { LuCirclePlus, LuTrash2, LuSave } from 'react-icons/lu';
+import { LuCirclePlus, LuTrash2, LuSave, LuPencil } from 'react-icons/lu';
 
-const MissionSettingsPage: React.FC = () => {
+const ChallengeSettingsPage: React.FC = () => {
   const { missions, loading, error, addMission, updateMission, deleteMission } = useMissions();
   const [newMissionContent, setNewMissionContent] = useState('');
   const [editingMission, setEditingMission] = useState<Mission | null>(null);
@@ -126,7 +126,7 @@ const MissionSettingsPage: React.FC = () => {
                     </button>
                  ) : (
                     <button onClick={() => setEditingMission({ ...mission })} className="text-blue-600 hover:text-blue-800">
-                       {/* Replace with edit icon if desired */}
+                       <LuPencil size={18} />
                     </button>
                  )}
                 <button
@@ -170,4 +170,4 @@ const MissionSettingsPage: React.FC = () => {
   );
 };
 
-export default MissionSettingsPage; 
+export default ChallengeSettingsPage; 
