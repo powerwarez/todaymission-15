@@ -1,6 +1,32 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Badge } from "../types";
 import { supabase } from "../lib/supabaseClient";
+import { toZonedTime } from "date-fns-tz";
+
+// 시간대 설정
+const timeZone = "Asia/Seoul";
+
+// 현재 주의 시작(월요일)과 끝(일요일) 날짜 계산 함수 추가
+const getWeekDates = () => {
+  // 오늘 날짜를 KST로 변환
+  const todayKST = toZonedTime(new Date(), timeZone);
+  // KST 기준 요일 (0:일요일, 1:월요일, ..., 6:토요일)
+  const currentDay = todayKST.getDay();
+  const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay; // 일요일이면 이전 주 월요일로
+  const diffToSunday = currentDay === 0 ? 0 : 7 - currentDay; // 일요일이면 오늘, 아니면 다음 일요일
+
+  // 월요일 계산
+  const monday = new Date(todayKST);
+  monday.setDate(todayKST.getDate() + diffToMonday);
+  monday.setHours(0, 0, 0, 0); // 날짜 시작 시간으로 설정
+
+  // 일요일 계산
+  const sunday = new Date(todayKST);
+  sunday.setDate(todayKST.getDate() + diffToSunday);
+  sunday.setHours(23, 59, 59, 999); // 날짜 종료 시간으로 설정
+
+  return { monday, sunday };
+};
 
 export const useNotificationState = () => {
   // 현재 화면에 표시될 배지 목록 상태
@@ -39,11 +65,57 @@ export const useNotificationState = () => {
 
     // 주간 스트릭 1 달성 시 배지 선택 모달 표시
     if (nextBadgeId === "weekly_streak_1") {
-      console.log(
-        "[StateHook] Weekly streak 1 achieved, showing badge selection modal"
-      );
-      setWeeklyStreakAchieved(true);
-      setShowBadgeSelectionModal(true);
+      try {
+        console.log("[StateHook] Checking if weekly_streak_1 already earned this week");
+        
+        // 사용자 정보 가져오기
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (!user) {
+          console.error("[StateHook] User not authenticated");
+          isProcessingQueue.current = false;
+          setIsLoadingBadge(false);
+          // 큐에서 제거
+          setNotificationQueue((prevQueue) => prevQueue.slice(1));
+          return;
+        }
+        
+        // 이번 주의 시작(월요일)과 끝(일요일) 구하기
+        const { monday, sunday } = getWeekDates();
+        const mondayISOString = monday.toISOString();
+        const sundayISOString = sunday.toISOString();
+        
+        console.log(`[StateHook] Checking weekly streak between ${mondayISOString} and ${sundayISOString}`);
+        
+        // 이번 주에 이미 weekly_streak_1 배지를 획득했는지 확인
+        const { data: existingWeeklyBadge, error: checkError } = await supabase
+          .from("earned_badges")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("badge_id", "weekly_streak_1")
+          .gte("earned_at", mondayISOString)
+          .lte("earned_at", sundayISOString);
+
+        if (checkError) throw checkError;
+
+        // 이미 이번 주에 배지를 획득했으면 모달을 띄우지 않고 패스
+        if (existingWeeklyBadge && existingWeeklyBadge.length > 0) {
+          console.log("[StateHook] Already earned weekly_streak_1 badge this week, skipping modal");
+          // 배지 모달을 표시하지 않음
+          // 큐에서 제거하고 처리 완료
+          setNotificationQueue((prevQueue) => prevQueue.slice(1));
+          isProcessingQueue.current = false;
+          setIsLoadingBadge(false);
+          return;
+        }
+        
+        // 아직 배지를 획득하지 않았으면 배지 선택 모달 표시
+        console.log("[StateHook] Weekly streak 1 achieved, showing badge selection modal");
+        setWeeklyStreakAchieved(true);
+        setShowBadgeSelectionModal(true);
+      } catch (error) {
+        console.error("[StateHook] Error checking weekly badge status:", error);
+      }
 
       // 큐에서 처리 시작한 ID 제거
       setNotificationQueue((prevQueue) => prevQueue.slice(1));
