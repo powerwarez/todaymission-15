@@ -87,8 +87,8 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
         // 커스텀 배지 데이터를 Badge 형식으로 변환
         formattedCustomBadges = (customBadges || []).map(badge => ({
           id: badge.badge_id,
-          name: badge.name,
-          description: badge.description || "",
+          name: weeklyStreakBadgeInfo.name,
+          description: weeklyStreakBadgeInfo.description,
           image_path: badge.image_path,
           created_at: badge.created_at,
           badge_type: badge.badge_type || "weekly",
@@ -124,8 +124,43 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
   useEffect(() => {
     if (userId) {
       fetchWeeklyBadges();
+      fetchWeeklyStreakBadgeInfo(); // weekly_streak_1 배지 정보 가져오기
     }
   }, [userId]);
+
+  // weekly_streak_1 배지 정보 가져오기
+  const [weeklyStreakBadgeInfo, setWeeklyStreakBadgeInfo] = useState<{
+    name: string;
+    description: string;
+  }>({
+    name: "주간 미션 달성!",
+    description: "이번 주 월-금 모든 미션을 모두 완료했습니다!",
+  });
+
+  const fetchWeeklyStreakBadgeInfo = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("badges")
+        .select("name, description")
+        .eq("id", "weekly_streak_1")
+        .single();
+
+      if (error) {
+        console.error("weekly_streak_1 배지 정보 가져오기 오류:", error);
+        return;
+      }
+
+      if (data) {
+        setWeeklyStreakBadgeInfo({
+          name: data.name,
+          description: data.description || "이번 주 월-금 모든 미션을 모두 완료했습니다!",
+        });
+        console.log("weekly_streak_1 배지 정보:", data);
+      }
+    } catch (err) {
+      console.error("weekly_streak_1 배지 정보 가져오기 오류:", err);
+    }
+  };
 
   // 사용 가능한 모든 배지 가져오기
   const fetchAvailableBadges = async () => {
@@ -163,8 +198,8 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
       // 커스텀 배지 데이터를 Badge 형식으로 변환
       const formattedCustomBadges = (customBadges || []).map(badge => ({
         id: badge.badge_id || `custom_${badge.id}`,
-        name: badge.name,
-        description: badge.description || "",
+        name: weeklyStreakBadgeInfo.name,
+        description: weeklyStreakBadgeInfo.description,
         image_path: badge.image_path,
         created_at: badge.created_at,
         badge_type: badge.badge_type || "weekly",

@@ -33,6 +33,27 @@ export const WeeklyBadgeModal: React.FC<WeeklyBadgeModalProps> = ({
     if (!user) return;
 
     try {
+      // weekly_streak_1 배지가 이번 주에 획득되었는지 확인
+      const { data: weeklyStreakBadge, error: weeklyStreakError } = await supabase
+        .from("earned_badges")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("badge_id", "weekly_streak_1")
+        .eq("badge_type", "weekly")
+        .gte("earned_at", weekStartDate)
+        .lte("earned_at", weekEndDate);
+
+      if (weeklyStreakError) throw weeklyStreakError;
+
+      // weekly_streak_1 배지가 있으면 모달을 닫습니다
+      if (weeklyStreakBadge && weeklyStreakBadge.length > 0) {
+        console.log("이번 주 weekly_streak_1 배지가 이미 획득되었습니다.");
+        setAlreadyEarned(true);
+        setTimeout(onClose, 100); // 모달 자동 닫기
+        return;
+      }
+
+      // 다른 주간 배지가 획득되었는지 확인
       const { data, error } = await supabase
         .from("earned_badges")
         .select("*")

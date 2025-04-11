@@ -41,7 +41,8 @@ const BadgeSettingsPage: React.FC = () => {
         // 2. 모든 배지 목록 가져오기 (badges 테이블)
         const { data: allBadges, error: badgesError } = await supabase
           .from('badges')
-          .select('id, name, description, image_path'); // 필요한 모든 컬럼 선택
+          .select('id, name, description, image_path') // 필요한 모든 컬럼 선택
+          .not('id', 'like', 'custom_%'); // custom_ 접두사가 붙은 배지 제외
 
         if (badgesError) throw badgesError;
         if (!allBadges) throw new Error("배지 정보를 가져올 수 없습니다.");
