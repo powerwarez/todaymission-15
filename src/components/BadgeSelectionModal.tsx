@@ -149,22 +149,41 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
         throw new Error("선택한 배지 정보를 찾을 수 없습니다");
       }
 
-      // earned_badges 테이블에 배지 획득 기록 저장
-      const { error: insertError } = await supabase
+      // 먼저 이미 획득한 배지인지 확인
+      const { data: existingBadges, error: checkError } = await supabase
         .from("earned_badges")
-        .insert({
-          user_id: user.id,
-          badge_id: badgeId,
-          earned_at: new Date().toISOString(),
-          badge_type: "weekly", // 배지 유형을 'weekly'로 명확하게 지정
-        });
-
-      if (insertError) {
-        console.error("배지 획득 기록 실패:", insertError);
-        throw insertError;
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("badge_id", badgeId)
+        .eq("badge_type", "weekly");
+      
+      if (checkError) {
+        console.error("기존 배지 확인 오류:", checkError);
+        throw checkError;
       }
+      
+      // 이미 획득한 배지가 있으면 중복 저장하지 않음
+      if (existingBadges && existingBadges.length > 0) {
+        console.log("이미 획득한 배지입니다. 중복 저장하지 않습니다.");
+        // 중복 저장은 하지 않지만 성공으로 처리
+      } else {
+        // earned_badges 테이블에 배지 획득 기록 저장
+        const { error: insertError } = await supabase
+          .from("earned_badges")
+          .insert({
+            user_id: user.id,
+            badge_id: badgeId,
+            earned_at: new Date().toISOString(),
+            badge_type: "weekly", // 배지 유형을 'weekly'로 명확하게 지정
+          });
 
-      console.log("배지 획득 기록 성공:", badgeId);
+        if (insertError) {
+          console.error("배지 획득 기록 실패:", insertError);
+          throw insertError;
+        }
+        
+        console.log("배지 획득 기록 성공:", badgeId);
+      }
 
       // Confetti 효과 표시
       triggerConfetti();
@@ -296,7 +315,20 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
             취소
           </button>
           <button
-            onClick={() => selectedBadge && handleBadgeSelect(selectedBadge)}
+            onClick={() => {
+              if (selectedBadge) {
+                handleBadgeSelect(selectedBadge)
+                  .then(() => {
+                    // 선택 완료 후 모달 닫기 추가
+                    setTimeout(() => {
+                      handleClose();
+                    }, 1500); // confetti 효과를 볼 수 있도록 약간의 지연 추가
+                  })
+                  .catch((err) => {
+                    console.error("배지 선택 완료 중 오류:", err);
+                  });
+              }
+            }}
             disabled={!selectedBadge || loading}
             className={`px-4 py-2 rounded-md ${
               selectedBadge && !loading
