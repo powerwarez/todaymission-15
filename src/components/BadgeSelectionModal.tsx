@@ -29,32 +29,14 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
   const [showConfetti, setShowConfetti] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const confettiRef = useRef<ConfettiRef>(null);
+  const [alreadyEarned, setAlreadyEarned] = useState(false);
 
-  // 주간 미션에 설정된 배지 목록 가져오기
+  // 이미 배지를 획득했는지 확인
   useEffect(() => {
-    const fetchBadges = async () => {
-      if (!user) return;
+    const checkAlreadyEarnedBadge = async () => {
+      if (!user || !showModal) return;
       
       try {
-        setLoading(true);
-        setError(null);
-        console.log("주간 배지 목록 가져오기");
-
-        // weekly_streak_1 배지 정보 가져오기 (전역으로 사용)
-        const { data: weeklyStreakBadge, error: weeklyStreakError } = await supabase
-          .from("badges")
-          .select("name, description")
-          .eq("id", "weekly_streak_1")
-          .single();
-          
-        if (weeklyStreakError) {
-          console.error("weekly_streak_1 배지 정보 가져오기 오류:", weeklyStreakError);
-        }
-        
-        const weeklyStreakName = weeklyStreakBadge?.name || "주간 미션 달성!";
-        const weeklyStreakDescription = weeklyStreakBadge?.description || "이번 주 월-금 모든 미션을 모두 완료했습니다!";
-
-        // 먼저 이번 주에 이미 weekly_streak_1 배지를 획득했는지 확인
         // 현재 날짜 기준으로 이번 주의 시작(월요일)과 끝(일요일) 구하기
         const now = new Date();
         const day = now.getDay(); // 0: 일요일, 1: 월요일, ..., 6: 토요일
@@ -71,7 +53,67 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
         const weekStartStr = weekStart.toISOString();
         const weekEndStr = weekEnd.toISOString();
         
-        // weekly_streak_1 배지가 이번 주에 획득되었는지 확인
+        // 이미 이번 주에 weekly_streak_1 배지를 획득했는지 확인
+        const { data: existingWeeklyBadge, error: weeklyCheckError } = await supabase
+          .from("earned_badges")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("badge_id", "weekly_streak_1")
+          .gte("earned_at", weekStartStr)
+          .lte("earned_at", weekEndStr);
+
+        if (weeklyCheckError) {
+          console.error("주간 미션 배지 확인 오류:", weeklyCheckError);
+          return;
+        }
+
+        // 이미 이번 주에 배지를 획득했으면 alreadyEarned 상태 업데이트
+        if (existingWeeklyBadge && existingWeeklyBadge.length > 0) {
+          console.log("이번 주 weekly_streak_1 배지가 이미 획득되었습니다.");
+          setAlreadyEarned(true);
+        }
+      } catch (err) {
+        console.error("배지 획득 여부 확인 중 오류 발생:", err);
+      }
+    };
+
+    checkAlreadyEarnedBadge();
+  }, [user, showModal]);
+
+  // 이미 배지를 획득한 경우 모달창을 띄우지 않고 패스
+  useEffect(() => {
+    if (alreadyEarned && showModal) {
+      onClose();
+    }
+  }, [alreadyEarned, showModal, onClose]);
+
+  // 주간 미션에 설정된 배지 목록 가져오기
+  useEffect(() => {
+    const fetchBadges = async () => {
+      if (!user || alreadyEarned) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        console.log("주간 배지 목록 가져오기");
+
+        // 현재 날짜 기준으로 이번 주의 시작(월요일)과 끝(일요일) 구하기
+        const now = new Date();
+        const day = now.getDay(); // 0: 일요일, 1: 월요일, ..., 6: 토요일
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1); // 이번 주 월요일 날짜 계산
+        
+        const weekStart = new Date(now.setDate(diff));
+        weekStart.setHours(0, 0, 0, 0);
+        
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        weekEnd.setHours(23, 59, 59, 999);
+        
+        // 이번 주 날짜 문자열
+        const weekStartStr = weekStart.toISOString();
+        const weekEndStr = weekEnd.toISOString();
+        
+        // 이미 이번 주에 weekly_streak_1 배지를 획득했는지 확인
         const { data: existingWeeklyBadge, error: weeklyCheckError } = await supabase
           .from("earned_badges")
           .select("*")
@@ -91,6 +133,20 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
           onClose();
           return;
         }
+
+        // weekly_streak_1 배지 정보 가져오기 (전역으로 사용)
+        const { data: weeklyStreakBadge, error: weeklyStreakError } = await supabase
+          .from("badges")
+          .select("name, description")
+          .eq("id", "weekly_streak_1")
+          .single();
+          
+        if (weeklyStreakError) {
+          console.error("weekly_streak_1 배지 정보 가져오기 오류:", weeklyStreakError);
+        }
+        
+        const weeklyStreakName = weeklyStreakBadge?.name || "주간 미션 달성!";
+        const weeklyStreakDescription = weeklyStreakBadge?.description || "이번 주 월-금 모든 미션을 모두 완료했습니다!";
 
         // 1. 먼저 weekly_badge_settings 테이블에서 설정된 배지 ID 가져오기
         const { data: settingsData, error: settingsError } = await supabase
@@ -218,10 +274,10 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
       }
     };
 
-    if (showModal && user) {
+    if (showModal && user && !alreadyEarned) {
       fetchBadges();
     }
-  }, [showModal, user]);
+  }, [showModal, user, alreadyEarned]);
 
   // 이미지 URL 생성 함수
   const getBadgeImageUrl = (imagePath: string): string => {
@@ -422,7 +478,8 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
     confettiRef.current.trigger(options);
   };
 
-  if (!showModal) return null;
+  // 모달을 표시하지 않는 조건: 모달이 표시되지 않거나 이미 배지를 획득한 경우
+  if (!showModal || alreadyEarned) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
