@@ -1,82 +1,102 @@
-import React, { forwardRef, useImperativeHandle, useRef } from "react";
-import ReactConfetti from "react-confetti";
+import React, { useImperativeHandle, forwardRef } from "react";
+import confetti from "canvas-confetti";
 
-// Confetti에 사용할 옵션 타입 정의
+// 컨페티 옵션 타입 정의
 export interface ConfettiOptions {
   particleCount?: number;
-  angle?: number;
   spread?: number;
-  startVelocity?: number;
-  decay?: number;
-  gravity?: number;
-  ticks?: number;
-  origin?: {
-    x?: number;
-    y?: number;
-  };
+  origin?: { x?: number; y?: number };
   colors?: string[];
-  shapes?: ("square" | "circle")[];
+  startVelocity?: number;
+  ticks?: number;
+  gravity?: number;
   scalar?: number;
+  shapes?: ("square" | "circle")[];
   zIndex?: number;
   drift?: number;
-  random?: () => number;
+  decay?: number;
 }
 
-// Confetti에 외부에서 접근할 메서드 정의
+// 컨페티 ref 타입 정의
 export interface ConfettiRef {
   trigger: (options?: ConfettiOptions) => void;
 }
 
-// Confetti 컴포넌트 props 타입 정의
+// 컨페티 컴포넌트 props 타입
 interface ConfettiProps {
-  width?: number;
-  height?: number;
+  autoPlay?: boolean;
+  options?: ConfettiOptions;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
-// Confetti 컴포넌트 구현
+// 소리 파일 경로
+const SOUND_PATH = "/sound/high_rune.flac";
+
 export const Confetti = forwardRef<ConfettiRef, ConfettiProps>(
-  ({ width, height }, ref) => {
-    const [confetti, setConfetti] = React.useState({
-      active: false,
-      config: {} as ConfettiOptions,
-    });
+  ({ autoPlay = false, options = {}, className, style }, ref) => {
+    // 컨페티 효과 트리거 함수
+    const triggerConfetti = (customOptions?: ConfettiOptions) => {
+      try {
+        // 효과음 재생 시도
+        try {
+          const audio = new Audio(SOUND_PATH);
+          audio.volume = 0.5; // 볼륨 조절
+          
+          // 사용자 상호작용 없이도 재생 시도
+          audio.play().catch(err => {
+            console.warn("효과음 재생 실패 (사용자 상호작용 필요):", err);
+          });
+        } catch (audioErr) {
+          console.warn("효과음 생성 실패:", audioErr);
+        }
+        
+        // 기본 옵션과 사용자 지정 옵션 병합
+        const defaultOptions = {
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+        };
+        
+        const finalOptions = { ...defaultOptions, ...options, ...customOptions };
+        
+        // 컨페티 효과 시작
+        confetti(finalOptions);
+      } catch (err) {
+        console.error("컨페티 효과 실행 중 오류:", err);
+      }
+    };
 
-    useImperativeHandle(ref, () => ({
-      trigger: (options: ConfettiOptions = {}) => {
-        setConfetti({
-          active: true,
-          config: options,
-        });
+    // ref를 통해 외부에서 컨페티 효과 트리거 함수에 접근 가능하도록 설정
+    useImperativeHandle(
+      ref,
+      () => ({
+        trigger: triggerConfetti,
+      }),
+      [options]
+    );
 
-        // 지속 시간 설정 (옵션에 지정된 ticks 또는 기본값 사용)
-        setTimeout(() => {
-          setConfetti((prev) => ({ ...prev, active: false }));
-        }, options.ticks || 200);
-      },
-    }));
+    // 자동 재생 옵션이 활성화된 경우 렌더링 시 자동으로 컨페티 효과 트리거
+    React.useEffect(() => {
+      if (autoPlay) {
+        triggerConfetti();
+      }
+    }, [autoPlay]);
 
-    if (!confetti.active) return null;
-
+    // 컴포넌트 자체는 보이지 않게 처리
     return (
-      <ReactConfetti
-        width={width || window.innerWidth}
-        height={height || window.innerHeight}
-        numberOfPieces={confetti.config.particleCount || 200}
-        recycle={false}
+      <div
+        className={className}
+        style={{
+          position: "absolute",
+          pointerEvents: "none",
+          width: "100%",
+          height: "100%",
+          top: 0,
+          left: 0,
+          ...style,
+        }}
       />
     );
   }
 );
-
-Confetti.displayName = "Confetti";
-
-// 편의를 위한 훅
-export const useConfetti = () => {
-  const confettiRef = useRef<ConfettiRef>(null);
-
-  const confetti = (options?: ConfettiOptions) => {
-    confettiRef.current?.trigger(options);
-  };
-
-  return { confetti, confettiRef };
-};

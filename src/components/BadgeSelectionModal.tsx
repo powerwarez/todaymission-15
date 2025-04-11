@@ -66,50 +66,74 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
         const customBadgeIds = badgeIds
           .filter(id => id.startsWith("custom_"))
           .map(id => id.replace("custom_", "")); // 접두사 제거하여 실제 ID 추출
+        
+        console.log("일반 배지 ID:", regularBadgeIds);
+        console.log("커스텀 배지 ID (접두사 제거):", customBadgeIds);
 
         // 2. 추출한 ID로 badges 테이블에서 배지 정보 가져오기
-        const { data: regularBadges, error: regularError } = await supabase
-          .from("badges")
-          .select("*")
-          .in("id", regularBadgeIds);
+        let regularBadges: Badge[] = [];
+        if (regularBadgeIds.length > 0) {
+          const { data, error: regularError } = await supabase
+            .from("badges")
+            .select("*")
+            .in("id", regularBadgeIds);
 
-        if (regularError) {
-          console.error("기본 배지 가져오기 오류:", regularError);
-          throw regularError;
+          if (regularError) {
+            console.error("기본 배지 가져오기 오류:", regularError);
+            throw regularError;
+          }
+          
+          regularBadges = data || [];
+          console.log("가져온 일반 배지 수:", regularBadges.length);
         }
 
         // 3. 커스텀 배지 ID가 있는 경우에만 조회
-        let formattedCustomBadges: Badge[] = [];
+        const formattedCustomBadges: Badge[] = [];
         if (customBadgeIds.length > 0) {
-          const { data: customBadges, error: customError } = await supabase
-            .from("custom_badges")
-            .select("*")
-            .in("badge_id", customBadgeIds);
-
-          if (customError) {
-            console.error("커스텀 배지 가져오기 오류:", customError);
-            throw customError;
+          console.log("커스텀 배지 조회 시작:", customBadgeIds);
+          
+          // 각 커스텀 배지를 개별적으로 조회 (대량 조회 시 오류 가능성이 있어서)
+          for (const badgeId of customBadgeIds) {
+            try {
+              const { data, error } = await supabase
+                .from("custom_badges")
+                .select("*")
+                .eq("badge_id", badgeId)
+                .maybeSingle();
+                
+              if (error) {
+                console.error(`커스텀 배지 ${badgeId} 조회 오류:`, error);
+                continue; // 오류가 발생해도 다음 배지 계속 진행
+              }
+              
+              if (data) {
+                console.log(`커스텀 배지 조회 성공:`, data);
+                formattedCustomBadges.push({
+                  id: `custom_${data.badge_id}`, // custom_ 접두사 추가
+                  name: data.name || "커스텀 배지",
+                  description: data.description || "커스텀 배지입니다",
+                  image_path: data.image_path,
+                  created_at: data.created_at,
+                  badge_type: data.badge_type || "weekly",
+                  is_custom: true
+                } as Badge);
+              }
+            } catch (err) {
+              console.error(`커스텀 배지 ${badgeId} 처리 중 예외 발생:`, err);
+            }
           }
-
-          // 4. 커스텀 배지 데이터를 Badge 형식으로 변환
-          formattedCustomBadges = (customBadges || []).map(badge => ({
-            id: `custom_${badge.badge_id}`, // custom_ 접두사 추가 (원래 저장된 ID 형식으로)
-            name: badge.name || "커스텀 배지",
-            description: badge.description || "커스텀 배지입니다",
-            image_path: badge.image_path,
-            created_at: badge.created_at,
-            badge_type: badge.badge_type || "weekly",
-            is_custom: true
-          })) as Badge[];
+          
+          console.log("가져온 커스텀 배지 수:", formattedCustomBadges.length);
         }
 
         // 5. 모든 배지 합치기
         const allBadges = [
-          ...(regularBadges || []),
+          ...regularBadges,
           ...formattedCustomBadges
         ];
 
         if (allBadges.length === 0) {
+          console.error("가져온 배지가 없습니다. regularBadges:", regularBadges.length, "customBadges:", formattedCustomBadges.length);
           setError("주간 미션에 설정된 배지가 없습니다. 관리자에게 문의하세요.");
         } else {
           console.log("가져온 배지 목록:", allBadges.length, "개");
