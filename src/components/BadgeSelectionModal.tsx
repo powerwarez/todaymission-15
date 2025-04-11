@@ -132,15 +132,52 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
   };
 
   // 배지 선택 처리
-  const handleBadgeSelect = (badgeId: string) => {
-    setSelectedBadge(badgeId);
-    setShowConfetti(true);
+  const handleBadgeSelect = async (badgeId: string) => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      setSelectedBadge(badgeId);
+      setShowConfetti(true);
 
-    // Confetti 효과 표시
-    triggerConfetti();
+      console.log("배지 선택:", badgeId);
+      
+      // 배지 정보 가져오기
+      const selectedBadgeData = badges.find(badge => badge.id === badgeId);
+      if (!selectedBadgeData) {
+        console.error("선택한 배지 정보를 찾을 수 없습니다:", badgeId);
+        throw new Error("선택한 배지 정보를 찾을 수 없습니다");
+      }
 
-    // 배지 유형을 'weekly'로 지정하여 선택한 배지 ID를 부모 컴포넌트로 전달
-    onBadgeSelect(badgeId, "weekly");
+      // earned_badges 테이블에 배지 획득 기록 저장
+      const { error: insertError } = await supabase
+        .from("earned_badges")
+        .insert({
+          user_id: user.id,
+          badge_id: badgeId,
+          earned_at: new Date().toISOString(),
+          badge_type: "weekly", // 배지 유형을 'weekly'로 명확하게 지정
+        });
+
+      if (insertError) {
+        console.error("배지 획득 기록 실패:", insertError);
+        throw insertError;
+      }
+
+      console.log("배지 획득 기록 성공:", badgeId);
+
+      // Confetti 효과 표시
+      triggerConfetti();
+
+      // 배지 유형을 'weekly'로 지정하여 선택한 배지 ID를 부모 컴포넌트로 전달
+      onBadgeSelect(badgeId, "weekly");
+      
+    } catch (err) {
+      console.error("배지 선택/저장 중 오류 발생:", err);
+      setError("배지 선택 중 오류가 발생했습니다. 다시 시도해주세요.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 모달이 닫힐 때 상태 초기화

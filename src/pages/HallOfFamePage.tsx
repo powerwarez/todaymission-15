@@ -16,23 +16,24 @@ import {
 import { Mission } from "../types"; // Mission 타입만 필요할 수 있음
 // date-fns-tz import 추가, format 추가
 import { formatInTimeZone, toZonedTime, format } from "date-fns-tz";
+import { useAuth } from "../contexts/AuthContext";
 
-// 시간대 설정
-const timeZone = "Asia/Seoul";
+// 시간대 설정 (AuthContext에서 사용하는 값으로 대체)
+// const timeZone = "Asia/Seoul";
 
 const HallOfFamePage: React.FC = () => {
+  const { timeZone } = useAuth();
   const initialDate = new Date();
   // KST로 해석된 현재 시각 (Date 객체는 아님, ZonedDateTime 유사 객체)
   const todayKSTObj = toZonedTime(initialDate, timeZone);
 
   // selectedDate는 KST 기준 날짜를 나타내는 Date 객체 (UTC 타임스탬프는 KST 자정)
-  const [selectedDate, setSelectedDate] = useState(
-    // KST 날짜 문자열을 만들어 UTC 자정으로 파싱
+  const [selectedDate, setSelectedDate] = useState<Date>(
     new Date(format(todayKSTObj, "yyyy-MM-dd", { timeZone }) + "T00:00:00Z")
   );
 
   // currentMonthDate는 해당 월의 1일 UTC 00:00:00을 나타내는 Date 객체
-  const [currentMonthDate, setCurrentMonthDate] = useState(
+  const [currentMonthDate, setCurrentMonthDate] = useState<Date>(
     new Date(Date.UTC(todayKSTObj.getFullYear(), todayKSTObj.getMonth(), 1))
   );
 
@@ -68,7 +69,7 @@ const HallOfFamePage: React.FC = () => {
   } = useMonthlySnapshots(currentYear, currentMonth);
 
   // --- 배지 탭 관련 상태 --- //
-  const [badgeTab, setBadgeTab] = useState<"all" | "mission" | "weekly">("all");
+  const [badgeTab, setBadgeTab] = useState<"all" | "mission" | "weekly">("weekly");
 
   // 필터링된 배지 탭에 따라 배지 데이터 가져오기
   const {
@@ -320,17 +321,17 @@ const HallOfFamePage: React.FC = () => {
               <LuAward className="mr-2" /> 획득한 배지
             </h2>
 
-            {/* 배지 탭 */}
+            {/* 배지 탭 순서 변경 */}
             <div className="flex border-b mb-6">
               <button
                 className={`px-4 py-2 font-medium ${
-                  badgeTab === "all"
+                  badgeTab === "weekly"
                     ? "text-pink-600 border-b-2 border-pink-600"
                     : "text-gray-500 hover:text-gray-700"
                 }`}
-                onClick={() => setBadgeTab("all")}
+                onClick={() => setBadgeTab("weekly")}
               >
-                전체 배지
+                주간 도전 배지
               </button>
               <button
                 className={`px-4 py-2 font-medium ${
@@ -344,13 +345,13 @@ const HallOfFamePage: React.FC = () => {
               </button>
               <button
                 className={`px-4 py-2 font-medium ${
-                  badgeTab === "weekly"
+                  badgeTab === "all"
                     ? "text-pink-600 border-b-2 border-pink-600"
                     : "text-gray-500 hover:text-gray-700"
                 }`}
-                onClick={() => setBadgeTab("weekly")}
+                onClick={() => setBadgeTab("all")}
               >
-                주간 도전 배지
+                전체 배지
               </button>
             </div>
 
