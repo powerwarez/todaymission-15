@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { Badge } from "../types";
-import { LuPlus, LuTrash, LuSave, LuUpload } from "react-icons/lu";
+import { LuPlus, LuTrash, LuSave } from "react-icons/lu";
 import { toast } from "react-hot-toast";
 
 interface WeeklyBadgeSettingProps {
@@ -15,48 +15,77 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showBadgeSelector, setShowBadgeSelector] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [userUploadedBadges, setUserUploadedBadges] = useState<Badge[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 최대 선택 가능한 배지 수
   const MAX_WEEKLY_BADGES = 5;
 
-  // 주간 배지 목록 가져오기
-  useEffect(() => {
-    const fetchWeeklyBadges = async () => {
-      try {
-        setLoading(true);
+  // 주간 배지 목록 가져오기 함수 (재사용 가능)
+  const fetchWeeklyBadges = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      console.log("주간 배지 가져오기 시작");
 
-        // 현재 사용자가 설정한 주간 배지 가져오기
-        const { data, error } = await supabase
-          .from("weekly_badge_settings")
-          .select("badge_id")
-          .eq("user_id", userId);
+      // 현재 사용자가 설정한 주간 배지 가져오기
+      const { data, error } = await supabase
+        .from("weekly_badge_settings")
+        .select("badge_id")
+        .eq("user_id", userId);
 
-        if (error) throw error;
+      if (error) {
+        console.error("주간 배지 설정 조회 오류:", error);
+        throw error;
+      }
 
-        // 배지 ID 추출
-        const badgeIds = data?.map(item => item.badge_id) || [];
-        
-        // 표준 배지 가져오기
+      // 배지 ID 추출
+      const badgeIds = data?.map(item => item.badge_id) || [];
+      
+      // 배지 ID가 없으면 빈 값 설정 후 반환
+      if (badgeIds.length === 0) {
+        console.log("설정된 주간 배지가 없습니다.");
+        setWeeklyBadges([]);
+        setSelectedBadges([]);
+        setLoading(false);
+        return;
+      }
+      
+      console.log("가져올 배지 ID 목록:", badgeIds);
+      
+      // 표준 배지 가져오기
+      let regularBadgesResult = [] as Badge[];
+      if (badgeIds.length > 0) {
         const { data: regularBadges, error: regularError } = await supabase
           .from("badges")
           .select("*")
           .in("id", badgeIds);
 
-        if (regularError) throw regularError;
+        if (regularError) {
+          console.error("표준 배지 가져오기 오류:", regularError);
+          throw regularError;
+        }
+        
+        console.log("가져온 표준 배지:", regularBadges);
+        regularBadgesResult = regularBadges || [];
+      }
 
-        // 커스텀 배지 가져오기
+      // 커스텀 배지 가져오기
+      let formattedCustomBadges = [] as Badge[];
+      if (badgeIds.length > 0) {
         const { data: customBadges, error: customError } = await supabase
           .from("custom_badges")
           .select("*")
           .in("badge_id", badgeIds);
 
-        if (customError) throw customError;
+        if (customError) {
+          console.error("커스텀 배지 가져오기 오류:", customError);
+          throw customError;
+        }
+        
+        console.log("가져온 커스텀 배지:", customBadges);
 
         // 커스텀 배지 데이터를 Badge 형식으로 변환
-        const formattedCustomBadges = customBadges?.map(badge => ({
+        formattedCustomBadges = (customBadges || []).map(badge => ({
           id: badge.badge_id,
           name: badge.name,
           description: badge.description || "",
@@ -66,23 +95,33 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
           created_by: badge.user_id,
           is_custom: true
         })) as Badge[];
+      }
 
-        // 모든 배지 합치기
-        const allBadges = [
-          ...(regularBadges || []), 
-          ...(formattedCustomBadges || [])
-        ];
-        
+      // 모든 배지 합치기
+      const allBadges = [
+        ...regularBadgesResult, 
+        ...formattedCustomBadges
+      ];
+      
+      console.log("최종 배지 목록:", allBadges);
+      
+      // 가져온 배지가 있을 경우에만 상태 업데이트
+      if (allBadges.length > 0) {
         setWeeklyBadges(allBadges);
         setSelectedBadges(badgeIds);
-      } catch (err) {
-        console.error("주간 배지 설정 가져오기 오류:", err);
-        setError("주간 배지 설정을 가져오는 중 오류가 발생했습니다.");
-      } finally {
-        setLoading(false);
+      } else {
+        console.warn("배지 ID는 있지만 해당하는 배지 데이터를 찾을 수 없습니다.");
       }
-    };
+    } catch (err) {
+      console.error("주간 배지 설정 가져오기 오류:", err);
+      setError("주간 배지 설정을 가져오는 중 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // 컴포넌트 마운트 시 배지 목록 가져오기
+  useEffect(() => {
     if (userId) {
       fetchWeeklyBadges();
     }
@@ -92,6 +131,8 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
   const fetchAvailableBadges = async () => {
     try {
       setLoading(true);
+      setError(null);
+      console.log("사용 가능한 배지 가져오기 시작");
 
       // 기본 배지 가져오기 (badges 테이블)
       const { data: regularBadges, error: regularError } = await supabase
@@ -99,7 +140,12 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
         .select("*")
         .or("badge_type.eq.weekly,badge_type.is.null");
 
-      if (regularError) throw regularError;
+      if (regularError) {
+        console.error("기본 배지 가져오기 오류:", regularError);
+        throw regularError;
+      }
+      
+      console.log("가져온 기본 배지:", regularBadges?.length || 0, "개");
 
       // 사용자 커스텀 배지 가져오기 (custom_badges 테이블)
       const { data: customBadges, error: customError } = await supabase
@@ -107,10 +153,15 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
         .select("*")
         .eq("user_id", userId);
 
-      if (customError) throw customError;
+      if (customError) {
+        console.error("커스텀 배지 가져오기 오류:", customError);
+        throw customError;
+      }
+      
+      console.log("가져온 커스텀 배지:", customBadges?.length || 0, "개");
 
       // 커스텀 배지 데이터를 Badge 형식으로 변환
-      const formattedCustomBadges = customBadges?.map(badge => ({
+      const formattedCustomBadges = (customBadges || []).map(badge => ({
         id: badge.badge_id || `custom_${badge.id}`,
         name: badge.name,
         description: badge.description || "",
@@ -122,12 +173,14 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
       })) as Badge[];
 
       // 모든 배지 합치기
-      const allBadges = [...(regularBadges || []), ...(formattedCustomBadges || [])];
+      const allBadges = [...(regularBadges || []), ...formattedCustomBadges];
+      console.log("전체 사용 가능한 배지:", allBadges.length, "개");
       
+      // 배지 목록 설정
       setAvailableBadges(allBadges);
       
       // 사용자가 업로드한 커스텀 배지 설정
-      setUserUploadedBadges(formattedCustomBadges || []);
+      setUserUploadedBadges(formattedCustomBadges);
     } catch (err) {
       console.error("사용 가능한 배지 가져오기 오류:", err);
       setError("배지 목록을 가져오는 중 오류가 발생했습니다.");
@@ -144,127 +197,45 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
 
   // 배지 선택 또는 선택 해제
   const handleBadgeSelect = (badge: Badge) => {
-    if (selectedBadges.includes(badge.id)) {
-      // 이미 선택된 배지면 선택 해제
-      setSelectedBadges(selectedBadges.filter((id) => id !== badge.id));
-      setWeeklyBadges(weeklyBadges.filter((b) => b.id !== badge.id));
-    } else {
-      // 새로 선택한 배지면 추가 (최대 5개까지)
-      if (selectedBadges.length < MAX_WEEKLY_BADGES) {
-        setSelectedBadges([...selectedBadges, badge.id]);
-        setWeeklyBadges([...weeklyBadges, badge]);
-      } else {
-        toast.error(`최대 ${MAX_WEEKLY_BADGES}개의 배지만 선택할 수 있습니다.`);
-      }
-    }
-  };
-
-  // 파일 선택 처리
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !userId) return;
-
     try {
-      setUploadingImage(true);
-      setError(null);
+      console.log("배지 선택/해제:", badge.id, badge.name);
 
-      // 파일 타입 확인
-      if (!file.type.startsWith("image/")) {
-        setError("이미지 파일만 업로드할 수 있습니다.");
-        return;
-      }
-
-      // 파일 크기 확인 (5MB 제한)
-      if (file.size > 5 * 1024 * 1024) {
-        setError("파일 크기는 5MB 이하여야 합니다.");
-        return;
-      }
-
-      // 파일명 생성 (사용자 ID + 타임스탬프 + 원본 확장자)
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${userId}_${Date.now()}.${fileExt}`;
-      const filePath = `custom/${fileName}`;
-
-      // Supabase Storage에 업로드
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("badges")
-        .upload(filePath, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
-
-      if (uploadError) {
-        console.error("스토리지 업로드 오류:", uploadError);
-        throw new Error(`이미지 업로드 실패: ${uploadError.message}`);
-      }
-
-      console.log("업로드 성공:", uploadData);
-
-      // 업로드한 이미지 공개 URL 가져오기
-      const { data: urlData } = supabase.storage
-        .from("badges")
-        .getPublicUrl(filePath);
-
-      if (!urlData || !urlData.publicUrl) {
-        throw new Error("업로드된 이미지의 URL을 가져올 수 없습니다");
-      }
-
-      const publicUrl = urlData.publicUrl;
-      console.log("공개 URL:", publicUrl);
-
-      // 새 배지 ID 생성
-      const newBadgeId = `custom_${Date.now()}`;
-      
-      // custom_badges 테이블에 저장
-      const { data: customBadgeData, error: customInsertError } = await supabase
-        .from("custom_badges")
-        .insert({
-          name: "나만의 배지",
-          description: "직접 업로드한 배지",
-          image_path: publicUrl,
-          badge_type: "weekly",
-          user_id: userId,
-          badge_id: newBadgeId
-        })
-        .select()
-        .single();
-
-      if (customInsertError) {
-        console.error("커스텀 배지 저장 오류:", customInsertError);
-        toast.error("배지를 저장하지 못했습니다. 이 세션에서만 사용할 수 있습니다.");
+      if (selectedBadges.includes(badge.id)) {
+        // 이미 선택된 배지면 선택 해제
+        console.log("배지 선택 해제:", badge.id);
+        
+        const updatedSelectedBadges = selectedBadges.filter((id) => id !== badge.id);
+        const updatedWeeklyBadges = weeklyBadges.filter((b) => b.id !== badge.id);
+        
+        setSelectedBadges(updatedSelectedBadges);
+        setWeeklyBadges(updatedWeeklyBadges);
+        
+        console.log("업데이트된 선택 배지:", updatedSelectedBadges.length, "개");
       } else {
-        console.log("커스텀 배지 저장 성공:", customBadgeData);
-        toast.success("배지가 저장되었습니다.");
-      }
-
-      // 새로운 배지 객체 생성
-      const newBadge: Badge = {
-        id: newBadgeId,
-        name: "나만의 배지",
-        description: "직접 업로드한 배지",
-        image_path: publicUrl,
-        created_at: new Date().toISOString(),
-        badge_type: "weekly",
-        created_by: userId
-      };
-
-      // 배지 목록에 추가하고 자동 선택
-      setAvailableBadges(prev => [...prev, newBadge]);
-      setUserUploadedBadges(prev => [...prev, newBadge]);
-      
-      // 자동으로 최신 업로드 배지 선택
-      if (selectedBadges.length < MAX_WEEKLY_BADGES) {
-        setSelectedBadges(prev => [...prev, newBadgeId]);
-        setWeeklyBadges(prev => [...prev, newBadge]);
+        // 새로 선택한 배지면 추가 (최대 5개까지)
+        if (selectedBadges.length < MAX_WEEKLY_BADGES) {
+          console.log("배지 선택 추가:", badge.id);
+          
+          // 중복 체크
+          if (!weeklyBadges.some(b => b.id === badge.id)) {
+            const updatedSelectedBadges = [...selectedBadges, badge.id];
+            const updatedWeeklyBadges = [...weeklyBadges, badge];
+            
+            setSelectedBadges(updatedSelectedBadges);
+            setWeeklyBadges(updatedWeeklyBadges);
+            
+            console.log("업데이트된 선택 배지:", updatedSelectedBadges.length, "개");
+          } else {
+            console.warn("이미 weeklyBadges에 포함된 배지입니다:", badge.id);
+          }
+        } else {
+          console.warn("최대 배지 수 초과");
+          toast.error(`최대 ${MAX_WEEKLY_BADGES}개의 배지만 선택할 수 있습니다.`);
+        }
       }
     } catch (err) {
-      console.error("이미지 업로드 오류:", err);
-      setError(`이미지 업로드 중 오류가 발생했습니다: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
-    } finally {
-      setUploadingImage(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";  // 파일 입력 초기화
-      }
+      console.error("배지 선택 처리 중 오류:", err);
+      toast.error("배지 선택 중 오류가 발생했습니다.");
     }
   };
 
@@ -285,6 +256,7 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
     try {
       setLoading(true);
       setError(null);
+      console.log("주간 배지 설정 저장 시작:", selectedBadges);
 
       if (selectedBadges.length === 0) {
         toast.error("최소 한 개 이상의 배지를 선택해주세요.");
@@ -303,36 +275,39 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
         console.error("기존 설정 삭제 오류:", deleteError);
         throw deleteError;
       }
+      
+      // 삭제 후 약간의 지연 설정 (데이터베이스 일관성 유지를 위해)
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       // 선택된 배지 설정 저장
       const settingsToInsert = selectedBadges.map((badgeId) => ({
         user_id: userId,
         badge_id: badgeId,
       }));
+      
+      console.log("저장할 설정:", settingsToInsert);
 
-      const { error: insertError } = await supabase
+      const { data: insertData, error: insertError } = await supabase
         .from("weekly_badge_settings")
-        .insert(settingsToInsert);
+        .insert(settingsToInsert)
+        .select();
 
       if (insertError) {
         console.error("설정 저장 오류:", insertError);
         throw insertError;
       }
-
+      
+      console.log("설정 저장 완료:", insertData);
       toast.success("주간 배지 설정이 저장되었습니다.");
+      
+      // 저장 완료 후 다시 로드하여 최신 데이터 유지
+      fetchWeeklyBadges();
     } catch (err) {
       console.error("주간 배지 설정 저장 오류:", err);
       setError("주간 배지 설정을 저장하는 중 오류가 발생했습니다.");
       toast.error("주간 배지 설정 저장에 실패했습니다.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  // 파일 업로드 버튼 클릭 처리
-  const handleUploadClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
     }
   };
 
@@ -365,11 +340,13 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
           {weeklyBadges.map((badge) => (
             <div key={badge.id} className="relative group">
               <div className="bg-gray-50 p-4 rounded-lg flex flex-col items-center hover:bg-pink-50 transition-colors">
-                <div className="w-16 h-16 mb-2 flex items-center justify-center">
+                <div className="w-16 h-16 mb-2 flex items-center justify-center 
+                  border-4 border-gradient-to-r from-pink-300 to-indigo-300 rounded-full 
+                  p-1 bg-white shadow-md overflow-hidden">
                   <img
                     src={getBadgeImageUrl(badge.image_path)}
                     alt={badge.name}
-                    className="max-w-full max-h-full object-contain"
+                    className="max-w-full max-h-full object-contain rounded-full"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src =
                         "/placeholder_badge.png";
@@ -413,29 +390,6 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
           <div className="relative bg-white rounded-lg shadow-lg w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">배지 선택</h3>
             
-            {/* 파일 업로드 인풋 (숨겨짐) */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-            
-            {/* 배지 업로드 버튼 */}
-            <button
-              onClick={handleUploadClick}
-              disabled={uploadingImage}
-              className="w-full mb-4 flex items-center justify-center px-4 py-2 bg-blue-50 border border-blue-300 rounded-md text-blue-700 hover:bg-blue-100 transition-colors"
-            >
-              {uploadingImage ? (
-                <span className="mr-2 animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></span>
-              ) : (
-                <LuUpload className="mr-2" size={18} />
-              )}
-              나만의 배지 이미지 업로드
-            </button>
-            
             {/* 내가 업로드한 배지 섹션 */}
             {userUploadedBadges.length > 0 && (
               <div className="mb-6">
@@ -454,11 +408,13 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
                         }
                       `}
                     >
-                      <div className="w-12 h-12 mb-2 flex items-center justify-center">
+                      <div className="w-16 h-16 mb-2 flex items-center justify-center 
+                        border-4 border-gradient-to-r from-pink-300 to-indigo-300 rounded-full 
+                        p-1 bg-white shadow-md overflow-hidden">
                         <img
                           src={getBadgeImageUrl(badge.image_path)}
                           alt={badge.name}
-                          className="max-w-full max-h-full object-contain"
+                          className="max-w-full max-h-full object-contain rounded-full"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src =
                               "/placeholder_badge.png";
@@ -495,11 +451,13 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
                         }
                       `}
                     >
-                      <div className="w-12 h-12 mb-2 flex items-center justify-center">
+                      <div className="w-16 h-16 mb-2 flex items-center justify-center 
+                        border-4 border-gradient-to-r from-pink-300 to-indigo-300 rounded-full 
+                        p-1 bg-white shadow-md overflow-hidden">
                         <img
                           src={getBadgeImageUrl(badge.image_path)}
                           alt={badge.name}
-                          className="max-w-full max-h-full object-contain"
+                          className="max-w-full max-h-full object-contain rounded-full"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src =
                               "/placeholder_badge.png";
