@@ -94,10 +94,12 @@ const HallOfFamePage: React.FC = () => {
       case "mission":
         return missionBadges;
       case "weekly":
-        return weeklyBadges;
+        // weekly_streak_1 배지는 제외하고 표시
+        return weeklyBadges.filter(badge => badge.badge.id !== "weekly_streak_1");
       case "all":
       default:
-        return allBadges;
+        // 전체 배지 탭에서도 weekly_streak_1 배지 제외
+        return allBadges.filter(badge => badge.badge.id !== "weekly_streak_1");
     }
   }, [badgeTab, allBadges, missionBadges, weeklyBadges]);
 
