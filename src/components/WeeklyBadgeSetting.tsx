@@ -31,48 +31,50 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
         // 현재 사용자가 설정한 주간 배지 가져오기
         const { data, error } = await supabase
           .from("weekly_badge_settings")
-          .select(
-            `
-            badge_id,
-            badges:badge_id (
-              id,
-              name,
-              description,
-              image_path,
-              created_at,
-              badge_type
-            )
-          `
-          )
+          .select("badge_id")
           .eq("user_id", userId);
 
         if (error) throw error;
 
-        // 배지 데이터 추출 및 변환
-        const badgeData =
-          data?.map(
-            (item) => {
-              const badgeItem = item.badges as unknown as {
-                id: string;
-                name: string;
-                description: string;
-                image_path: string;
-                created_at: string;
-                badge_type?: string;
-              };
-              return {
-                id: badgeItem.id,
-                name: badgeItem.name,
-                description: badgeItem.description,
-                image_path: badgeItem.image_path,
-                created_at: badgeItem.created_at,
-                badge_type: badgeItem.badge_type || "weekly",
-              } as Badge;
-            }
-          ) || [];
+        // 배지 ID 추출
+        const badgeIds = data?.map(item => item.badge_id) || [];
+        
+        // 표준 배지 가져오기
+        const { data: regularBadges, error: regularError } = await supabase
+          .from("badges")
+          .select("*")
+          .in("id", badgeIds);
 
-        setWeeklyBadges(badgeData);
-        setSelectedBadges(badgeData.map((badge) => badge.id));
+        if (regularError) throw regularError;
+
+        // 커스텀 배지 가져오기
+        const { data: customBadges, error: customError } = await supabase
+          .from("custom_badges")
+          .select("*")
+          .in("badge_id", badgeIds);
+
+        if (customError) throw customError;
+
+        // 커스텀 배지 데이터를 Badge 형식으로 변환
+        const formattedCustomBadges = customBadges?.map(badge => ({
+          id: badge.badge_id,
+          name: badge.name,
+          description: badge.description || "",
+          image_path: badge.image_path,
+          created_at: badge.created_at,
+          badge_type: badge.badge_type || "weekly",
+          created_by: badge.user_id,
+          is_custom: true
+        })) as Badge[];
+
+        // 모든 배지 합치기
+        const allBadges = [
+          ...(regularBadges || []), 
+          ...(formattedCustomBadges || [])
+        ];
+        
+        setWeeklyBadges(allBadges);
+        setSelectedBadges(badgeIds);
       } catch (err) {
         console.error("주간 배지 설정 가져오기 오류:", err);
         setError("주간 배지 설정을 가져오는 중 오류가 발생했습니다.");
@@ -282,6 +284,14 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
   const saveWeeklyBadgeSettings = async () => {
     try {
       setLoading(true);
+      setError(null);
+
+      if (selectedBadges.length === 0) {
+        toast.error("최소 한 개 이상의 배지를 선택해주세요.");
+        setError("최소 한 개 이상의 배지를 선택해주세요.");
+        setLoading(false);
+        return;
+      }
 
       // 기존 설정 삭제
       const { error: deleteError } = await supabase
@@ -289,7 +299,10 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
         .delete()
         .eq("user_id", userId);
 
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        console.error("기존 설정 삭제 오류:", deleteError);
+        throw deleteError;
+      }
 
       // 선택된 배지 설정 저장
       const settingsToInsert = selectedBadges.map((badgeId) => ({
@@ -301,7 +314,10 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
         .from("weekly_badge_settings")
         .insert(settingsToInsert);
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error("설정 저장 오류:", insertError);
+        throw insertError;
+      }
 
       toast.success("주간 배지 설정이 저장되었습니다.");
     } catch (err) {
