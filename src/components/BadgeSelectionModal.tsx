@@ -63,14 +63,12 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
         
         // 일반 배지와 커스텀 배지 ID 분리 (커스텀 배지는 custom_ 접두사가 있음)
         const regularBadgeIds = badgeIds.filter(id => !id.startsWith("custom_"));
-        const customBadgeIds = badgeIds
-          .filter(id => id.startsWith("custom_"))
-          .map(id => id.replace("custom_", "")); // 접두사 제거하여 실제 ID 추출
+        const customBadgeIds = badgeIds.filter(id => id.startsWith("custom_"));
         
         console.log("일반 배지 ID:", regularBadgeIds);
-        console.log("커스텀 배지 ID (접두사 제거):", customBadgeIds);
+        console.log("커스텀 배지 ID:", customBadgeIds);
 
-        // 2. 추출한 ID로 badges 테이블에서 배지 정보 가져오기
+        // 2. 일반 배지 가져오기
         let regularBadges: Badge[] = [];
         if (regularBadgeIds.length > 0) {
           const { data, error: regularError } = await supabase
@@ -87,46 +85,67 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
           console.log("가져온 일반 배지 수:", regularBadges.length);
         }
 
-        // 3. 커스텀 배지 ID가 있는 경우에만 조회
+        // 3. 커스텀 배지 가져오기
         const formattedCustomBadges: Badge[] = [];
         if (customBadgeIds.length > 0) {
           console.log("커스텀 배지 조회 시작:", customBadgeIds);
           
-          // 각 커스텀 배지를 개별적으로 조회 (대량 조회 시 오류 가능성이 있어서)
-          for (const badgeId of customBadgeIds) {
-            try {
-              const { data, error } = await supabase
-                .from("custom_badges")
-                .select("*")
-                .eq("badge_id", badgeId)
-                .maybeSingle();
-                
-              if (error) {
-                console.error(`커스텀 배지 ${badgeId} 조회 오류:`, error);
-                continue; // 오류가 발생해도 다음 배지 계속 진행
-              }
-              
-              if (data) {
-                console.log(`커스텀 배지 조회 성공:`, data);
+          try {
+            // 정확히 일치하는 배지만 조회 (exact match)
+            const { data: customBadges, error: customError } = await supabase
+              .from("custom_badges")
+              .select("*")
+              .in("badge_id", customBadgeIds); // 정확히 일치하는 항목만 조회
+
+            if (customError) {
+              console.error("커스텀 배지 목록 조회 오류:", customError);
+              throw customError;
+            }
+            
+            console.log("조회된 커스텀 배지:", customBadges);
+            
+            // 설정된 커스텀 배지 처리
+            if (customBadges && customBadges.length > 0) {
+              // 찾은 배지를 formattedCustomBadges에 추가
+              for (const badge of customBadges) {
+                console.log(`커스텀 배지 추가:`, badge);
                 formattedCustomBadges.push({
-                  id: `custom_${data.badge_id}`, // custom_ 접두사 추가
-                  name: data.name || "커스텀 배지",
-                  description: data.description || "커스텀 배지입니다",
-                  image_path: data.image_path,
-                  created_at: data.created_at,
-                  badge_type: data.badge_type || "weekly",
+                  id: badge.badge_id, // 배지 ID 그대로 사용
+                  name: badge.name || "커스텀 배지",
+                  description: badge.description || "커스텀 배지입니다",
+                  image_path: badge.image_path,
+                  created_at: badge.created_at,
+                  badge_type: "weekly",
                   is_custom: true
                 } as Badge);
               }
-            } catch (err) {
-              console.error(`커스텀 배지 ${badgeId} 처리 중 예외 발생:`, err);
             }
+          } catch (err) {
+            console.error("커스텀 배지 조회 중 오류 발생:", err);
+          }
+          
+          // 찾을 수 없는 배지가 있는 경우를 대비해 기본 정보로 추가
+          if (formattedCustomBadges.length === 0) {
+            console.warn("커스텀 배지를 찾을 수 없어 기본 배지를 사용합니다");
+            
+            // 기본 커스텀 배지 정보 추가
+            customBadgeIds.forEach(badgeId => {
+              formattedCustomBadges.push({
+                id: badgeId,
+                name: "커스텀 배지",
+                description: "커스텀 배지입니다",
+                image_path: "", // 기본 이미지는 getBadgeImageUrl에서 처리
+                created_at: new Date().toISOString(),
+                badge_type: "weekly",
+                is_custom: true
+              } as Badge);
+            });
           }
           
           console.log("가져온 커스텀 배지 수:", formattedCustomBadges.length);
         }
 
-        // 5. 모든 배지 합치기
+        // 4. 모든 배지 합치기
         const allBadges = [
           ...regularBadges,
           ...formattedCustomBadges
@@ -182,74 +201,15 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
         throw new Error("선택한 배지 정보를 찾을 수 없습니다");
       }
 
-      // 커스텀 배지는 badges 테이블에서 참조할 수 없음 (earned_badges_badge_id_fkey 제약조건)
-      // 따라서 커스텀 배지의 경우 먼저 badges 테이블에 해당 ID가 있는지 확인하고 없으면 생성해야 함
       const isCustomBadge = badgeId.startsWith("custom_") || selectedBadgeData.is_custom;
-      
-      const badgeIdToSave = badgeId;
-      
-      // 커스텀 배지인 경우 badges 테이블에 레코드가 있는지 확인
-      if (isCustomBadge) {
-        const cleanBadgeId = badgeId.replace("custom_", "");
-        
-        // 먼저 badges 테이블에 해당 ID로 레코드가 있는지 확인
-        const { data: existingBadge, error: checkError } = await supabase
-          .from("badges")
-          .select("id")
-          .eq("id", badgeId)
-          .maybeSingle();
-          
-        if (checkError) {
-          console.error("badges 테이블 확인 오류:", checkError);
-          throw checkError;
-        }
-        
-        // 없으면 커스텀 배지에서 정보를 가져와 badges 테이블에 레코드 생성
-        if (!existingBadge) {
-          // custom_badges 테이블에서 정보 가져오기
-          const { data: customBadgeData, error: fetchError } = await supabase
-            .from("custom_badges")
-            .select("*")
-            .eq("badge_id", cleanBadgeId)
-            .maybeSingle();
-            
-          if (fetchError) {
-            console.error("커스텀 배지 정보 가져오기 오류:", fetchError);
-            throw fetchError;
-          }
-          
-          if (!customBadgeData) {
-            console.error("커스텀 배지 정보가 없습니다:", cleanBadgeId);
-            throw new Error("커스텀 배지 정보가 없습니다");
-          }
-          
-          // badges 테이블에 레코드 생성
-          const { error: insertError } = await supabase
-            .from("badges")
-            .insert({
-              id: badgeId, // 원래 ID(custom_ 접두사 포함)를 사용
-              name: customBadgeData.name || "커스텀 배지",
-              description: customBadgeData.description || "커스텀 배지입니다",
-              image_path: customBadgeData.image_path,
-              badge_type: "weekly",
-              created_at: new Date().toISOString()
-            });
-            
-          if (insertError) {
-            console.error("badges 테이블에 레코드 생성 오류:", insertError);
-            throw insertError;
-          }
-          
-          console.log("badges 테이블에 커스텀 배지 레코드 생성 완료:", badgeId);
-        }
-      }
+      console.log("커스텀 배지 여부:", isCustomBadge);
       
       // 먼저 이미 획득한 배지인지 확인
       const { data: existingBadges, error: checkError } = await supabase
         .from("earned_badges")
         .select("id")
         .eq("user_id", user.id)
-        .eq("badge_id", badgeIdToSave)
+        .eq("badge_id", badgeId) // 원본 배지 ID 그대로 사용
         .eq("badge_type", "weekly");
       
       if (checkError) {
@@ -262,17 +222,54 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
         console.log("이미 획득한 배지입니다. 중복 저장하지 않습니다.");
         // 중복 저장은 하지 않지만 성공으로 처리
       } else {
-        // 저장할 데이터 설정 (badge_id는 badges 테이블의 id를 참조해야 함)
+        // 1. 먼저 badges 테이블에 레코드가 있는지 확인
+        let needsInsertToBadges = false;
+        
+        if (isCustomBadge) {
+          const { data: existingBadge, error } = await supabase
+            .from("badges")
+            .select("id")
+            .eq("id", badgeId)
+            .maybeSingle();
+            
+          if (error) {
+            console.error("badges 테이블 조회 오류:", error);
+          } else {
+            needsInsertToBadges = !existingBadge;
+          }
+        }
+        
+        // 2. badges 테이블에 레코드 생성 (필요한 경우에만)
+        if (isCustomBadge && needsInsertToBadges) {
+          console.log("badges 테이블에 레코드 생성:", badgeId);
+          
+          const { error: insertError } = await supabase
+            .from("badges")
+            .insert({
+              id: badgeId,
+              name: selectedBadgeData.name,
+              description: selectedBadgeData.description,
+              image_path: selectedBadgeData.image_path,
+              badge_type: "weekly",
+              created_at: new Date().toISOString()
+            });
+            
+          if (insertError) {
+            console.error("badges 테이블에 레코드 생성 오류:", insertError);
+            throw insertError;
+          }
+        }
+        
+        // 3. earned_badges 테이블에 레코드 저장
         const badgeData = {
           user_id: user.id,
-          badge_id: badgeIdToSave,
+          badge_id: badgeId, // 원본 ID 그대로 사용
           badge_type: "weekly",
           earned_at: new Date().toISOString()
         };
         
         console.log("저장할 배지 데이터:", badgeData);
         
-        // earned_badges 테이블에 배지 획득 기록 저장
         const { error: insertError } = await supabase
           .from("earned_badges")
           .insert(badgeData);
