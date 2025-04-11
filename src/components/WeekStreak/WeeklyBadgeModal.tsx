@@ -21,54 +21,63 @@ export const WeeklyBadgeModal: React.FC<WeeklyBadgeModalProps> = ({
   const { user } = useAuth();
   const [showBadgeSelection, setShowBadgeSelection] = useState(false);
   const [alreadyEarned, setAlreadyEarned] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  // 모달이 보여질 때 이미 배지를 획득했는지 확인
   useEffect(() => {
-    if (isVisible && user) {
-      checkAlreadyEarned();
-    }
-  }, [isVisible, user]);
+    const checkAlreadyEarned = async () => {
+      if (!user || !isVisible) return;
 
-  // 이미 해당 주에 획득한 배지가 있는지 확인
-  const checkAlreadyEarned = async () => {
-    if (!user) return;
+      try {
+        setLoading(true);
+        // weekly_streak_1 배지가 이번 주에 획득되었는지 확인
+        const { data: weeklyStreakBadge, error: weeklyStreakError } = await supabase
+          .from("earned_badges")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("badge_id", "weekly_streak_1")
+          .eq("badge_type", "weekly")
+          .gte("earned_at", weekStartDate)
+          .lte("earned_at", weekEndDate);
 
-    try {
-      // weekly_streak_1 배지가 이번 주에 획득되었는지 확인
-      const { data: weeklyStreakBadge, error: weeklyStreakError } = await supabase
-        .from("earned_badges")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("badge_id", "weekly_streak_1")
-        .eq("badge_type", "weekly")
-        .gte("earned_at", weekStartDate)
-        .lte("earned_at", weekEndDate);
+        if (weeklyStreakError) throw weeklyStreakError;
 
-      if (weeklyStreakError) throw weeklyStreakError;
+        // weekly_streak_1 배지가 있으면 상태 업데이트
+        if (weeklyStreakBadge && weeklyStreakBadge.length > 0) {
+          console.log("이번 주 weekly_streak_1 배지가 이미 획득되었습니다.");
+          setAlreadyEarned(true);
+          // 획득한 경우 부모 컴포넌트에 알려서 모달을 띄우지 않도록 함
+          onClose();
+          return;
+        }
 
-      // weekly_streak_1 배지가 있으면 모달을 닫습니다
-      if (weeklyStreakBadge && weeklyStreakBadge.length > 0) {
-        console.log("이번 주 weekly_streak_1 배지가 이미 획득되었습니다.");
-        setAlreadyEarned(true);
-        setTimeout(onClose, 100); // 모달 자동 닫기
-        return;
+        // 다른 주간 배지가 획득되었는지 확인
+        const { data, error } = await supabase
+          .from("earned_badges")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("badge_type", "weekly")
+          .gte("earned_at", weekStartDate)
+          .lte("earned_at", weekEndDate);
+
+        if (error) throw error;
+
+        const hasEarnedBadge = data && data.length > 0;
+        setAlreadyEarned(hasEarnedBadge);
+        
+        // 이미 배지를 획득했으면 모달을 닫음
+        if (hasEarnedBadge) {
+          onClose();
+        }
+      } catch (err) {
+        console.error("배지 획득 확인 오류:", err);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      // 다른 주간 배지가 획득되었는지 확인
-      const { data, error } = await supabase
-        .from("earned_badges")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("badge_type", "weekly")
-        .gte("earned_at", weekStartDate)
-        .lte("earned_at", weekEndDate);
-
-      if (error) throw error;
-
-      setAlreadyEarned(data && data.length > 0);
-    } catch (err) {
-      console.error("배지 획득 확인 오류:", err);
-    }
-  };
+    checkAlreadyEarned();
+  }, [isVisible, user, weekStartDate, weekEndDate, onClose]);
 
   // 배지 선택 핸들러
   const handleBadgeSelect = async (badgeId: string) => {
@@ -94,7 +103,20 @@ export const WeeklyBadgeModal: React.FC<WeeklyBadgeModalProps> = ({
     }
   };
 
-  if (!isVisible) return null;
+  // 이미 배지를 획득했거나 로딩 중이거나 모달이 보이지 않아야 하면 null 반환
+  if (!isVisible || (alreadyEarned && !loading)) return null;
+
+  // 로딩 중이면 로딩 스피너만 보여줌
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black bg-opacity-50"></div>
+        <div className="relative bg-white rounded-lg p-6 max-w-md w-full m-4 flex justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -139,7 +161,7 @@ export const WeeklyBadgeModal: React.FC<WeeklyBadgeModalProps> = ({
         </div>
       </div>
 
-      {showBadgeSelection && !alreadyEarned && (
+      {showBadgeSelection && !alreadyEarned && !loading && (
         <BadgeSelectionModal
           showModal={showBadgeSelection}
           onClose={() => setShowBadgeSelection(false)}
