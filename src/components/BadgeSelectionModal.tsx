@@ -6,22 +6,21 @@ import {
   ConfettiOptions,
   ConfettiRef,
 } from "../components/ui/confetti";
-import { LuX, LuUpload } from "react-icons/lu";
+import { LuX } from "react-icons/lu";
 import { useAuth } from "../contexts/AuthContext";
+import "../styles/animations.css"; // 애니메이션용 CSS 파일
 
 // 배지 선택 모달 props 타입 정의
 interface BadgeSelectionModalProps {
   onClose: () => void;
   onBadgeSelect: (badgeId: string, badgeType: string) => void;
   showModal: boolean;
-  preselectedBadges?: string[]; // 미리 선택된 배지 ID 목록
 }
 
 export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
   onClose,
   onBadgeSelect,
   showModal,
-  preselectedBadges = [],
 }) => {
   const { user } = useAuth();
   const [badges, setBadges] = useState<Badge[]>([]);
@@ -29,28 +28,84 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
   const [selectedBadge, setSelectedBadge] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const confettiRef = useRef<ConfettiRef>(null);
 
-  // 배지 목록 가져오기
+  // 주간 미션에 설정된 배지 목록 가져오기
   useEffect(() => {
     const fetchBadges = async () => {
+      if (!user) return;
+      
       try {
         setLoading(true);
+        setError(null);
+        console.log("주간 배지 목록 가져오기");
 
-        // preselectedBadges가 있으면 해당 배지들만 가져오고, 없으면 모든 배지 가져오기
-        let query = supabase.from("badges").select("*");
+        // 1. 먼저 weekly_badge_settings 테이블에서 설정된 배지 ID 가져오기
+        const { data: settingsData, error: settingsError } = await supabase
+          .from("weekly_badge_settings")
+          .select("badge_id")
+          .order("created_at", { ascending: false });
 
-        if (preselectedBadges.length > 0) {
-          query = query.in("id", preselectedBadges);
+        if (settingsError) {
+          console.error("주간 배지 설정 가져오기 오류:", settingsError);
+          throw settingsError;
         }
 
-        const { data, error } = await query;
+        if (!settingsData || settingsData.length === 0) {
+          setError("주간 배지 설정이 존재하지 않습니다. 관리자에게 문의하세요.");
+          setLoading(false);
+          return;
+        }
 
-        if (error) throw error;
+        // 배지 ID 목록 추출
+        const badgeIds = settingsData.map(item => item.badge_id);
+        console.log("가져올 배지 ID 목록:", badgeIds);
 
-        setBadges(data || []);
+        // 2. 추출한 ID로 badges 테이블에서 배지 정보 가져오기
+        const { data: regularBadges, error: regularError } = await supabase
+          .from("badges")
+          .select("*")
+          .in("id", badgeIds);
+
+        if (regularError) {
+          console.error("기본 배지 가져오기 오류:", regularError);
+          throw regularError;
+        }
+
+        // 3. 추출한 ID로 custom_badges 테이블에서 커스텀 배지 정보 가져오기
+        const { data: customBadges, error: customError } = await supabase
+          .from("custom_badges")
+          .select("*")
+          .in("badge_id", badgeIds);
+
+        if (customError) {
+          console.error("커스텀 배지 가져오기 오류:", customError);
+          throw customError;
+        }
+
+        // 4. 커스텀 배지 데이터를 Badge 형식으로 변환
+        const formattedCustomBadges = (customBadges || []).map(badge => ({
+          id: badge.badge_id,
+          name: badge.name || "커스텀 배지",
+          description: badge.description || "커스텀 배지입니다",
+          image_path: badge.image_path,
+          created_at: badge.created_at,
+          badge_type: badge.badge_type || "weekly",
+          is_custom: true
+        })) as Badge[];
+
+        // 5. 모든 배지 합치기
+        const allBadges = [
+          ...(regularBadges || []),
+          ...formattedCustomBadges
+        ];
+
+        if (allBadges.length === 0) {
+          setError("주간 미션에 설정된 배지가 없습니다. 관리자에게 문의하세요.");
+        } else {
+          console.log("가져온 배지 목록:", allBadges.length, "개");
+          setBadges(allBadges);
+        }
       } catch (err) {
         console.error("배지 목록 가져오기 오류:", err);
         setError("배지 목록을 가져오는 중 오류가 발생했습니다.");
@@ -59,10 +114,10 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
       }
     };
 
-    if (showModal) {
+    if (showModal && user) {
       fetchBadges();
     }
-  }, [showModal, preselectedBadges]);
+  }, [showModal, user]);
 
   // 이미지 URL 생성 함수
   const getBadgeImageUrl = (imagePath: string): string => {
@@ -86,87 +141,6 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
 
     // 배지 유형을 'weekly'로 지정하여 선택한 배지 ID를 부모 컴포넌트로 전달
     onBadgeSelect(badgeId, "weekly");
-  };
-
-  // 파일 업로드 버튼 클릭 처리
-  const handleUploadClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
-  // 파일 선택 처리
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-
-    try {
-      setUploadingImage(true);
-      setError(null);
-
-      // 파일 타입 확인
-      if (!file.type.startsWith("image/")) {
-        setError("이미지 파일만 업로드할 수 있습니다.");
-        return;
-      }
-
-      // 파일 크기 확인 (5MB 제한)
-      if (file.size > 5 * 1024 * 1024) {
-        setError("파일 크기는 5MB 이하여야 합니다.");
-        return;
-      }
-
-      // 파일명 생성 (사용자 ID + 타임스탬프 + 원본 확장자)
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}_${Date.now()}.${fileExt}`;
-      const filePath = `custom/${fileName}`;
-
-      // Supabase Storage에 업로드
-      const { error: uploadError } = await supabase.storage
-        .from("badges")
-        .upload(filePath, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-
-      // 업로드한 이미지 공개 URL 가져오기
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("badges").getPublicUrl(filePath);
-
-      // 새 배지 생성 - 배지 유형을 'weekly'로 지정
-      const newBadgeId = `custom_${Date.now()}`;
-      const newBadge: Badge = {
-        id: newBadgeId,
-        name: "커스텀 배지",
-        description: "나만의 커스텀 배지",
-        image_path: publicUrl,
-        created_at: new Date().toISOString(),
-        badge_type: "weekly", // 배지 유형 지정
-      };
-
-      // 배지 DB에 저장
-      const { error: insertError } = await supabase
-        .from("badges")
-        .insert(newBadge);
-
-      if (insertError) throw insertError;
-
-      // 배지 목록 갱신
-      setBadges((prev) => [...prev, newBadge]);
-      setSelectedBadge(newBadgeId);
-      setShowConfetti(true);
-
-      // 배지 유형을 'weekly'로 지정하여 선택한 배지 ID를 부모 컴포넌트로 전달
-      onBadgeSelect(newBadgeId, "weekly");
-    } catch (error) {
-      console.error("이미지 업로드 오류:", error);
-      setError("이미지 업로드 중 오류가 발생했습니다.");
-    } finally {
-      setUploadingImage(false);
-    }
   };
 
   // 모달이 닫힐 때 상태 초기화
@@ -241,62 +215,37 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-              {badges.map((badge) => (
+              {badges.map((badge, index) => (
                 <button
                   key={badge.id}
                   onClick={() => handleBadgeSelect(badge.id)}
-                  className={`p-4 rounded-lg flex flex-col items-center transition-all ${
+                  className={`badge-item p-4 rounded-lg flex flex-col items-center transition-all ${
                     selectedBadge === badge.id
                       ? "bg-pink-100 ring-2 ring-pink-500 transform scale-105"
                       : "bg-gray-100 hover:bg-pink-50"
                   }`}
+                  style={{animationDelay: `${index * 0.1}s`}}
                 >
-                  <div className="relative w-24 h-24 mb-2 bg-white rounded-full flex items-center justify-center p-2">
-                    <img
-                      src={getBadgeImageUrl(badge.image_path)}
-                      alt={badge.name}
-                      className="max-w-full max-h-full object-contain"
-                      onError={(e) => {
-                        console.error("이미지 로드 오류:", badge.image_path);
-                        (e.target as HTMLImageElement).src =
-                          "/placeholder_badge.png";
-                      }}
-                    />
+                  <div className="relative w-24 h-24 mb-2 flex items-center justify-center">
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-pink-400 to-purple-500 badge-glow"></div>
+                    <div className="absolute inset-1 rounded-full bg-white flex items-center justify-center">
+                      <img
+                        src={getBadgeImageUrl(badge.image_path)}
+                        alt={badge.name}
+                        className="max-w-[80%] max-h-[80%] object-contain rounded-full"
+                        onError={(e) => {
+                          console.error("이미지 로드 오류:", badge.image_path);
+                          (e.target as HTMLImageElement).src =
+                            "/placeholder_badge.png";
+                        }}
+                      />
+                    </div>
                   </div>
                   <span className="text-sm font-medium text-center">
                     {badge.name}
                   </span>
                 </button>
               ))}
-
-              {/* 직접 업로드 버튼 */}
-              <button
-                onClick={handleUploadClick}
-                disabled={uploadingImage}
-                className={`p-4 rounded-lg flex flex-col items-center transition-all ${
-                  uploadingImage
-                    ? "bg-gray-200 cursor-wait"
-                    : "bg-gray-100 hover:bg-pink-50"
-                }`}
-              >
-                <div className="w-24 h-24 mb-2 bg-white rounded-full flex items-center justify-center border-2 border-dashed border-gray-300">
-                  {uploadingImage ? (
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
-                  ) : (
-                    <LuUpload size={30} className="text-gray-400" />
-                  )}
-                </div>
-                <span className="text-sm font-medium text-center">
-                  {uploadingImage ? "업로드 중..." : "직접 업로드"}
-                </span>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  accept="image/*"
-                  className="hidden"
-                />
-              </button>
             </div>
           )}
         </div>
@@ -321,10 +270,10 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
             선택 완료
           </button>
         </div>
-      </div>
 
-      {/* Confetti 컴포넌트 */}
-      {showConfetti && <Confetti ref={confettiRef} />}
+        {/* Confetti 효과 */}
+        {showConfetti && <Confetti ref={confettiRef} />}
+      </div>
     </div>
   );
 };

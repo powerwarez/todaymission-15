@@ -1,0 +1,31 @@
+/* 배지 아이템 페이드인 애니메이션 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 배지 테두리 발광 효과 애니메이션 */
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* 배지 아이템 애니메이션 적용 */
+.badge-item {
+  animation: fadeIn 0.5s ease-in-out backwards;
+}
+
+/* 배지 테두리 발광 효과 적용 */
+.badge-glow {
+  animation: pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+} 
