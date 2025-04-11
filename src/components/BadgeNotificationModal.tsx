@@ -137,7 +137,7 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({
               <div className="ml-3 w-0 flex-1">
                 <p className="text-sm font-semibold text-pink-700 flex items-center">
                   <LuBadgeCheck className="mr-1 text-green-500" />
-                  도전과제 달성!
+                  {badge.badge_type === "weekly" ? "주간 미션 달성!" : "도전과제 달성!"}
                 </p>
                 <p className="mt-1 text-lg font-bold text-gray-800">{badge.name}</p>
                 {badge.description && (

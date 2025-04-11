@@ -204,27 +204,48 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
       const isCustomBadge = badgeId.startsWith("custom_") || selectedBadgeData.is_custom;
       console.log("커스텀 배지 여부:", isCustomBadge);
       
-      // 먼저 이미 획득한 배지인지 확인
-      const { data: existingBadges, error: checkError } = await supabase
+      // 1. 먼저 weekly_streak_1 배지가 이미 획득되었는지 확인
+      const { data: existingWeeklyBadge, error: weeklyCheckError } = await supabase
         .from("earned_badges")
         .select("id")
         .eq("user_id", user.id)
-        .eq("badge_id", badgeId) // 원본 배지 ID 그대로 사용
+        .eq("badge_id", "weekly_streak_1")
         .eq("badge_type", "weekly");
       
-      if (checkError) {
-        console.error("기존 배지 확인 오류:", checkError);
-        throw checkError;
+      if (weeklyCheckError) {
+        console.error("주간 미션 배지 확인 오류:", weeklyCheckError);
+        throw weeklyCheckError;
       }
       
-      // 이미 획득한 배지가 있으면 중복 저장하지 않음
-      if (existingBadges && existingBadges.length > 0) {
-        console.log("이미 획득한 배지입니다. 중복 저장하지 않습니다.");
-        // 중복 저장은 하지 않지만 성공으로 처리
-      } else {
-        // 1. 먼저 badges 테이블에 레코드가 있는지 확인
-        let needsInsertToBadges = false;
-        
+      // 2. 선택한 커스텀 배지가 이미 획득되었는지 확인
+      const { data: existingCustomBadge, error: customCheckError } = await supabase
+        .from("earned_badges")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("badge_id", badgeId)
+        .eq("badge_type", "weekly");
+      
+      if (customCheckError) {
+        console.error("커스텀 배지 확인 오류:", customCheckError);
+        throw customCheckError;
+      }
+      
+      // 트랜잭션 처리를 위한 배열
+      const badgesToInsert = [];
+      
+      // 3. weekly_streak_1 배지가 없으면 추가
+      if (!existingWeeklyBadge || existingWeeklyBadge.length === 0) {
+        badgesToInsert.push({
+          user_id: user.id,
+          badge_id: "weekly_streak_1", // 주간 미션 달성 배지 ID
+          badge_type: "weekly",
+          earned_at: new Date().toISOString()
+        });
+      }
+      
+      // 4. 선택한 커스텀 배지가 weekly_streak_1이 아니고 아직 획득하지 않았으면 추가
+      if (badgeId !== "weekly_streak_1" && (!existingCustomBadge || existingCustomBadge.length === 0)) {
+        // 커스텀 배지 테이블에 레코드 생성이 필요한 경우
         if (isCustomBadge) {
           const { data: existingBadge, error } = await supabase
             .from("badges")
@@ -234,59 +255,59 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
             
           if (error) {
             console.error("badges 테이블 조회 오류:", error);
-          } else {
-            needsInsertToBadges = !existingBadge;
+          } else if (!existingBadge) {
+            // badges 테이블에 레코드 생성
+            const { error: insertError } = await supabase
+              .from("badges")
+              .insert({
+                id: badgeId,
+                name: selectedBadgeData.name,
+                description: selectedBadgeData.description,
+                image_path: selectedBadgeData.image_path,
+                badge_type: "weekly",
+                created_at: new Date().toISOString()
+              });
+              
+            if (insertError) {
+              console.error("badges 테이블에 레코드 생성 오류:", insertError);
+              throw insertError;
+            }
           }
         }
         
-        // 2. badges 테이블에 레코드 생성 (필요한 경우에만)
-        if (isCustomBadge && needsInsertToBadges) {
-          console.log("badges 테이블에 레코드 생성:", badgeId);
-          
-          const { error: insertError } = await supabase
-            .from("badges")
-            .insert({
-              id: badgeId,
-              name: selectedBadgeData.name,
-              description: selectedBadgeData.description,
-              image_path: selectedBadgeData.image_path,
-              badge_type: "weekly",
-              created_at: new Date().toISOString()
-            });
-            
-          if (insertError) {
-            console.error("badges 테이블에 레코드 생성 오류:", insertError);
-            throw insertError;
-          }
-        }
-        
-        // 3. earned_badges 테이블에 레코드 저장
-        const badgeData = {
+        // 선택한 커스텀 배지 획득 기록 추가
+        badgesToInsert.push({
           user_id: user.id,
-          badge_id: badgeId, // 원본 ID 그대로 사용
+          badge_id: badgeId,
           badge_type: "weekly",
           earned_at: new Date().toISOString()
-        };
-        
-        console.log("저장할 배지 데이터:", badgeData);
+        });
+      }
+      
+      // 5. 배지 획득 기록 저장 (있는 경우에만)
+      if (badgesToInsert.length > 0) {
+        console.log("저장할 배지 데이터:", badgesToInsert);
         
         const { error: insertError } = await supabase
           .from("earned_badges")
-          .insert(badgeData);
+          .insert(badgesToInsert);
 
         if (insertError) {
           console.error("배지 획득 기록 실패:", insertError);
           throw insertError;
         }
         
-        console.log("배지 획득 기록 성공:", badgeId);
+        console.log("배지 획득 기록 성공");
+      } else {
+        console.log("이미 획득한 배지입니다. 중복 저장하지 않습니다.");
       }
 
       // Confetti 효과 표시
       triggerConfetti();
 
       // 배지 유형을 'weekly'로 지정하여 선택한 배지 ID를 부모 컴포넌트로 전달
-      onBadgeSelect(badgeId, "weekly");
+      // 항상 weekly_streak_1 배지 ID를 전달하여 도전과제는 주간 미션 달성으로 표시
+      onBadgeSelect("weekly_streak_1", "weekly");
       
     } catch (err) {
       console.error("배지 선택/저장 중 오류 발생:", err);
