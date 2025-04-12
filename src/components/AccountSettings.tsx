@@ -94,18 +94,17 @@ const AccountSettings: React.FC = () => {
       toast.success('계정 설정이 저장되었습니다.', {
         duration: 2000,
         icon: '✅',
-        style: {
-          borderRadius: '10px',
-          background: '#fff',
-          color: '#333',
-          border: '1px solid #10b981',
-        },
+        position: 'bottom-right',
       });
       
     } catch (err) {
       console.error('계정 설정 저장 중 오류가 발생했습니다:', err);
       setError('계정 설정 저장 중 오류가 발생했습니다.');
-      toast.error('계정 설정 저장에 실패했습니다.', { duration: 2000 });
+      
+      toast.error('계정 설정 저장에 실패했습니다.', { 
+        duration: 2000,
+        position: 'bottom-right',
+      });
     } finally {
       setLoading(false);
     }

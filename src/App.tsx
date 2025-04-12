@@ -11,6 +11,7 @@ import MissionSettingsPage from "./pages/MissionSettingsPage";
 import BadgeSettingsPage from "./pages/BadgeSettingsPage";
 import BadgeNotificationModal from "./components/BadgeNotificationModal";
 import { BadgeSelectionModal } from "./components/BadgeSelectionModal";
+import { Toaster } from 'react-hot-toast';
 
 // PrivateRoute 컴포넌트: 인증된 사용자만 접근 가능
 const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({
@@ -106,6 +107,17 @@ const App: React.FC = () => {
       {/* Provider에는 show 함수만 포함된 객체를 value로 전달 */}
       <NotificationProvider value={{ showBadgeNotification }}>
         <AppContent />
+        {/* Toast 알림을 위한 Toaster 컴포넌트 */}
+        <Toaster 
+          position="bottom-right"
+          toastOptions={{
+            duration: 2000,
+            style: {
+              background: '#fff',
+              color: '#333',
+            },
+          }}
+        />
         {/* 모달은 displayedBadges 배열을 순회하며 여러 개 렌더링 */}
         {displayedBadges.map((badge, index) => (
           <BadgeNotificationModal
