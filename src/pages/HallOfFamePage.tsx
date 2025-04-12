@@ -381,11 +381,13 @@ const HallOfFamePage: React.FC = () => {
                       key={earnedBadge.id}
                       className="flex flex-col items-center p-4 bg-gray-50 rounded-lg hover:bg-pink-50 transition-colors"
                     >
-                      <div className="w-20 h-20 mb-2 flex items-center justify-center">
+                      <div className="w-20 h-20 mb-2 flex items-center justify-center 
+                        border-4 border-gradient-to-r from-pink-300 to-indigo-300 rounded-full 
+                        p-1 bg-white shadow-md overflow-hidden">
                         <img
                           src={getBadgeImageUrl(badge.image_path)}
                           alt={badge.name}
-                          className="max-w-full max-h-full object-contain"
+                          className="max-w-full max-h-full object-contain rounded-full"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src =
                               "/placeholder_badge.png";
@@ -405,8 +407,8 @@ const HallOfFamePage: React.FC = () => {
                         </p>
                       )}
                       <span
-                        className="mt-2 px-2 py-0.5 text-xs rounded-full bg-opacity-20 text-center font-medium 
-                        ${earnedBadge.badge?.badge_type === 'weekly' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}"
+                        className={`mt-2 px-2 py-0.5 text-xs rounded-full bg-opacity-20 text-center font-medium 
+                        ${earnedBadge.badge?.badge_type === 'weekly' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}
                       >
                         {earnedBadge.badge?.badge_type === "weekly"
                           ? "주간 도전"

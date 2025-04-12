@@ -56,13 +56,18 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
       
       console.log("가져올 배지 ID 목록:", badgeIds);
       
+      // ID 목록 저장 (선택된 배지 ID)
+      setSelectedBadges(badgeIds);
+      
       // 표준 배지 가져오기
       let regularBadgesResult = [] as Badge[];
-      if (badgeIds.length > 0) {
+      const standardBadgeIds = badgeIds.filter(id => !id.startsWith('custom_'));
+      
+      if (standardBadgeIds.length > 0) {
         const { data: regularBadges, error: regularError } = await supabase
           .from("badges")
           .select("*")
-          .in("id", badgeIds);
+          .in("id", standardBadgeIds);
 
         if (regularError) {
           console.error("표준 배지 가져오기 오류:", regularError);
@@ -75,11 +80,13 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
 
       // 커스텀 배지 가져오기
       let formattedCustomBadges = [] as Badge[];
-      if (badgeIds.length > 0) {
+      const customBadgeIds = badgeIds.filter(id => id.startsWith('custom_'));
+      
+      if (customBadgeIds.length > 0) {
         const { data: customBadges, error: customError } = await supabase
           .from("custom_badges")
           .select("*")
-          .in("badge_id", badgeIds);
+          .in("badge_id", customBadgeIds);
 
         if (customError) {
           console.error("커스텀 배지 가져오기 오류:", customError);
@@ -107,12 +114,11 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
         ...formattedCustomBadges
       ];
       
-      console.log("최종 배지 목록:", allBadges);
+      console.log("최종 선택된 배지 목록:", allBadges);
       
       // 가져온 배지가 있을 경우에만 상태 업데이트
       if (allBadges.length > 0) {
         setWeeklyBadges(allBadges);
-        setSelectedBadges(badgeIds);
       } else {
         console.warn("배지 ID는 있지만 해당하는 배지 데이터를 찾을 수 없습니다.");
       }
@@ -518,97 +524,102 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
         </div>
 
         <div className="bg-gray-50 p-4 rounded-lg mb-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {weeklyBadges.map((badge) => (
-              <div key={badge.id} className="relative group">
-                <div className="bg-white p-4 rounded-lg flex flex-col items-center hover:bg-pink-50 transition-colors">
-                  <div className="w-16 h-16 mb-2 flex items-center justify-center 
-                    border-4 border-gradient-to-r from-pink-300 to-indigo-300 rounded-full 
-                    p-1 bg-white shadow-md overflow-hidden">
-                    <img
-                      src={getBadgeImageUrl(badge.image_path)}
-                      alt={badge.name}
-                      className="max-w-full max-h-full object-contain rounded-full"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          "/placeholder_badge.png";
-                      }}
-                    />
+          {weeklyBadges.length === 0 ? (
+            <p className="text-center text-gray-500 py-4">
+              선택된 배지가 없습니다. 아래에서 배지를 선택해주세요.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {weeklyBadges.map((badge) => (
+                <div key={badge.id} className="relative group">
+                  <div className="bg-white p-4 rounded-lg flex flex-col items-center hover:bg-pink-50 transition-colors">
+                    <div className="w-16 h-16 mb-2 flex items-center justify-center 
+                      border-4 border-gradient-to-r from-pink-300 to-indigo-300 rounded-full 
+                      p-1 bg-white shadow-md overflow-hidden">
+                      <img
+                        src={getBadgeImageUrl(badge.image_path)}
+                        alt={badge.name}
+                        className="max-w-full max-h-full object-contain rounded-full"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            "/placeholder_badge.png";
+                        }}
+                      />
+                    </div>
+                    <h4 className="text-sm font-medium text-center truncate w-full">
+                      {badge.name}
+                    </h4>
                   </div>
-                  <h4 className="text-sm font-medium text-center truncate w-full">
-                    {badge.name}
-                  </h4>
+                  <button
+                    onClick={() => handleBadgeSelect(badge)}
+                    className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 invisible group-hover:visible transition-all"
+                    title="배지 제거"
+                  >
+                    <LuTrash size={16} />
+                  </button>
                 </div>
-                <button
-                  onClick={() => handleBadgeSelect(badge)}
-                  className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 invisible group-hover:visible transition-all"
-                  title="배지 제거"
-                >
-                  <LuTrash size={16} />
-                </button>
-              </div>
-            ))}
-
-            {/* 배지 추가 버튼은 항상 표시됩니다 */}
-            <button
-              onClick={() => setShowUploadModal(true)}
-              className="bg-gray-100 hover:bg-gray-200 p-4 rounded-lg flex flex-col items-center justify-center h-full border-2 border-dashed border-gray-300 transition-colors"
-            >
-              <LuPlus size={24} className="text-gray-500 mb-2" />
-              <span className="text-sm text-gray-500">배지 추가</span>
-            </button>
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
       {/* 내 커스텀 배지 목록 */}
       <div className="mb-6">
         <h3 className="font-medium text-gray-700 mb-2">내 커스텀 배지</h3>
-        {customBadges.length === 0 ? (
-          <p className="text-center text-gray-500 py-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {customBadges.map((badge) => (
+            <div key={badge.id} className="relative group">
+              <div
+                className={`bg-white p-4 rounded-lg flex flex-col items-center transition-colors ${
+                  selectedBadges.includes(badge.id) 
+                    ? "bg-pink-50 border-2 border-pink-300" 
+                    : "hover:bg-gray-100 border-2 border-transparent"
+                }`}
+                onClick={() => handleBadgeSelect(badge)}
+              >
+                <div className="w-16 h-16 mb-2 flex items-center justify-center 
+                  rounded-full p-1 bg-white shadow-md overflow-hidden">
+                  <img
+                    src={getBadgeImageUrl(badge.image_path)}
+                    alt={badge.name}
+                    className="max-w-full max-h-full object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        "/placeholder_badge.png";
+                    }}
+                  />
+                </div>
+                <h4 className="text-sm font-medium text-center truncate w-full">
+                  {badge.name}
+                </h4>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteCustomBadge(badge.id);
+                }}
+                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 invisible group-hover:visible transition-all"
+                title="배지 삭제"
+              >
+                <LuTrash size={16} />
+              </button>
+            </div>
+          ))}
+
+          {/* 배지 추가 버튼 */}
+          <button
+            onClick={() => setShowUploadModal(true)}
+            className="bg-gray-100 hover:bg-gray-200 p-4 rounded-lg flex flex-col items-center justify-center h-full border-2 border-dashed border-gray-300 transition-colors"
+          >
+            <LuPlus size={24} className="text-gray-500 mb-2" />
+            <span className="text-sm text-gray-500">배지 추가</span>
+          </button>
+        </div>
+        {customBadges.length === 0 && (
+          <p className="text-center text-gray-500 mt-2">
             업로드한 커스텀 배지가 없습니다. 배지 추가 버튼을 눌러 새 배지를 추가해보세요.
           </p>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {customBadges.map((badge) => (
-              <div key={badge.id} className="relative group">
-                <div
-                  className={`bg-white p-4 rounded-lg flex flex-col items-center transition-colors ${
-                    selectedBadges.includes(badge.id) 
-                      ? "bg-pink-50 border-2 border-pink-300" 
-                      : "hover:bg-gray-100 border-2 border-transparent"
-                  }`}
-                  onClick={() => handleBadgeSelect(badge)}
-                >
-                  <div className="w-16 h-16 mb-2 flex items-center justify-center 
-                    rounded-full p-1 bg-white shadow-md overflow-hidden">
-                    <img
-                      src={getBadgeImageUrl(badge.image_path)}
-                      alt={badge.name}
-                      className="max-w-full max-h-full object-contain"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          "/placeholder_badge.png";
-                      }}
-                    />
-                  </div>
-                  <h4 className="text-sm font-medium text-center truncate w-full">
-                    {badge.name}
-                  </h4>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteCustomBadge(badge.id);
-                  }}
-                  className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 invisible group-hover:visible transition-all"
-                  title="배지 삭제"
-                >
-                  <LuTrash size={16} />
-                </button>
-              </div>
-            ))}
-          </div>
         )}
       </div>
 
