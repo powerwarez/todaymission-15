@@ -94,9 +94,9 @@ const MissionSettingsPage: React.FC = () => {
 
       {/* 주간 배지 설정 섹션 */}
       <div className="mb-8">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">
-          주간 미션 배지 설정
-        </h2>
+      <h1 className="text-2xl font-bold mb-6 text-pink-700 flex items-center">
+        <LuSettings className="mr-2" /> 주간 미션 배지 설정
+      </h1>
         {user && <WeeklyBadgeSetting userId={user.id} />}
       </div>
     </div>

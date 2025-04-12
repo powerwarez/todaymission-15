@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { Badge } from "../types";
-import { LuPlus, LuTrash, LuSave, LuUpload, LuX } from "react-icons/lu";
+import { LuPlus, LuTrash, LuSave, LuUpload, LuX, LuCheck } from "react-icons/lu";
 import { toast } from "react-hot-toast";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -20,6 +20,7 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // 최대 선택 가능한 배지 수
   const MAX_WEEKLY_BADGES = 5;
@@ -325,6 +326,14 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
       console.log("설정 저장 완료:", insertData);
       toast.success("주간 배지 설정이 저장되었습니다.");
       
+      // 성공 모달 표시
+      setShowSuccessModal(true);
+      
+      // 2초 후 자동으로 모달 닫기
+      setTimeout(() => {
+        setShowSuccessModal(false);
+      }, 2000);
+      
       // 저장 완료 후 다시 로드하여 최신 데이터 유지
       fetchWeeklyBadges();
     } catch (err) {
@@ -500,6 +509,22 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
+      <style>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-in-up {
+          animation: fadeInUp 0.3s ease-out forwards;
+        }
+      `}</style>
+
       <h2 className="text-xl font-semibold text-gray-800 mb-4">
         주간 미션 달성 배지 설정
       </h2>
@@ -725,6 +750,27 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
                 )}
                 업로드
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* 설정 저장 완료 모달 */}
+      {showSuccessModal && (
+        <div className="fixed bottom-5 right-5 z-50 max-w-sm">
+          <div className="bg-white rounded-lg shadow-lg p-4 border border-green-200 animate-fade-in-up">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <LuCheck size={24} className="text-green-600" />
+                </div>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-base font-medium text-gray-800">설정이 저장되었습니다</h3>
+                <p className="text-sm text-gray-600">
+                  주간 미션 달성 배지 설정이 성공적으로 저장되었습니다.
+                </p>
+              </div>
             </div>
           </div>
         </div>
