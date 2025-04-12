@@ -313,24 +313,33 @@ export const useMissionLogs = (formattedDate: string) => {
   };
 
   // deleteLog 함수 - 상태 업데이트 로직 추가 (함수형 업데이트 사용)
-  const deleteLog = async (missionId: string) => {
+  const deleteLog = async (logId: string) => {
     if (!user || !formattedDate) return;
     try {
-      const todayKSTString = formattedDate;
-
-      // 1. DB에서 로그 삭제
+      // 1. 삭제 전 해당 로그 정보 가져오기 (스냅샷 업데이트에 필요)
+      const { data: logData, error: logError } = await supabase
+        .from("mission_logs")
+        .select("mission_id")
+        .eq("id", logId)
+        .single();
+        
+      if (logError) throw logError;
+      if (!logData) {
+        console.error("로그 정보를 찾을 수 없습니다:", logId);
+        return;
+      }
+      
+      // 2. DB에서 로그 삭제 (id로 삭제)
       const { error: deleteError } = await supabase
         .from("mission_logs")
         .delete()
-        .eq("user_id", user.id)
-        .eq("mission_id", missionId)
-        .eq("completed_at", todayKSTString);
+        .eq("id", logId);
 
       if (deleteError) throw deleteError;
 
       // --- 삭제 성공 시 클라이언트 상태 업데이트 (함수형 업데이트) ---
       setLogs((prevLogs) =>
-        prevLogs.filter((log) => log.mission_id !== missionId)
+        prevLogs.filter((log) => log.id !== logId)
       );
 
       // 카운트 감소 (null 체크 및 0 미만 방지)
@@ -339,12 +348,12 @@ export const useMissionLogs = (formattedDate: string) => {
 
       console.log("[deleteLog] States updated after deletion.");
 
-      // 2. 스냅샷 카운트 감소
+      // 3. 스냅샷 카운트 감소
       const { error: decrementError } = await supabase.rpc(
         "decrement_completed_count",
         {
           snapshot_user_id: user.id,
-          snapshot_date: todayKSTString,
+          snapshot_date: formattedDate,
         }
       );
       if (decrementError) {

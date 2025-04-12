@@ -30,7 +30,7 @@ const TodayMissionPage: React.FC = () => {
   const formattedTodayKST = useMemo(() => format(todayKSTObj, 'yyyy-MM-dd', { timeZone }), [todayKSTObj, timeZone]);
 
   const { missions, loading: missionsLoading, error: missionsError, fetchMissions } = useMissions();
-  const { logs, loading: logsLoading, error: logsError, addLog, deleteLog } = useMissionLogs(formattedTodayKST);
+  const { logs, loading: logsLoading, error: logsError, addLog, deleteLog, fetchLogs } = useMissionLogs(formattedTodayKST);
   const { weekStatus, loading: weekStatusLoading, error: weekStatusError, refetch: refetchWeeklyStatus } = useWeeklyCompletionStatus(); // 주간 현황 데이터 로드
 
   const [showConfetti, setShowConfetti] = useState(false);
@@ -162,16 +162,23 @@ const TodayMissionPage: React.FC = () => {
       const missionToUpdate = missionsWithStatus.find((m) => m.id === mission.id);
       if (!missionToUpdate) return;
       
+      console.log("미션 토글:", missionToUpdate.content, "현재 상태:", missionToUpdate.is_completed_today);
+      
       if (missionToUpdate.is_completed_today) {
         // 이미 완료된 미션이면 로그 삭제
         if (missionToUpdate.log_id) { // 로그 ID가 있는 경우에만 삭제 시도
+          console.log("삭제할 로그 ID:", missionToUpdate.log_id);
           await deleteLog(missionToUpdate.log_id);
+          console.log("로그 삭제 완료");
           // 주간 현황 갱신
-          refetchWeeklyStatus();
+          await refetchWeeklyStatus();
+          // 로컬 상태 업데이트
+          await fetchLogs(); // 로그 목록 다시 가져오기
         }
       } else {
         // 완료되지 않은 미션이면 로그 추가
         await addLog(mission.id);
+        console.log("로그 추가 완료");
         
         // 효과음 재생
         if (audio) {
@@ -182,12 +189,15 @@ const TodayMissionPage: React.FC = () => {
         // 폭죽 효과 표시
         setShowConfetti(true);
         // 주간 현황 갱신
-        refetchWeeklyStatus();
+        await refetchWeeklyStatus();
+        // 로그 목록 다시 가져오기
+        await fetchLogs();
       }
     } catch (error) {
       console.error('미션 상태 변경 중 오류 발생:', error);
       // 오류 발생 시 원래 상태로 되돌림
       await fetchMissions();
+      await fetchLogs();
     }
   };
 
@@ -265,16 +275,6 @@ const TodayMissionPage: React.FC = () => {
                     <p className={`text-lg font-medium ${textStyle}`}>
                       {mission.content}
                     </p>
-                  </div>
-                  {/* 체크 표시 추가 */}
-                  <div className="flex-shrink-0 w-6 h-6">
-                    <div className={`w-6 h-6 rounded-full border-2 ${mission.is_completed_today ? 
-                      `${completedColor.border} flex justify-center items-center` : 
-                      'border-gray-300'}`}>
-                      {mission.is_completed_today && (
-                        <div className={`w-3 h-3 rounded-full ${completedColor.border.replace('border', 'bg')}`}></div>
-                      )}
-                    </div>
                   </div>
                 </div>
               );
