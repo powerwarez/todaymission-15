@@ -107,10 +107,11 @@ const MissionSettingsPage: React.FC = () => {
           </div>
 
           {/* 일일 미션 설정 섹션 */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h1 className="text-2xl font-bold mb-6 text-pink-700 flex items-center">
+          <h1 className="text-2xl font-bold mb-8 text-pink-700 flex items-center">
             <LuSettings className="mr-2" /> 오늘의 미션 설정
           </h1>
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          
             <p className="text-gray-600 mb-6">
               매일 수행할 오늘의 미션을 설정하세요. 수정, 삭제, 순서 변경이
               가능합니다.
@@ -186,7 +187,7 @@ const MissionSettingsPage: React.FC = () => {
 
           {/* 주간 배지 설정 섹션 */}
           <div className="mb-8">
-          <h1 className="text-xl font-bold mb-6 text-pink-700 flex items-center">
+          <h1 className="text-xl font-bold mb-8 text-pink-700 flex items-center">
             <LuSettings className="mr-2" /> 주간 미션 배지 설정
           </h1>
             {user && <WeeklyBadgeSetting userId={user.id} />}
