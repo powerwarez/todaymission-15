@@ -31,7 +31,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMinimized, toggleSidebar }) => {
 
   return (
     <aside
-      className={`bg-pink-200 text-pink-800 h-screen p-4 flex flex-col justify-between transition-width duration-300 ease-in-out ${
+      className={`fixed top-0 left-0 h-full bg-pink-200 text-pink-800 p-4 flex flex-col justify-between transition-width duration-300 ease-in-out z-10 ${
         isMinimized ? 'w-16' : 'w-64'
       }`}
     >

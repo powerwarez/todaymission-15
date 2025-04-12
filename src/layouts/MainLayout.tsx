@@ -10,14 +10,16 @@ const MainLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-pink-50">
+    <div className="min-h-screen">
       <Sidebar isMinimized={isSidebarMinimized} toggleSidebar={toggleSidebar} />
       <main
-        className={`flex-1 p-6 transition-all duration-300 ease-in-out ${
-          isSidebarMinimized ? 'ml-12' : 'ml-12'
+        className={`min-h-screen p-6 transition-all duration-300 ease-in-out ${
+          isSidebarMinimized ? 'ml-16' : 'ml-64'
         }`}
       >
-        <Outlet /> {/* Child routes will render here */}
+        <div className="max-w-7xl mx-auto">
+          <Outlet /> {/* Child routes will render here */}
+        </div>
       </main>
     </div>
   );
