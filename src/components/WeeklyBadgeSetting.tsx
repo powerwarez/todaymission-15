@@ -324,9 +324,8 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
       }
       
       console.log("설정 저장 완료:", insertData);
-      toast.success("주간 배지 설정이 저장되었습니다.");
       
-      // 성공 모달 표시
+      // 성공 모달 표시 (toast 메시지는 제거하고 커스텀 모달만 사용)
       setShowSuccessModal(true);
       
       // 2초 후 자동으로 모달 닫기
