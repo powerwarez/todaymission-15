@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import { LuUser, LuKey, LuSave, LuCheck } from 'react-icons/lu';
+import { LuUser, LuKey, LuSave } from 'react-icons/lu';
 import { toast } from 'react-hot-toast';
 
 const AccountSettings: React.FC = () => {
@@ -9,7 +9,6 @@ const AccountSettings: React.FC = () => {
   const [childName, setChildName] = useState<string>('');
   const [pinCode, setPinCode] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
-  const [success, setSuccess] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -65,7 +64,7 @@ const AccountSettings: React.FC = () => {
     }
     
     if (!childName.trim()) {
-      setError('아이 이름을 입력해주세요.');
+      setError('오늘의 미션 제목을 입력해주세요.');
       return;
     }
     
@@ -91,18 +90,22 @@ const AccountSettings: React.FC = () => {
         throw updateError;
       }
       
-      setSuccess(true);
-      toast.success('계정 설정이 저장되었습니다.');
-      
-      // 3초 후 성공 메시지 숨기기
-      setTimeout(() => {
-        setSuccess(false);
-      }, 3000);
+      // 성공 시 토스트 메시지 - 2초 후 자동으로 사라짐
+      toast.success('계정 설정이 저장되었습니다.', {
+        duration: 2000,
+        icon: '✅',
+        style: {
+          borderRadius: '10px',
+          background: '#fff',
+          color: '#333',
+          border: '1px solid #10b981',
+        },
+      });
       
     } catch (err) {
       console.error('계정 설정 저장 중 오류가 발생했습니다:', err);
       setError('계정 설정 저장 중 오류가 발생했습니다.');
-      toast.error('계정 설정 저장에 실패했습니다.');
+      toast.error('계정 설정 저장에 실패했습니다.', { duration: 2000 });
     } finally {
       setLoading(false);
     }
@@ -120,12 +123,6 @@ const AccountSettings: React.FC = () => {
         </div>
       )}
       
-      {success && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 flex items-center">
-          <LuCheck className="mr-2" /> 계정 설정이 성공적으로 저장되었습니다.
-        </div>
-      )}
-      
       {loading && !error ? (
         <div className="flex justify-center py-8">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
@@ -134,7 +131,7 @@ const AccountSettings: React.FC = () => {
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="childName" className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-              <LuUser className="mr-2" /> 아이 이름
+              <LuUser className="mr-2" /> 오늘의 미션 제목 설정
             </label>
             <input
               type="text"
@@ -142,10 +139,10 @@ const AccountSettings: React.FC = () => {
               value={childName}
               onChange={handleChildNameChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
-              placeholder="아이 이름을 입력하세요"
+              placeholder="오늘의 미션 제목을 입력해주세요."
             />
             <p className="mt-1 text-sm text-gray-500">
-              오늘의 미션 페이지에 표시될 아이 이름입니다.
+              오늘의 미션 페이지에 표시될 제목입니다.
             </p>
           </div>
           
@@ -163,7 +160,7 @@ const AccountSettings: React.FC = () => {
               maxLength={4}
             />
             <p className="mt-1 text-sm text-gray-500">
-              오늘의 미션 페이지에 접근할 때 필요한 PIN 코드입니다.
+              오늘의 미션 설정 페이지에 접근할 때 필요한 PIN 코드입니다.
             </p>
           </div>
           

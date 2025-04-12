@@ -22,46 +22,15 @@ const MissionSettingsPage: React.FC = () => {
 
   // 페이지 로드 시 PIN 인증 상태 확인
   useEffect(() => {
-    const checkPinAuth = () => {
-      const pinAuthData = localStorage.getItem('pinSettingsAuth');
-      
-      if (pinAuthData) {
-        try {
-          const { verified, expiry } = JSON.parse(pinAuthData);
-          
-          // 유효 시간 확인
-          if (verified && expiry && new Date().getTime() < expiry) {
-            setPinVerified(true);
-            setShowPinAuth(false);
-            return;
-          }
-        } catch (err) {
-          console.error('PIN 인증 데이터 파싱 오류:', err);
-        }
-      }
-      
-      // 인증 정보가 없거나 만료된 경우
-      setPinVerified(false);
-      setShowPinAuth(true);
-    };
-    
-    if (user) {
-      checkPinAuth();
-    }
+    // 페이지 로드될 때마다 항상 PIN 인증 요구
+    setPinVerified(false);
+    setShowPinAuth(true);
   }, [user]);
   
   // PIN 인증 성공 핸들러
   const handlePinSuccess = () => {
     setPinVerified(true);
     setShowPinAuth(false);
-    
-    // 로컬 스토리지에 인증 정보 저장 (1시간 유효)
-    const expiryTime = new Date();
-    expiryTime.setHours(expiryTime.getHours() + 1);
-    localStorage.setItem('pinSettingsAuth', JSON.stringify({
-      verified: true,
-      expiry: expiryTime.getTime()
-    }));
   };
   
   // PIN 인증 취소 핸들러
@@ -127,23 +96,21 @@ const MissionSettingsPage: React.FC = () => {
       
       {(!showPinAuth || pinVerified) && (
         <div className="max-w-4xl mx-auto p-4">
-          <h1 className="text-2xl font-bold mb-6 text-pink-700 flex items-center">
-            <LuSettings className="mr-2" /> 설정
-          </h1>
+          
 
           {/* 계정 설정 섹션 */}
           <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4 text-pink-700 flex items-center">
+          <h1 className="text-2xl font-bold mb-6 text-pink-700 flex items-center">
               <LuUser className="mr-2" /> 계정 설정
-            </h2>
+            </h1>
             {user && <AccountSettings />}
           </div>
 
           {/* 일일 미션 설정 섹션 */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              오늘의 미션 설정
-            </h2>
+          <h1 className="text-2xl font-bold mb-6 text-pink-700 flex items-center">
+            <LuSettings className="mr-2" /> 오늘의 미션 설정
+          </h1>
             <p className="text-gray-600 mb-6">
               매일 수행할 오늘의 미션을 설정하세요. 수정, 삭제, 순서 변경이
               가능합니다.
@@ -219,9 +186,9 @@ const MissionSettingsPage: React.FC = () => {
 
           {/* 주간 배지 설정 섹션 */}
           <div className="mb-8">
-          <h2 className="text-xl font-bold mb-6 text-pink-700 flex items-center">
+          <h1 className="text-xl font-bold mb-6 text-pink-700 flex items-center">
             <LuSettings className="mr-2" /> 주간 미션 배지 설정
-          </h2>
+          </h1>
             {user && <WeeklyBadgeSetting userId={user.id} />}
           </div>
         </div>
