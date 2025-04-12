@@ -266,16 +266,16 @@ const TodayMissionPage: React.FC = () => {
                       {mission.content}
                     </p>
                   </div>
-                  {/* 버튼 제거 */}
-                  {/*
-                  <button
-                    onClick={() => handleToggleComplete(mission)}
-                    className={`p-2 rounded-full transition-colors ${mission.is_completed_today ? 'text-green-600 hover:bg-green-200' : 'text-gray-400 hover:bg-gray-200'}`}
-                    aria-label={mission.is_completed_today ? '미션 완료 취소' : '미션 완료'}
-                  >
-                    {mission.is_completed_today ? <FaCheckCircle size={28} /> : <LuCircle size={28} />}
-                  </button>
-                  */}
+                  {/* 체크 표시 추가 */}
+                  <div className="flex-shrink-0 w-6 h-6">
+                    <div className={`w-6 h-6 rounded-full border-2 ${mission.is_completed_today ? 
+                      `${completedColor.border} flex justify-center items-center` : 
+                      'border-gray-300'}`}>
+                      {mission.is_completed_today && (
+                        <div className={`w-3 h-3 rounded-full ${completedColor.border.replace('border', 'bg')}`}></div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               );
             })}
