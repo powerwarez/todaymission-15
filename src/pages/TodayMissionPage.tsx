@@ -224,7 +224,7 @@ const TodayMissionPage: React.FC = () => {
 
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-pink-700">
-          {childName}
+          {childName || "우리 아이의 방울방울 미션 챌린지"}
         </h1>
         <div className="text-right">
             <p className="text-lg font-semibold text-pink-600">

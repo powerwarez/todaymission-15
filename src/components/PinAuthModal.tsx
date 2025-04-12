@@ -94,7 +94,7 @@ const PinAuthModal: React.FC<PinAuthModalProps> = ({ onSuccess, onCancel }) => {
           ) : (
             <form onSubmit={handleSubmit}>
               <p className="text-gray-600 mb-4">
-                {userInfo?.child_name || '아이'}의 오늘의 미션 페이지에 접근하기 위해 PIN을 입력해주세요.
+                {userInfo?.child_name || '아이'} 설정 페이지에 접근하기 위해 PIN을 입력해주세요.
               </p>
               
               <div className="mb-4">
@@ -107,7 +107,7 @@ const PinAuthModal: React.FC<PinAuthModalProps> = ({ onSuccess, onCancel }) => {
                   value={pin}
                   onChange={handlePinChange}
                   className="w-full px-4 py-3 text-center text-2xl tracking-widest border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
-                  placeholder="0000"
+                  placeholder="****"
                   maxLength={4}
                   autoFocus
                 />
