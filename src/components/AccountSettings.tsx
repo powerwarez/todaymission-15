@@ -132,6 +132,9 @@ const AccountSettings: React.FC = () => {
             <label htmlFor="childName" className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
               <LuUser className="mr-2" /> 오늘의 미션 제목 설정
             </label>
+            <p className="mt-1 text-sm text-gray-500">
+              오늘의 미션 페이지에 표시될 제목입니다.
+            </p>
             <input
               type="text"
               id="childName"
@@ -140,15 +143,15 @@ const AccountSettings: React.FC = () => {
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
               placeholder="오늘의 미션 제목을 입력해주세요."
             />
-            <p className="mt-1 text-sm text-gray-500">
-              오늘의 미션 페이지에 표시될 제목입니다.
-            </p>
           </div>
           
           <div className="mb-6">
             <label htmlFor="pinCode" className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
               <LuKey className="mr-2" /> PIN 코드 (4자리)
             </label>
+            <p className="mt-1 text-sm text-gray-500">
+              오늘의 미션 설정 페이지에 접근할 때 필요한 PIN 코드입니다.
+            </p>
             <input
               type="text"
               id="pinCode"
@@ -158,11 +161,7 @@ const AccountSettings: React.FC = () => {
               placeholder="4자리 숫자를 입력하세요"
               maxLength={4}
             />
-            <p className="mt-1 text-sm text-gray-500">
-              오늘의 미션 설정 페이지에 접근할 때 필요한 PIN 코드입니다.
-            </p>
           </div>
-          
           <div className="flex justify-end">
             <button
               type="submit"
