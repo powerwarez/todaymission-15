@@ -93,5 +93,5 @@ export const useMissions = () => {
     }
   };
 
-  return { missions, loading, error, fetchMissions, addMission, updateMission, deleteMission };
+  return { missions, loading, error, fetchMissions, addMission, updateMission, deleteMission, setMissions };
 }; 

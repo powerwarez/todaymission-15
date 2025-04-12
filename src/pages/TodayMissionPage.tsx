@@ -6,13 +6,10 @@ import { useMissionLogs } from '../hooks/useMissionLogs';
 import { useWeeklyCompletionStatus } from '../hooks/useWeeklyCompletionStatus'; // 주간 현황 훅 임포트
 import WeeklyStatusDisplay from '../components/WeeklyStatusDisplay'; // 주간 현황 컴포넌트 임포트
 import ConfettiEffect from '../components/ConfettiEffect';
-import { MissionWithLogs } from '../types'; // Combined type
+import { Mission } from '../types'; // Mission 타입만 가져오기
 import { toZonedTime, format } from 'date-fns-tz'; // date-fns-tz import
 // import { FaCheckCircle } from "react-icons/fa"; // 버튼 제거로 불필요
 // import { LuCircle } from 'react-icons/lu'; // 버튼 제거로 불필요
-
-// 시간대 설정 (HallOfFamePage와 동일하게)
-const timeZone = 'Asia/Seoul';
 
 // 완료 시 적용할 파스텔 무지개 색상 배열 (변경 없음)
 const pastelRainbowColors = [
@@ -26,14 +23,13 @@ const pastelRainbowColors = [
 ];
 
 const TodayMissionPage: React.FC = () => {
-  const { user } = useAuth(); // 사용자 정보 가져오기
+  const { user, timeZone } = useAuth(); // 사용자 정보 가져오기
 
   // 오늘 날짜를 KST 기준으로 설정
-  const todayKSTObj = useMemo(() => toZonedTime(new Date(), timeZone), []);
-  const formattedTodayKST = useMemo(() => format(todayKSTObj, 'yyyy-MM-dd', { timeZone }), [todayKSTObj]);
+  const todayKSTObj = useMemo(() => toZonedTime(new Date(), timeZone), [timeZone]);
+  const formattedTodayKST = useMemo(() => format(todayKSTObj, 'yyyy-MM-dd', { timeZone }), [todayKSTObj, timeZone]);
 
-  const { missions, loading: missionsLoading, error: missionsError } = useMissions();
-  // useMissionLogs 훅에 KST 기준 formatted string 전달
+  const { missions, loading: missionsLoading, error: missionsError, fetchMissions } = useMissions();
   const { logs, loading: logsLoading, error: logsError, addLog, deleteLog } = useMissionLogs(formattedTodayKST);
   const { weekStatus, loading: weekStatusLoading, error: weekStatusError, refetch: refetchWeeklyStatus } = useWeeklyCompletionStatus(); // 주간 현황 데이터 로드
 
@@ -41,6 +37,34 @@ const TodayMissionPage: React.FC = () => {
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [snapshotChecked, setSnapshotChecked] = useState(false); // 스냅샷 확인/생성 완료 여부
   const isSnapshotCheckRunning = useRef(false); // 스냅샷 체크 중복 실행 방지 플래그
+  
+  // 사용자 정보 상태
+  const [childName, setChildName] = useState<string>('고운이');
+  
+  // 사용자 정보 가져오기
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('user_info')
+          .select('child_name')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (error) {
+          console.error('사용자 정보를 가져오는 중 오류가 발생했습니다:', error);
+        } else if (data && data.child_name) {
+          setChildName(data.child_name);
+        }
+      } catch (err) {
+        console.error('사용자 정보 조회 중 오류가 발생했습니다:', err);
+      }
+    };
+    
+    fetchUserInfo();
+  }, [user]);
 
   // --- 스냅샷 확인 및 생성 로직 수정 --- //
   useEffect(() => {
@@ -123,69 +147,85 @@ const TodayMissionPage: React.FC = () => {
     };
   }, []);
 
-  // Combine missions and logs data (변경 없음)
-  const missionsWithStatus = useMemo((): MissionWithLogs[] => {
-    if (missionsLoading || logsLoading) return [];
-    return missions.map(mission => ({
-      ...mission,
-      is_completed_today: logs.some(log => log.mission_id === mission.id),
-      logs: logs.filter(log => log.mission_id === mission.id)
-    }));
-  }, [missions, logs, missionsLoading, logsLoading]);
+  // 요일을 한국어로 변환
+  const getWeekdayString = (date: Date) => {
+    const days = ['일', '월', '화', '수', '목', '금', '토'];
+    return days[date.getDay()];
+  };
 
-  // handleToggleComplete (변경 없음, 내부의 addLog/deleteLog는 이미 수정된 훅 사용)
-  const handleToggleComplete = async (mission: MissionWithLogs) => {
+  // 미션 상태 토글 처리 함수
+  const handleToggleComplete = async (mission: Mission) => {
+    if (!user) return;
     try {
-      if (mission.is_completed_today) {
-        await deleteLog(mission.id);
-        // 성공 후 주간 현황 리프레시
-        refetchWeeklyStatus();
-      } else {
-        const addedLog = await addLog(mission.id);
-        if (addedLog) {
-          if (audio) {
-             audio.currentTime = 0;
-             audio.play().catch(e => console.error("Audio play failed:", e));
-          }
-          setShowConfetti(true);
-          // 성공 후 주간 현황 리프레시
+      if (missionsLoading || logsLoading) return;
+      
+      const missionToUpdate = missionsWithStatus.find((m) => m.id === mission.id);
+      if (!missionToUpdate) return;
+      
+      if (missionToUpdate.is_completed_today) {
+        // 이미 완료된 미션이면 로그 삭제
+        if (missionToUpdate.log_id) { // 로그 ID가 있는 경우에만 삭제 시도
+          await deleteLog(missionToUpdate.log_id);
+          // 주간 현황 갱신
           refetchWeeklyStatus();
         }
-      }
-    } catch (toggleError) {
-        console.error("Error toggling mission status:", toggleError);
-        // 에러 발생 시에도 리프레시 시도 (선택적)
+      } else {
+        // 완료되지 않은 미션이면 로그 추가
+        await addLog(mission.id);
+        
+        // 효과음 재생
+        if (audio) {
+          audio.currentTime = 0;
+          audio.play().catch(e => console.error("Audio play error:", e));
+        }
+        
+        // 폭죽 효과 표시
+        setShowConfetti(true);
+        // 주간 현황 갱신
         refetchWeeklyStatus();
+      }
+    } catch (error) {
+      console.error('미션 상태 변경 중 오류 발생:', error);
+      // 오류 발생 시 원래 상태로 되돌림
+      await fetchMissions();
     }
   };
 
+  // 폭죽 완료 후 처리
   const handleConfettiComplete = () => {
     setShowConfetti(false);
   };
 
-  // 로딩 상태 결정 (변경 없음)
-  const isLoading = useMemo(() => {
-      // 모든 데이터 로딩이 완료되고, 스냅샷 체크도 완료되었을 때만 로딩 해제
-      const dataLoading = missionsLoading || logsLoading || weekStatusLoading;
-      console.log('[Render Check] isLoading:', dataLoading || !snapshotChecked, { dataLoading, snapshotChecked });
-      return dataLoading || !snapshotChecked;
-  }, [missionsLoading, logsLoading, weekStatusLoading, snapshotChecked]);
-
+  // 로딩 상태 통합 체크
+  const isLoading = missionsLoading || logsLoading || weekStatusLoading;
+  
+  // 에러 상태 통합 체크
   const error = missionsError || logsError || weekStatusError;
-
-  // Simple weekday display (Korean) - Date 객체를 받으므로 변경 없음
-  const getWeekdayString = (date: Date): string => {
-    const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-    // Date 객체의 getDay()는 로컬 시간대 기준 요일을 반환하므로 그대로 사용 가능
-    return weekdays[date.getDay()];
-  }
+  
+  // 미션 데이터와 로그 데이터 결합
+  const missionsWithStatus = useMemo(() => {
+    if (!missions || !logs) return [];
+    
+    return missions.map(mission => {
+      // 오늘 완료된 로그 찾기
+      const completedLog = logs.find(log => log.mission_id === mission.id);
+      
+      return {
+        ...mission,
+        is_completed_today: !!completedLog,
+        log_id: completedLog?.id
+      };
+    });
+  }, [missions, logs]);
 
   return (
     <div className="container mx-auto px-4 py-8">
       <ConfettiEffect run={showConfetti} recycle={false} onComplete={handleConfettiComplete} />
 
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-pink-700">고운이의 방울방울 하루 챌린지</h1>
+        <h1 className="text-3xl font-bold text-pink-700">
+          {childName}의 방울방울 하루 챌린지
+        </h1>
         <div className="text-right">
             <p className="text-lg font-semibold text-pink-600">
                 {/* 표시 날짜도 KST 기준으로 명확하게 */}

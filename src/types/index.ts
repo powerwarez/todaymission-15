@@ -47,6 +47,7 @@ export interface UserBadge {
 export interface MissionWithLogs extends Mission {
   logs: MissionLog[]; // Or just today's completion status
   is_completed_today?: boolean; // Helper flag for UI
+  log_id?: string; // ID of the completed log for today (if exists)
 }
 
 export interface EarnedBadge extends UserBadge {
