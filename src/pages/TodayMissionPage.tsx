@@ -296,7 +296,10 @@ const TodayMissionPage: React.FC = () => {
         onClick={openRewardModal}
       >
         <div className="flex-1">
-          <LuGift className="text-yellow-500 mr-2" size={24} /><p className="text-2xl text-pink-700 font-semibold">이번주 보상:</p>
+          <div className="flex items-center">
+            <LuGift className="text-pink-500 mr-2" size={28} />
+            <p className="text-2xl text-pink-700 font-semibold">이번주 보상:</p>
+          </div>
           <p className="text-xl text-pink-600">{weeklyRewardGoal}</p>
         </div>
       </div>
