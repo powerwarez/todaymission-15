@@ -8,7 +8,7 @@ import WeeklyStatusDisplay from '../components/WeeklyStatusDisplay'; // 주간 �
 import ConfettiEffect from '../components/ConfettiEffect';
 import { Mission } from '../types'; // Mission 타입만 가져오기
 import { toZonedTime, format } from 'date-fns-tz'; // date-fns-tz import
-import { LuPencil, LuX, LuCheck } from 'react-icons/lu';
+import { LuX, LuCheck } from 'react-icons/lu';
 import { toast } from 'react-hot-toast';
 // import { FaCheckCircle } from "react-icons/fa"; // 버튼 제거로 불필요
 // import { LuCircle } from 'react-icons/lu'; // 버튼 제거로 불필요
@@ -293,10 +293,9 @@ const TodayMissionPage: React.FC = () => {
         onClick={openRewardModal}
       >
         <div className="flex-1">
-          <p className="text-sm text-pink-700 font-semibold">이번주 보상:</p>
-          <p className="text-md text-pink-600">{weeklyRewardGoal}</p>
+          <p className="text-2xl text-pink-700 font-semibold">이번주 보상:</p>
+          <p className="text-xl text-pink-600">{weeklyRewardGoal}</p>
         </div>
-        <LuPencil className="text-pink-500 ml-2" />
       </div>
 
       {/* 주간 보상 편집 모달 */}

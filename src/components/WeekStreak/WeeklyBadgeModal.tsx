@@ -116,7 +116,7 @@ export const WeeklyBadgeModal: React.FC<WeeklyBadgeModalProps> = ({
         badge_id: badgeId,
         earned_at: new Date().toISOString(),
         badge_type: "weekly", // 배지 유형 지정
-        weekly_reward_goal: weeklyRewardGoal, // 주간 보상 목표 저장
+        reward_text: weeklyRewardGoal, // 주간 보상 목표 저장
       });
 
       if (error) throw error;
