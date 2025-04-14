@@ -20,6 +20,7 @@ import { Mission, EarnedBadge } from "../types"; // Mission 타입만 필요할 
 import { formatInTimeZone, toZonedTime, format } from "date-fns-tz";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
+import { supabase } from "../lib/supabaseClient";
 
 // 시간대 설정 (AuthContext에서 사용하는 값으로 대체)
 // const timeZone = "Asia/Seoul";
@@ -79,16 +80,19 @@ const HallOfFamePage: React.FC = () => {
     earnedBadges: allBadges,
     loading: allBadgesLoading,
     error: allBadgesError,
+    refetch: refetchAllBadges,
   } = useEarnedBadges();
   const {
     earnedBadges: missionBadges,
     loading: missionBadgesLoading,
     error: missionBadgesError,
+    refetch: refetchMissionBadges,
   } = useEarnedBadges("mission");
   const {
     earnedBadges: weeklyBadges,
     loading: weeklyBadgesLoading,
     error: weeklyBadgesError,
+    refetch: refetchWeeklyBadges,
   } = useEarnedBadges("weekly");
 
   // 현재 선택된 탭에 따라 표시할 배지 목록 결정
@@ -177,18 +181,59 @@ const HallOfFamePage: React.FC = () => {
   // 보상 표시 관련 상태 추가
   const [selectedBadgeReward, setSelectedBadgeReward] = useState<string | null>(null);
   const [showRewardModal, setShowRewardModal] = useState(false);
+  const [selectedBadgeId, setSelectedBadgeId] = useState<string | null>(null);
+  const [rewardUsed, setRewardUsed] = useState(false);
+  const [updatingReward, setUpdatingReward] = useState(false);
 
   // 배지를 클릭했을 때 주간 보상 표시 토글 함수
   const toggleRewardDisplay = (earnedBadge: EarnedBadge) => {
     // 주간 미션 배지이고 보상 정보가 있는 경우에만 표시
     if (earnedBadge.badge.badge_type === 'weekly' && earnedBadge.weekly_reward_goal) {
       setSelectedBadgeReward(earnedBadge.weekly_reward_goal);
+      setSelectedBadgeId(earnedBadge.id);
+      setRewardUsed(earnedBadge.reward_used || false);
       setShowRewardModal(true);
     } else {
       toast('이 배지에는 보상 정보가 없습니다.', {
         icon: '⚠️',
         style: { backgroundColor: '#ffedd5', color: '#c2410c' }
       });
+    }
+  };
+
+  // 보상 사용 여부 토글 함수
+  const toggleRewardUsed = async () => {
+    if (!selectedBadgeId) return;
+    
+    try {
+      setUpdatingReward(true);
+      
+      // 현재 상태의 반대값으로 토글
+      const newRewardUsed = !rewardUsed;
+      
+      const { error } = await supabase
+        .from('earned_badges')
+        .update({ reward_used: newRewardUsed })
+        .eq('id', selectedBadgeId);
+        
+      if (error) throw error;
+      
+      // 상태 업데이트
+      setRewardUsed(newRewardUsed);
+      
+      // 배지 목록 새로고침
+      await Promise.all([
+        refetchAllBadges(), 
+        refetchWeeklyBadges(), 
+        refetchMissionBadges()
+      ]);
+      
+      toast.success(newRewardUsed ? '보상을 사용했습니다!' : '보상 미사용으로 변경했습니다.');
+    } catch (err) {
+      console.error('보상 상태 업데이트 중 오류 발생:', err);
+      toast.error('보상 상태 업데이트에 실패했습니다.');
+    } finally {
+      setUpdatingReward(false);
     }
   };
 
@@ -406,8 +451,8 @@ const HallOfFamePage: React.FC = () => {
                       className="flex flex-col items-center p-4 bg-gray-50 rounded-lg hover:bg-pink-50 transition-colors cursor-pointer relative"
                       onClick={() => toggleRewardDisplay(earnedBadge)}
                     >
-                      {/* 보상 정보가 있으면 알림 배지 표시 */}
-                      {hasReward && (
+                      {/* 보상 정보가 있고 아직 사용하지 않은 경우에만 알림 배지 표시 */}
+                      {hasReward && !earnedBadge.reward_used && (
                         <div className="absolute top-2 right-2 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center text-white shadow-md z-10">
                           <LuGift size={14} />
                         </div>
@@ -476,12 +521,40 @@ const HallOfFamePage: React.FC = () => {
                 <h2 className="text-xl font-bold text-yellow-600">주간 미션 보상</h2>
               </div>
               
-              <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+              <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 mb-4">
                 <p className="text-yellow-800">{selectedBadgeReward}</p>
               </div>
               
+              <div className="flex items-center justify-center mb-4">
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  rewardUsed ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-700'
+                }`}>
+                  {rewardUsed ? '보상 사용 완료' : '보상 미사용'}
+                </span>
+              </div>
+              
+              <button
+                onClick={toggleRewardUsed}
+                disabled={updatingReward}
+                className={`w-full px-4 py-2 rounded-lg transition-colors flex items-center justify-center ${
+                  rewardUsed 
+                    ? 'bg-indigo-500 hover:bg-indigo-600 text-white' 
+                    : 'bg-pink-500 hover:bg-pink-600 text-white'
+                }`}
+              >
+                {updatingReward ? (
+                  <span className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2"></span>
+                ) : (
+                  <span className={`mr-2 ${rewardUsed ? 'text-white' : 'text-white'}`}>
+                    {rewardUsed ? '미사용으로 변경' : '사용 완료로 변경'}
+                  </span>
+                )}
+                {rewardUsed ? '다시 받을래요' : '사용했어요'}
+              </button>
+              
               <p className="mt-4 text-sm text-gray-600">
                 이 보상은 주간 미션을 모두 완료했을 때 받을 수 있는 보상입니다.
+                {rewardUsed ? ' 보상을 이미 사용했습니다.' : ' 보상을 아직 사용하지 않았습니다.'}
               </p>
             </div>
           </div>
