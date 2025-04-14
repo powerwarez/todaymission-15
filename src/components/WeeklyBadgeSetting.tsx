@@ -143,6 +143,22 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
   const fetchCustomBadges = async () => {
     try {
       setLoading(true);
+      console.log("커스텀 배지 가져오기 시작 - 사용자 ID:", userId);
+
+      console.log("Supabase 클라이언트 상태:", {
+        isInitialized: !!supabase,
+        hasAuth: !!supabase.auth,
+        hasFromMethod: !!supabase.from,
+      });
+
+      // 테이블 구조 조회 로그 추가
+      const { data: tableInfo, error: tableError } = await supabase
+        .from("custom_badges")
+        .select()
+        .limit(1);
+
+      console.log("custom_badges 테이블 샘플:", tableInfo);
+      console.log("custom_badges 테이블 구조 조회 오류:", tableError);
 
       // 사용자의 커스텀 배지 가져오기
       const { data: customBadges, error: customError } = await supabase
@@ -154,6 +170,8 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
         console.error("커스텀 배지 가져오기 오류:", customError);
         throw customError;
       }
+
+      console.log("가져온 커스텀 배지 데이터:", customBadges);
 
       // weekly_streak_1 배지 정보 가져오기
       const { data: weeklyStreakBadge } = await supabase
@@ -169,7 +187,7 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
 
       // 커스텀 배지 데이터를 Badge 형식으로 변환
       const formattedCustomBadges = (customBadges || []).map((badge) => ({
-        id: badge.badge_id,
+        id: badge.badge_id, // 주의: badge_id를 Badge 객체의 id로 매핑
         name: weeklyStreakName,
         description: weeklyStreakDescription,
         image_path: badge.image_path,
@@ -178,6 +196,8 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
         created_by: badge.user_id,
         is_custom: true,
       })) as Badge[];
+
+      console.log("변환된 커스텀 배지 목록:", formattedCustomBadges);
 
       setCustomBadges(formattedCustomBadges);
     } catch (err) {
@@ -489,6 +509,8 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
   // 커스텀 배지 삭제
   const deleteCustomBadge = async (badgeId: string) => {
     try {
+      console.log("배지 삭제 시작 - 배지 ID:", badgeId);
+
       // 이 배지가 현재 선택된 배지인지 확인
       if (selectedBadges.includes(badgeId)) {
         toast.error(
@@ -505,19 +527,69 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
         return;
       }
 
-      // custom_badges 테이블에서 삭제
-      const { error } = await supabase
+      console.log("삭제할 배지 정보:", badgeToDelete);
+
+      // supabase 인스턴스 상태 확인
+      console.log("Supabase 클라이언트 상태:", {
+        isInitialized: !!supabase,
+        hasAuth: !!supabase.auth,
+        hasFromMethod: !!supabase.from,
+      });
+
+      // 먼저 해당 ID로 조회하여 실제로 존재하는지 확인
+      const { data: existingBadge, error: findError } = await supabase
+        .from("custom_badges")
+        .select("*")
+        .eq("badge_id", badgeId)
+        .single();
+
+      console.log("배지 조회 결과:", { existingBadge, findError });
+
+      if (findError) {
+        console.error("배지 조회 오류:", findError);
+        if (findError.code === "PGRST116") {
+          console.warn("해당 ID의 배지가 데이터베이스에 존재하지 않습니다.");
+          // 이미 UI에서 제거
+          setCustomBadges((prevBadges) =>
+            prevBadges.filter((badge) => badge.id !== badgeId)
+          );
+          toast.success("배지가 삭제되었습니다.");
+          return;
+        }
+      }
+
+      // custom_badges 테이블에서 삭제 - badge_id 필드 사용
+      const { data, error } = await supabase
         .from("custom_badges")
         .delete()
-        .eq("badge_id", badgeId);
+        .eq("badge_id", badgeId)
+        .select();
 
-      if (error) throw error;
+      console.log("삭제 응답:", { data, error });
+
+      if (error) {
+        console.error("배지 삭제 DB 오류:", error);
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        console.warn(
+          "삭제된 데이터가 없습니다. 데이터베이스에서 해당 배지를 찾을 수 없습니다."
+        );
+      }
 
       // 스토리지에서 이미지 삭제 (선택적)
       if (badgeToDelete.image_path) {
-        await supabase.storage
-          .from("badges")
-          .remove([badgeToDelete.image_path]);
+        const { data: storageData, error: storageError } =
+          await supabase.storage
+            .from("badges")
+            .remove([badgeToDelete.image_path]);
+
+        console.log("스토리지 삭제 응답:", { storageData, storageError });
+
+        if (storageError) {
+          console.warn("이미지 파일 삭제 오류:", storageError);
+        }
       }
 
       toast.success("배지가 삭제되었습니다.");
