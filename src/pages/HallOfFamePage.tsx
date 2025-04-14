@@ -12,11 +12,14 @@ import {
   LuChevronLeft,
   LuChevronRight,
   LuAward,
+  LuGift,
+  LuX,
 } from "react-icons/lu";
-import { Mission } from "../types"; // Mission 타입만 필요할 수 있음
+import { Mission, EarnedBadge } from "../types"; // Mission 타입만 필요할 수 있음
 // date-fns-tz import 추가, format 추가
 import { formatInTimeZone, toZonedTime, format } from "date-fns-tz";
 import { useAuth } from "../contexts/AuthContext";
+import toast from "react-hot-toast";
 
 // 시간대 설정 (AuthContext에서 사용하는 값으로 대체)
 // const timeZone = "Asia/Seoul";
@@ -169,6 +172,24 @@ const HallOfFamePage: React.FC = () => {
     const bucketName = "badges";
     const cleanRelativePath = imagePath.replace(/^\/+|\/+$/g, "");
     return `${supabaseUrl}/storage/v1/object/public/${bucketName}/${cleanRelativePath}`;
+  };
+
+  // 보상 표시 관련 상태 추가
+  const [selectedBadgeReward, setSelectedBadgeReward] = useState<string | null>(null);
+  const [showRewardModal, setShowRewardModal] = useState(false);
+
+  // 배지를 클릭했을 때 주간 보상 표시 토글 함수
+  const toggleRewardDisplay = (earnedBadge: EarnedBadge) => {
+    // 주간 미션 배지이고 보상 정보가 있는 경우에만 표시
+    if (earnedBadge.badge.badge_type === 'weekly' && earnedBadge.weekly_reward_goal) {
+      setSelectedBadgeReward(earnedBadge.weekly_reward_goal);
+      setShowRewardModal(true);
+    } else {
+      toast('이 배지에는 보상 정보가 없습니다.', {
+        icon: '⚠️',
+        style: { backgroundColor: '#ffedd5', color: '#c2410c' }
+      });
+    }
   };
 
   return (
@@ -375,12 +396,23 @@ const HallOfFamePage: React.FC = () => {
                 {displayedBadges.map((earnedBadge) => {
                   const badge = earnedBadge.badge;
                   const earnedDate = new Date(earnedBadge.earned_at);
+                  
+                  // 보상 정보 확인
+                  const hasReward = badge.badge_type === 'weekly' && earnedBadge.weekly_reward_goal;
 
                   return (
                     <div
                       key={earnedBadge.id}
-                      className="flex flex-col items-center p-4 bg-gray-50 rounded-lg hover:bg-pink-50 transition-colors"
+                      className="flex flex-col items-center p-4 bg-gray-50 rounded-lg hover:bg-pink-50 transition-colors cursor-pointer relative"
+                      onClick={() => toggleRewardDisplay(earnedBadge)}
                     >
+                      {/* 보상 정보가 있으면 알림 배지 표시 */}
+                      {hasReward && (
+                        <div className="absolute top-2 right-2 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center text-white shadow-md z-10">
+                          <LuGift size={14} />
+                        </div>
+                      )}
+                      
                       <div className="w-20 h-20 mb-2 flex items-center justify-center 
                         border-4 border-gradient-to-r from-pink-300 to-indigo-300 rounded-full 
                         p-1 bg-white shadow-md overflow-hidden">
@@ -419,6 +451,39 @@ const HallOfFamePage: React.FC = () => {
                 })}
               </div>
             )}
+          </div>
+        </div>
+      )}
+      
+      {/* 보상 모달 */}
+      {showRewardModal && selectedBadgeReward && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black bg-opacity-50"
+            onClick={() => setShowRewardModal(false)}
+          ></div>
+          <div className="relative bg-white rounded-lg p-6 max-w-md w-full m-4 shadow-xl">
+            <button
+              onClick={() => setShowRewardModal(false)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+            >
+              <LuX size={20} />
+            </button>
+            
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-4">
+                <LuGift className="text-yellow-500 mr-2" size={24} />
+                <h2 className="text-xl font-bold text-yellow-600">주간 미션 보상</h2>
+              </div>
+              
+              <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                <p className="text-yellow-800">{selectedBadgeReward}</p>
+              </div>
+              
+              <p className="mt-4 text-sm text-gray-600">
+                이 보상은 주간 미션을 모두 완료했을 때 받을 수 있는 보상입니다.
+              </p>
+            </div>
           </div>
         </div>
       )}

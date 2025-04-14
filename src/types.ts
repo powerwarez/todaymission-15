@@ -43,6 +43,8 @@ export interface EarnedBadge {
   user_id: string;
   badge_id: string;
   earned_at: string; // 획득 날짜
+  badge_type?: string; // 배지 유형 (weekly, mission 등)
+  weekly_reward_goal?: string; // 주간 미션 보상 목표
   // JOIN을 통해 가져올 Badge 정보
   badge: Badge;
 }

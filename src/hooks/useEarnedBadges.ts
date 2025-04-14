@@ -10,6 +10,7 @@ interface BadgeJoinResult {
   badge_id: string;
   earned_at: string;
   badge_type?: "mission" | "weekly";
+  weekly_reward_goal?: string;
   badges: {
     id: string;
     name: string;
@@ -47,6 +48,7 @@ export const useEarnedBadges = (badgeType?: "mission" | "weekly") => {
           badge_id,
           earned_at,
           badge_type,
+          weekly_reward_goal,
           badges:badge_id (
             id,
             name,
@@ -85,6 +87,7 @@ export const useEarnedBadges = (badgeType?: "mission" | "weekly") => {
               joinResult.badge_type ||
               joinResult.badges.badge_type ||
               "mission",
+            weekly_reward_goal: joinResult.weekly_reward_goal,
             badge: {
               id: joinResult.badges.id,
               name: joinResult.badges.name,

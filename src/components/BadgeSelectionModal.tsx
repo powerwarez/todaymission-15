@@ -6,21 +6,23 @@ import {
   ConfettiOptions,
   ConfettiRef,
 } from "../components/ui/confetti";
-import { LuX } from "react-icons/lu";
+import { LuX, LuStar } from "react-icons/lu";
 import { useAuth } from "../contexts/AuthContext";
 import "../styles/animations.css"; // 애니메이션용 CSS 파일
 
 // 배지 선택 모달 props 타입 정의
 interface BadgeSelectionModalProps {
   onClose: () => void;
-  onBadgeSelect: (badgeId: string, badgeType: string) => void;
+  onBadgeSelect: (badgeId: string, badgeType?: string) => void;
   showModal: boolean;
+  weeklyRewardGoal?: string; // 주간 보상 목표 (선택적)
 }
 
 export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
   onClose,
   onBadgeSelect,
   showModal,
+  weeklyRewardGoal,
 }) => {
   const { user } = useAuth();
   const [badges, setBadges] = useState<Badge[]>([]);
@@ -482,29 +484,56 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
   if (!showModal || alreadyEarned) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div
+      className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 ${
+        showModal ? "visible" : "invisible"
+      }`}
+    >
       <div
         className="absolute inset-0 bg-black bg-opacity-50"
         onClick={handleClose}
       ></div>
-      <div className="relative bg-white rounded-lg shadow-lg w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
-        {/* 모달 헤더 */}
-        <div className="flex justify-between items-center mb-4 border-b pb-3">
-          <h2 className="text-xl font-bold text-pink-700">🎖 주간 미션 달성!</h2>
-          <button
-            onClick={handleClose}
-            className="text-gray-500 hover:text-gray-700 focus:outline-none"
-          >
-            <LuX size={20} />
-          </button>
-        </div>
+      <div
+        className={`relative bg-white rounded-2xl w-full max-w-lg mx-auto p-6 shadow-xl scale-in-center overflow-y-auto max-h-[90vh] ${
+          showModal ? "scale-in-center" : "scale-out-center"
+        }`}
+      >
+        <button
+          onClick={handleClose}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+        >
+          <LuX size={20} />
+        </button>
 
-        {/* 모달 내용 */}
-        <div className="mb-6">
-          <p className="text-gray-700 mb-4">
-            축하합니다! 이번 주 모든 미션을 완료하셨습니다. 아래 배지 중 하나를
-            선택하여 획득하세요.
-          </p>
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-6 text-pink-600 flex items-center justify-center">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-8 w-8 text-yellow-500 mr-2"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"
+              />
+            </svg>
+            배지를 선택하세요
+          </h2>
+          
+          {/* 주간 목표 표시 */}
+          {weeklyRewardGoal && (
+            <div className="bg-yellow-50 p-4 rounded-lg mb-6 border border-yellow-200">
+              <div className="flex items-center justify-center mb-2">
+                <LuStar className="text-yellow-500 mr-2" />
+                <h3 className="text-lg font-semibold text-yellow-700">이번 주 보상</h3>
+              </div>
+              <p className="text-yellow-800">{weeklyRewardGoal}</p>
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -512,10 +541,13 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
             </div>
           )}
 
-          {/* 배지 선택 그리드 */}
           {loading ? (
-            <div className="flex justify-center py-8">
+            <div className="w-full min-h-[200px] flex items-center justify-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+            </div>
+          ) : badges.length === 0 ? (
+            <div className="text-center text-gray-600 p-6">
+              <p>설정된 배지가 없습니다. 관리자에게 문의하세요.</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
@@ -554,7 +586,6 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
           )}
         </div>
 
-        {/* 모달 푸터 */}
         <div className="flex justify-end border-t pt-3">
           <button
             onClick={handleClose}
@@ -588,8 +619,14 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
           </button>
         </div>
 
-        {/* Confetti 효과 */}
-        {showConfetti && <Confetti ref={confettiRef} />}
+        <Confetti
+          ref={confettiRef}
+          autoPlay={showConfetti}
+          options={{
+            particleCount: 200,
+            spread: 90,
+          }}
+        />
       </div>
     </div>
   );

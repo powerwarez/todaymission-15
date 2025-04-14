@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
-import { LuX } from "react-icons/lu";
+import { LuX, LuStar } from "react-icons/lu";
 import { BadgeSelectionModal } from "../BadgeSelectionModal";
 import toast from "react-hot-toast";
 
@@ -22,6 +22,32 @@ export const WeeklyBadgeModal: React.FC<WeeklyBadgeModalProps> = ({
   const [showBadgeSelection, setShowBadgeSelection] = useState(false);
   const [alreadyEarned, setAlreadyEarned] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [weeklyRewardGoal, setWeeklyRewardGoal] = useState<string>("");
+
+  // 사용자 정보와 주간 목표 가져오기
+  useEffect(() => {
+    const fetchWeeklyRewardGoal = async () => {
+      if (!user || !isVisible) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('user_info')
+          .select('weekly_reward_goal')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (error) {
+          console.error('주간 보상 목표를 가져오는 중 오류가 발생했습니다:', error);
+        } else if (data && data.weekly_reward_goal) {
+          setWeeklyRewardGoal(data.weekly_reward_goal);
+        }
+      } catch (err) {
+        console.error('주간 보상 목표 조회 중 오류가 발생했습니다:', err);
+      }
+    };
+    
+    fetchWeeklyRewardGoal();
+  }, [user, isVisible]);
 
   // 모달이 보여질 때 이미 배지를 획득했는지 확인
   useEffect(() => {
@@ -90,6 +116,7 @@ export const WeeklyBadgeModal: React.FC<WeeklyBadgeModalProps> = ({
         badge_id: badgeId,
         earned_at: new Date().toISOString(),
         badge_type: "weekly", // 배지 유형 지정
+        weekly_reward_goal: weeklyRewardGoal, // 주간 보상 목표 저장
       });
 
       if (error) throw error;
@@ -136,11 +163,22 @@ export const WeeklyBadgeModal: React.FC<WeeklyBadgeModalProps> = ({
           <h2 className="text-2xl font-bold text-pink-600 mb-4">
             주간 미션 달성!
           </h2>
-          <p className="mb-6">
+          <p className="mb-4">
             {weekStartDate} ~ {weekEndDate} 기간 동안
             <br />
             모든 오늘의 미션을 완료했습니다.
           </p>
+          
+          {/* 주간 목표 표시 */}
+          {weeklyRewardGoal && (
+            <div className="bg-yellow-50 p-4 rounded-lg mb-6 border border-yellow-200">
+              <div className="flex items-center justify-center mb-2">
+                <LuStar className="text-yellow-500 mr-2" />
+                <h3 className="text-lg font-semibold text-yellow-700">이번 주 보상</h3>
+              </div>
+              <p className="text-yellow-800">{weeklyRewardGoal}</p>
+            </div>
+          )}
 
           {alreadyEarned ? (
             <div className="bg-green-100 p-4 rounded-md mb-4">
@@ -166,6 +204,7 @@ export const WeeklyBadgeModal: React.FC<WeeklyBadgeModalProps> = ({
           showModal={showBadgeSelection}
           onClose={() => setShowBadgeSelection(false)}
           onBadgeSelect={handleBadgeSelect}
+          weeklyRewardGoal={weeklyRewardGoal}
         />
       )}
     </div>
