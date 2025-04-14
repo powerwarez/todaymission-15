@@ -22,6 +22,9 @@ const pastelRainbowColors = [
   { bg: 'bg-blue-100', border: 'border-blue-400', text: 'text-blue-800' },     // 파
   { bg: 'bg-indigo-100', border: 'border-indigo-400', text: 'text-indigo-800' }, // 남
   { bg: 'bg-violet-100', border: 'border-violet-400', text: 'text-violet-800' }, // 보
+  { bg: 'bg-pink-100', border: 'border-pink-400', text: 'text-pink-800' },      // 핑크
+  { bg: 'bg-teal-100', border: 'border-teal-400', text: 'text-teal-800' },      // 틸
+  { bg: 'bg-rose-100', border: 'border-rose-400', text: 'text-rose-800' },      // 로즈
 ];
 
 const TodayMissionPage: React.FC = () => {
