@@ -546,15 +546,16 @@ const HallOfFamePage: React.FC = () => {
                   <span className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2"></span>
                 ) : (
                   <span className={`mr-2 ${rewardUsed ? 'text-white' : 'text-white'}`}>
-                    {rewardUsed ? '미사용으로 변경' : '사용 완료로 변경'}
+                    {rewardUsed ? '다시 받을래요' : '사용했어요'}
                   </span>
                 )}
-                {rewardUsed ? '다시 받을래요' : '사용했어요'}
               </button>
               
               <p className="mt-4 text-sm text-gray-600">
-                이 보상은 주간 미션을 모두 완료했을 때 받을 수 있는 보상입니다.
-                {rewardUsed ? ' 보상을 이미 사용했습니다.' : ' 보상을 아직 사용하지 않았습니다.'}
+                주간 미션을 모두 완료했을 때 받은 보상입니다.
+              </p>
+              <p className="mt-4 text-sm text-gray-600">
+              {rewardUsed ? ' 보상을 이미 사용했습니다.' : ' 보상을 아직 사용하지 않았습니다.'}
               </p>
             </div>
           </div>
