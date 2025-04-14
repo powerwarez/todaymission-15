@@ -558,46 +558,86 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
         }
       }
 
-      // custom_badges 테이블에서 삭제 - badge_id 필드 사용
-      const { data, error } = await supabase
-        .from("custom_badges")
-        .delete()
-        .eq("badge_id", badgeId)
-        .select();
+      if (existingBadge) {
+        // 조회 결과에서 실제 DB 내의 ID 필드 사용 (테이블의 primary key 필드)
+        const actualDatabaseId = existingBadge.id;
+        console.log("실제 데이터베이스 ID:", actualDatabaseId);
 
-      console.log("삭제 응답:", { data, error });
+        // custom_badges 테이블에서 삭제 - 실제 DB ID 필드 사용
+        const { data, error } = await supabase
+          .from("custom_badges")
+          .delete()
+          .eq("id", actualDatabaseId) // badge_id 대신 id 필드 사용
+          .select();
 
-      if (error) {
-        console.error("배지 삭제 DB 오류:", error);
-        throw error;
-      }
+        console.log("삭제 응답:", { data, error });
 
-      if (!data || data.length === 0) {
-        console.warn(
-          "삭제된 데이터가 없습니다. 데이터베이스에서 해당 배지를 찾을 수 없습니다."
-        );
-      }
-
-      // 스토리지에서 이미지 삭제 (선택적)
-      if (badgeToDelete.image_path) {
-        const { data: storageData, error: storageError } =
-          await supabase.storage
-            .from("badges")
-            .remove([badgeToDelete.image_path]);
-
-        console.log("스토리지 삭제 응답:", { storageData, storageError });
-
-        if (storageError) {
-          console.warn("이미지 파일 삭제 오류:", storageError);
+        if (error) {
+          console.error("배지 삭제 DB 오류:", error);
+          throw error;
         }
+
+        if (!data || data.length === 0) {
+          console.warn(
+            "삭제된 데이터가 없습니다. 데이터베이스에서 해당 배지를 찾을 수 없습니다."
+          );
+        }
+
+        // 스토리지에서 이미지 삭제 (선택적)
+        if (badgeToDelete.image_path) {
+          try {
+            // 이미지 경로가 정확한지 확인
+            const imagePath = badgeToDelete.image_path;
+            console.log("삭제할 이미지 경로:", imagePath);
+
+            // Storage 경로 정규화
+            const cleanPath = imagePath.startsWith("/")
+              ? imagePath.substring(1)
+              : imagePath;
+
+            const { data: storageData, error: storageError } =
+              await supabase.storage.from("badges").remove([cleanPath]);
+
+            console.log("스토리지 삭제 응답:", {
+              storageData,
+              storageError,
+              path: cleanPath,
+            });
+
+            if (storageError) {
+              console.warn("이미지 파일 삭제 오류:", storageError);
+              // 다른 방식으로 경로 시도
+              const altPath = cleanPath.includes("/")
+                ? cleanPath.split("/").pop()
+                : cleanPath;
+              console.log("대체 경로로 시도:", altPath);
+
+              if (altPath) {
+                const { data: altStorageData, error: altStorageError } =
+                  await supabase.storage.from("badges").remove([altPath]);
+
+                console.log("대체 경로 스토리지 삭제 응답:", {
+                  altStorageData,
+                  altStorageError,
+                });
+              }
+            }
+          } catch (storageErr) {
+            console.error("스토리지 삭제 프로세스 오류:", storageErr);
+            // 스토리지 오류는 배지 삭제 프로세스를 중단시키지 않음
+          }
+        }
+
+        toast.success("배지가 삭제되었습니다.");
+
+        // 로컬 상태에서 삭제된 배지 제거
+        setCustomBadges((prevBadges) =>
+          prevBadges.filter((badge) => badge.id !== badgeId)
+        );
+      } else {
+        console.warn("배지 데이터가 없습니다.");
+        toast.error("배지를 찾을 수 없습니다.");
       }
-
-      toast.success("배지가 삭제되었습니다.");
-
-      // 로컬 상태에서 삭제된 배지 제거
-      setCustomBadges((prevBadges) =>
-        prevBadges.filter((badge) => badge.id !== badgeId)
-      );
     } catch (err) {
       console.error("배지 삭제 오류:", err);
       toast.error("배지 삭제에 실패했습니다.");
