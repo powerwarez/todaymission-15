@@ -8,6 +8,8 @@ import WeeklyStatusDisplay from '../components/WeeklyStatusDisplay'; // 주간 �
 import ConfettiEffect from '../components/ConfettiEffect';
 import { Mission } from '../types'; // Mission 타입만 가져오기
 import { toZonedTime, format } from 'date-fns-tz'; // date-fns-tz import
+import { LuPencil, LuX, LuCheck } from 'react-icons/lu';
+import { toast } from 'react-hot-toast';
 // import { FaCheckCircle } from "react-icons/fa"; // 버튼 제거로 불필요
 // import { LuCircle } from 'react-icons/lu'; // 버튼 제거로 불필요
 
@@ -40,6 +42,10 @@ const TodayMissionPage: React.FC = () => {
   
   // 사용자 정보 상태
   const [childName, setChildName] = useState<string>('고운이');
+  const [weeklyRewardGoal, setWeeklyRewardGoal] = useState<string>('이번주에 미션을 모두 달성해서 하고 싶은 것');
+  const [showRewardModal, setShowRewardModal] = useState(false);
+  const [editingReward, setEditingReward] = useState('');
+  const [savingReward, setSavingReward] = useState(false);
   
   // 사용자 정보 가져오기
   useEffect(() => {
@@ -49,14 +55,15 @@ const TodayMissionPage: React.FC = () => {
       try {
         const { data, error } = await supabase
           .from('user_info')
-          .select('child_name')
+          .select('child_name, weekly_reward_goal')
           .eq('user_id', user.id)
           .single();
           
         if (error) {
           console.error('사용자 정보를 가져오는 중 오류가 발생했습니다:', error);
-        } else if (data && data.child_name) {
-          setChildName(data.child_name);
+        } else if (data) {
+          if (data.child_name) setChildName(data.child_name);
+          if (data.weekly_reward_goal) setWeeklyRewardGoal(data.weekly_reward_goal);
         }
       } catch (err) {
         console.error('사용자 정보 조회 중 오류가 발생했습니다:', err);
@@ -228,11 +235,45 @@ const TodayMissionPage: React.FC = () => {
     });
   }, [missions, logs]);
 
+  // 주간 보상 목표 저장 함수
+  const saveWeeklyRewardGoal = async () => {
+    if (!user) return;
+    
+    try {
+      setSavingReward(true);
+      
+      const { error } = await supabase
+        .from('user_info')
+        .update({
+          weekly_reward_goal: editingReward,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id);
+        
+      if (error) throw error;
+      
+      setWeeklyRewardGoal(editingReward);
+      setShowRewardModal(false);
+      toast.success('주간 목표가 저장되었습니다.');
+    } catch (err) {
+      console.error('주간 목표 저장 중 오류가 발생했습니다:', err);
+      toast.error('주간 목표 저장에 실패했습니다.');
+    } finally {
+      setSavingReward(false);
+    }
+  };
+
+  // 보상 수정 모달 열기
+  const openRewardModal = () => {
+    setEditingReward(weeklyRewardGoal);
+    setShowRewardModal(true);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <ConfettiEffect run={showConfetti} recycle={false} onComplete={handleConfettiComplete} />
 
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-2">
         <h1 className="text-3xl font-bold text-pink-700">
           {childName || "우리 아이의 방울방울 미션 챌린지"}
         </h1>
@@ -245,6 +286,63 @@ const TodayMissionPage: React.FC = () => {
             <p className="text-md text-pink-500">{getWeekdayString(todayKSTObj)}요일</p>
         </div>
       </div>
+
+      {/* 주간 보상 목표 표시 */}
+      <div 
+        className="mb-6 flex items-center bg-pink-50 p-3 rounded-lg cursor-pointer"
+        onClick={openRewardModal}
+      >
+        <div className="flex-1">
+          <p className="text-sm text-pink-700 font-semibold">이번주 보상:</p>
+          <p className="text-md text-pink-600">{weeklyRewardGoal}</p>
+        </div>
+        <LuPencil className="text-pink-500 ml-2" />
+      </div>
+
+      {/* 주간 보상 편집 모달 */}
+      {showRewardModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setShowRewardModal(false)}></div>
+          <div className="relative bg-white rounded-lg p-6 max-w-md w-full m-4">
+            <button
+              onClick={() => setShowRewardModal(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+            >
+              <LuX size={20} />
+            </button>
+
+            <div className="text-center">
+              <h2 className="text-xl font-bold text-pink-600 mb-4">
+                주간 보상 설정
+              </h2>
+              <p className="text-sm text-gray-600 mb-4">
+                이번 주 미션을 모두 달성했을 때 받고 싶은 보상을 입력하세요.
+              </p>
+
+              <textarea
+                value={editingReward}
+                onChange={(e) => setEditingReward(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 mb-4"
+                rows={3}
+                placeholder="예: 김밥 싸서 먹기, 맛있는 디저트 먹기, 새 책 사기"
+              />
+
+              <button
+                onClick={saveWeeklyRewardGoal}
+                disabled={savingReward}
+                className="bg-pink-600 text-white px-6 py-2 rounded-lg hover:bg-pink-700 transition-colors flex items-center justify-center w-full"
+              >
+                {savingReward ? (
+                  <span className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2"></span>
+                ) : (
+                  <LuCheck className="mr-2" />
+                )}
+                저장하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isLoading && <p>데이터 로딩 중...</p>}
       {error && <p className="text-red-500">오류: {error}</p>}
