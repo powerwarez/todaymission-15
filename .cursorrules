@@ -1,3 +1,5 @@
+커서룰
+
 Codebase Overview
 This codebase appears to be part of a web application built using React and TypeScript. It is structured to support a landing page, authentication flows, and a dashboard for logged-in users. The application integrates with Supabase for backend services, including authentication and database interactions.
 Stack and Key Technologies
