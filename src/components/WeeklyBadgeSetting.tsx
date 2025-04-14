@@ -522,8 +522,10 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
 
       toast.success("배지가 삭제되었습니다.");
 
-      // 커스텀 배지 목록 새로고침
-      fetchCustomBadges();
+      // 로컬 상태에서 삭제된 배지 제거
+      setCustomBadges((prevBadges) =>
+        prevBadges.filter((badge) => badge.id !== badgeId)
+      );
     } catch (err) {
       console.error("배지 삭제 오류:", err);
       toast.error("배지 삭제에 실패했습니다.");
