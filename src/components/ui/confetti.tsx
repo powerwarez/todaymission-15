@@ -1,21 +1,5 @@
 import React, { useImperativeHandle, forwardRef } from "react";
-import confetti from "canvas-confetti";
-
-// 컨페티 옵션 타입 정의
-export interface ConfettiOptions {
-  particleCount?: number;
-  spread?: number;
-  origin?: { x?: number; y?: number };
-  colors?: string[];
-  startVelocity?: number;
-  ticks?: number;
-  gravity?: number;
-  scalar?: number;
-  shapes?: ("square" | "circle")[];
-  zIndex?: number;
-  drift?: number;
-  decay?: number;
-}
+import confetti, { Options as ConfettiOptions } from "canvas-confetti";
 
 // 컨페티 ref 타입 정의
 export interface ConfettiRef {
@@ -30,36 +14,26 @@ interface ConfettiProps {
   style?: React.CSSProperties;
 }
 
-// 소리 파일 경로
-const SOUND_PATH = "/sound/high_rune.flac";
-
 export const Confetti = forwardRef<ConfettiRef, ConfettiProps>(
   ({ autoPlay = false, options = {}, className, style }, ref) => {
     // 컨페티 효과 트리거 함수
     const triggerConfetti = (customOptions?: ConfettiOptions) => {
       try {
-        // 효과음 재생 시도
-        try {
-          const audio = new Audio(SOUND_PATH);
-          audio.volume = 0.5; // 볼륨 조절
-          
-          // 사용자 상호작용 없이도 재생 시도
-          audio.play().catch(err => {
-            console.warn("효과음 재생 실패 (사용자 상호작용 필요):", err);
-          });
-        } catch (audioErr) {
-          console.warn("효과음 생성 실패:", audioErr);
-        }
-        
+        // 효과음 재생 코드 제거
+
         // 기본 옵션과 사용자 지정 옵션 병합
         const defaultOptions = {
           particleCount: 100,
           spread: 70,
           origin: { y: 0.6 },
         };
-        
-        const finalOptions = { ...defaultOptions, ...options, ...customOptions };
-        
+
+        const finalOptions = {
+          ...defaultOptions,
+          ...options,
+          ...customOptions,
+        };
+
         // 컨페티 효과 시작
         confetti(finalOptions);
       } catch (err) {
