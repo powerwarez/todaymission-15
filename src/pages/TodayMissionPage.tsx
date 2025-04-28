@@ -358,7 +358,7 @@ const TodayMissionPage: React.FC = () => {
             <LuGift className="text-pink-500 mr-2" size={28} />
             <p className="text-2xl text-pink-700 font-semibold">이번주 보상</p>
           </div>
-          <div className="flex items-center bg-pink-500/50 rounded-lg p-2">
+          <div className="flex items-center bg-pink-500/20 rounded-lg p-2 pt-2">
           <p className="text-xl text-pink-600">{weeklyRewardGoal}</p>
           </div>
         </div>
