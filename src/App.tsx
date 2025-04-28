@@ -100,6 +100,7 @@ const App: React.FC = () => {
     handleCloseBadgeSelectionModal, // 추가: 배지 선택 모달 닫기 함수
     handleBadgeSelect, // 추가: 배지 선택 처리 함수
     weeklyStreakAchieved, // 추가: 주간 스트릭 달성 여부
+    weeklyRewardGoal, // 추가: 주간 리워드 목표
   } = useNotificationState();
 
   return (
@@ -145,6 +146,7 @@ const App: React.FC = () => {
             showModal={showBadgeSelectionModal}
             onClose={handleCloseBadgeSelectionModal}
             onBadgeSelect={handleBadgeSelect}
+            weeklyRewardGoal={weeklyRewardGoal}
           />
         )}
       </NotificationProvider>

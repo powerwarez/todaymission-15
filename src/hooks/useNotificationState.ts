@@ -39,6 +39,8 @@ export const useNotificationState = () => {
   // 배지 선택 모달 상태
   const [showBadgeSelectionModal, setShowBadgeSelectionModal] = useState(false);
   const [weeklyStreakAchieved, setWeeklyStreakAchieved] = useState(false);
+  // 주간 보상 목표 상태 추가
+  const [weeklyRewardGoal, setWeeklyRewardGoal] = useState<string>("");
 
   console.log(
     "[StateHook] Running/Re-rendering. Queue:",
@@ -46,6 +48,37 @@ export const useNotificationState = () => {
     "Displayed:",
     displayedBadges.map((b) => b.id)
   );
+
+  // 사용자 정보와 주간 목표 가져오기
+  const fetchWeeklyRewardGoal = useCallback(async () => {
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) {
+        console.error("[StateHook] User not authenticated");
+        return;
+      }
+      
+      const { data, error } = await supabase
+        .from('user_info')
+        .select('weekly_reward_goal')
+        .eq('user_id', user.id)
+        .single();
+        
+      if (error) {
+        console.error('[StateHook] 주간 보상 목표를 가져오는 중 오류가 발생했습니다:', error);
+      } else if (data && data.weekly_reward_goal) {
+        setWeeklyRewardGoal(data.weekly_reward_goal);
+      }
+    } catch (err) {
+      console.error('[StateHook] 주간 보상 목표 조회 중 오류가 발생했습니다:', err);
+    }
+  }, []);
+
+  // 컴포넌트 마운트 시 주간 목표 가져오기
+  useEffect(() => {
+    fetchWeeklyRewardGoal();
+  }, [fetchWeeklyRewardGoal]);
 
   // 큐에서 다음 항목 처리 함수
   const processNextInQueue = useCallback(async (queue: string[]) => {
@@ -79,6 +112,9 @@ export const useNotificationState = () => {
           setNotificationQueue((prevQueue) => prevQueue.slice(1));
           return;
         }
+        
+        // 주간 목표 정보 갱신
+        await fetchWeeklyRewardGoal();
         
         // 이번 주의 시작(월요일)과 끝(일요일) 구하기
         const { monday, sunday } = getWeekDates();
@@ -166,8 +202,7 @@ export const useNotificationState = () => {
         "Reset processing flag."
       );
     }
-    // 의존성 배열에서 notificationQueue 제거. queue 인자를 통해 최신 상태 받음
-  }, []);
+  }, [fetchWeeklyRewardGoal]);
 
   // 큐 상태 변경 감지 및 처리 시작
   useEffect(() => {
@@ -184,8 +219,6 @@ export const useNotificationState = () => {
         "[StateHook useEffect] Conditions not met, not triggering process."
       );
     }
-    // processNextInQueue는 useCallback으로 감싸져 있고 의존성이 없으므로,
-    // 이 useEffect는 notificationQueue가 변경될 때만 실행됨.
   }, [notificationQueue, processNextInQueue]);
 
   const showBadgeNotification = useCallback((badgeId: string) => {
@@ -238,6 +271,7 @@ export const useNotificationState = () => {
           user_id: user.id,
           badge_id: badgeId,
           earned_at: new Date().toISOString(),
+          reward_text: weeklyRewardGoal, // 주간 보상 목표 저장
         });
 
       if (insertError) throw insertError;
@@ -251,21 +285,14 @@ export const useNotificationState = () => {
 
       if (fetchError) throw fetchError;
 
-      if (badgeData) {
-        setDisplayedBadges((prevBadges) => {
-          if (!prevBadges.some((b) => b.id === badgeData.id)) {
-            return [...prevBadges, badgeData as Badge];
-          }
-          return prevBadges;
-        });
-      }
+      setDisplayedBadges((prevBadges) => [...prevBadges, badgeData as Badge]);
     } catch (error) {
       console.error("[StateHook] Error handling badge selection:", error);
     } finally {
-      // 모달 닫기
       setShowBadgeSelectionModal(false);
+      setWeeklyStreakAchieved(false);
     }
-  }, []);
+  }, [weeklyRewardGoal]);
 
   return {
     displayedBadges,
@@ -274,8 +301,9 @@ export const useNotificationState = () => {
     isLoadingBadge,
     notificationQueue,
     showBadgeSelectionModal,
-    weeklyStreakAchieved,
     handleCloseBadgeSelectionModal,
     handleBadgeSelect,
+    weeklyStreakAchieved,
+    weeklyRewardGoal, // 주간 보상 목표 추가
   };
 };

@@ -1,0 +1,56 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+커서룰
+
+Codebase Overview
+This codebase appears to be part of a web application built using React and TypeScript. It is structured to support a landing page, authentication flows, and a dashboard for logged-in users. The application integrates with Supabase for backend services, including authentication and database interactions.
+Stack and Key Technologies
+
+Framework: React
+TypeScript: Used for type-safe code across the frontend
+Tailwind CSS: Utility-first CSS framework for styling
+Supabase: Open-source Firebase alternative used for backend services including authentication, database, and storage
+Supabase Auth: Used for authentication, specifically with Kakao OAuth integration
+
+Purpose and Functionality
+Routing & Navigation
+
+Custom Routing Solution: The application implements custom client-side routing without React Router, including:
+
+State-based route management
+Custom navigation components
+Protected routes with authentication checks
+Layout composition through component composition
+
+
+
+Authentication
+The application includes a comprehensive authentication flow:
+
+Login: Users can log in using Kakao Auth integrated with Supabase OAuth
+Signup: New users can sign up with Kakao Auth
+Logout: Users can log out
+Auth State Management: Uses Supabase auth state listeners with React context
+
+User Interface
+
+Landing Page: Contains components like SubmitButton, LoginPage, and LogoutModal
+Dashboard: For logged-in users, showing personalized content and navigation
+Error Handling: Uses custom error boundaries and error states
+
+Data Management
+
+Supabase Client: For database interactions and managing authenticated sessions
+Custom Data Fetching: Implements custom hooks for data fetching patterns
+Type-safe API: TypeScript interfaces ensure type safety across API boundaries
+
+Layout Components
+
+Navbar: A responsive navbar for the landing page and public pages
+Navigation Component: A navigation component for the dashboard and protected routes
+Layouts: Reusable layout components using component composition
+
+.env파일을 직접 수정하지 않는다. 코드에 api키와 같은 환경변수를 직접 입력하지 않는다. 코드에 가짜데이터 또는 더미 데이터를 넣지 않는다.
