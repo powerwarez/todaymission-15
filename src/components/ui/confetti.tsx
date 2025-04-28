@@ -1,5 +1,8 @@
 import React, { useImperativeHandle, forwardRef } from "react";
-import confetti, { Options as ConfettiOptions } from "canvas-confetti";
+import confetti, { Options as ConfettiOptionsType } from "canvas-confetti";
+
+// ConfettiOptions 타입을 내보내기
+export type ConfettiOptions = ConfettiOptionsType;
 
 // 컨페티 ref 타입 정의
 export interface ConfettiRef {
