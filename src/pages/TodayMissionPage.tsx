@@ -185,21 +185,21 @@ const TodayMissionPage: React.FC = () => {
   // --- 스냅샷 로직 끝 --- //
 
   // Load celebration sound (변경 없음)
-  useEffect(() => {
-    // You should host your own celebration sound or find a royalty-free one
-    // Example path, replace with your actual sound file path
-    const celebrationSound = new Audio("/sound/high_rune.flac");
-    celebrationSound.preload = "auto";
-    setAudio(celebrationSound);
+  // useEffect(() => {
+  //   // You should host your own celebration sound or find a royalty-free one
+  //   // Example path, replace with your actual sound file path
+  //   const celebrationSound = new Audio("/sound/high_rune.flac");
+  //   celebrationSound.preload = "auto";
+  //   setAudio(celebrationSound);
 
-    // Clean up audio element on unmount
-    return () => {
-      if (celebrationSound) {
-        celebrationSound.pause();
-        celebrationSound.src = ""; // Release resource
-      }
-    };
-  }, []);
+  //   // Clean up audio element on unmount
+  //   return () => {
+  //     if (celebrationSound) {
+  //       celebrationSound.pause();
+  //       celebrationSound.src = ""; // Release resource
+  //     }
+  //   };
+  // }, []);
 
   // 요일을 한국어로 변환
   const getWeekdayString = (date: Date) => {
