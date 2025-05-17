@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 // import { useMissions } from '../hooks/useMissions'; // 삭제: 스냅샷에서 미션 정보 가져옴
 import { useMissionLogs } from "../hooks/useMissionLogs";
 // import { useMonthlyMissionLogs } from '../hooks/useMonthlyMissionLogs'; // 삭제: 스냅샷 훅 사용
@@ -100,21 +100,37 @@ const HallOfFamePage: React.FC = () => {
 
   // 현재 선택된 탭에 따라 표시할 배지 목록 결정
   const displayedBadges = useMemo(() => {
+    console.log("[DEBUG] 배지 필터링 - badgeTab:", badgeTab);
+    console.log("[DEBUG] 전체 배지:", allBadges);
+    console.log("[DEBUG] 주간 배지:", weeklyBadges);
+    console.log("[DEBUG] 미션 배지:", missionBadges);
+
+    let filteredBadges;
+
     switch (badgeTab) {
       case "mission":
-        return missionBadges;
+        filteredBadges = missionBadges;
+        break;
       case "weekly":
         // weekly_streak_1 배지는 제외하고 표시
-        return weeklyBadges.filter(
+        filteredBadges = weeklyBadges.filter(
           (badge) => badge.badge.id !== "weekly_streak_1"
         );
+        console.log(
+          "[DEBUG] weekly_streak_1 제외 후 주간 배지:",
+          filteredBadges
+        );
+        break;
       case "all":
       default:
         // 전체 배지 탭에서도 weekly_streak_1 배지 제외
-        return allBadges.filter(
+        filteredBadges = allBadges.filter(
           (badge) => badge.badge.id !== "weekly_streak_1"
         );
+        break;
     }
+
+    return filteredBadges;
   }, [badgeTab, allBadges, missionBadges, weeklyBadges]);
 
   // 배지 관련 로딩 및 에러 상태 통합
@@ -266,6 +282,19 @@ const HallOfFamePage: React.FC = () => {
 
   // 배지 모달 표시/숨김 함수 추가
   const handleOpenBadgeSelectionModal = (week: string) => {
+    console.log(`[DEBUG] 배지 선택 모달 열기 - 선택한 주: ${week}`);
+    console.log(`[DEBUG] 미선택 배지 확인:`, pendingWeeklyBadges);
+
+    // 해당 주의 미선택 배지가 있는지 확인
+    const pendingBadge = pendingWeeklyBadges.find(
+      (badge) =>
+        badge.formatted_date === week ||
+        formatInTimeZone(new Date(badge.earned_at), timeZone, "yyyy-MM-dd") ===
+          week
+    );
+
+    console.log(`[DEBUG] 해당 주의 미선택 배지:`, pendingBadge);
+
     setSelectedWeek(week);
     setShowBadgeSelectionModal(true);
   };
@@ -351,20 +380,13 @@ const HallOfFamePage: React.FC = () => {
     }
   };
 
-  // 배지탭 변경 이벤트 처리를 위한 useEffect 추가 (기존 useEffect 위에 추가)
-  useEffect(() => {
-    // 주간 배지 탭으로 변경되었을 때만 미선택 배지 검사
-    if (badgeTab === "weekly" && !badgesLoading) {
-      loadPendingBadges();
-    }
-  }, [badgeTab, badgesLoading]);
-
-  // 미선택 배지 확인 함수를 컴포넌트 내에 선언 (기존 useEffect 위에 추가)
-  const loadPendingBadges = async () => {
+  // 미선택 배지 확인 함수를 useCallback으로 감싸기
+  const loadPendingBadges = useCallback(async () => {
     if (!user) return;
 
     try {
       console.log("[DEBUG] 미선택 배지 확인 시작 - loadPendingBadges()");
+      console.log("[DEBUG] 현재 로그인한 사용자 ID:", user.id);
 
       // 1. 사용자의 모든 weekly_streak_1 배지 가져오기
       const { data: weeklyStreakBadges, error: weeklyError } = await supabase
@@ -381,6 +403,7 @@ const HallOfFamePage: React.FC = () => {
       }
 
       console.log("[DEBUG] 조회된 weekly_streak_1 배지:", weeklyStreakBadges);
+      console.log("[DEBUG] 조회 쿼리 조건 - user_id:", user.id);
 
       if (!weeklyStreakBadges || weeklyStreakBadges.length === 0) {
         console.log("[DEBUG] weekly_streak_1 배지가 없습니다.");
@@ -402,6 +425,7 @@ const HallOfFamePage: React.FC = () => {
       }
 
       console.log("[DEBUG] 조회된 모든 커스텀 배지:", allCustomBadges);
+      console.log("[DEBUG] 커스텀 배지 조회 쿼리 조건 - user_id:", user.id);
 
       // 3. 미선택 배지 확인 (주 단위로 처리)
       const pendingBadges = [];
@@ -439,7 +463,13 @@ const HallOfFamePage: React.FC = () => {
         const customBadgesInWeek =
           allCustomBadges?.filter((customBadge) => {
             const customDate = new Date(customBadge.earned_at);
-            return customDate >= weekStart && customDate <= weekEnd;
+            const isInRange = customDate >= weekStart && customDate <= weekEnd;
+            console.log(
+              `[DEBUG] 커스텀 배지 ${
+                customBadge.badge_id
+              } 날짜: ${customDate.toISOString()}, 범위 내 여부: ${isInRange}`
+            );
+            return isInRange;
           }) || [];
 
         console.log(
@@ -472,15 +502,18 @@ const HallOfFamePage: React.FC = () => {
     } catch (err) {
       console.error("[ERROR] 미선택 배지 확인 중 오류 발생:", err);
     }
-  };
+  }, [user, timeZone, supabase, setPendingWeeklyBadges]);
 
-  // 기존 미선택 배지 확인 useEffect를 이 코드로 대체 (기존 코드를 찾아 대체)
+  // 배지탭 변경 이벤트 처리를 위한 useEffect 추가 (기존 useEffect 위에 추가)
   useEffect(() => {
-    // 컴포넌트 마운트 시와 user 변경 시에만 실행
-    if (user && !badgesLoading) {
+    // 배지 데이터가 로드된 후 미선택 배지 확인
+    if (!badgesLoading && user) {
+      console.log(
+        "[DEBUG] 배지 로딩 완료 또는 배지 탭 변경으로 미선택 배지 확인 시작"
+      );
       loadPendingBadges();
     }
-  }, [user, badgesLoading]);
+  }, [badgeTab, badgesLoading, user, timeZone, loadPendingBadges]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -693,12 +726,20 @@ const HallOfFamePage: React.FC = () => {
                       "yyyy.MM.dd"
                     );
 
+                    console.log(
+                      "[DEBUG] 렌더링 - 미선택 배지 카드:",
+                      pendingBadge.id,
+                      formattedDate
+                    );
+
                     return (
                       <div
                         key={`pending-${pendingBadge.id}`}
                         className="flex flex-col items-center p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors cursor-pointer border-2 border-dashed border-yellow-300 relative"
                         onClick={() =>
-                          handleOpenBadgeSelectionModal(formattedDate)
+                          handleOpenBadgeSelectionModal(
+                            pendingBadge.formatted_date || formattedDate
+                          )
                         }
                       >
                         <div className="absolute top-2 right-2 w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center text-white shadow-md z-10">
