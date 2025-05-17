@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 // import { useMissions } from '../hooks/useMissions'; // 삭제: 스냅샷에서 미션 정보 가져옴
 import { useMissionLogs } from "../hooks/useMissionLogs";
 // import { useMonthlyMissionLogs } from '../hooks/useMonthlyMissionLogs'; // 삭제: 스냅샷 훅 사용
@@ -21,6 +21,7 @@ import { formatInTimeZone, toZonedTime, format } from "date-fns-tz";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
 import { supabase } from "../lib/supabaseClient";
+import { BadgeSelectionModal } from "../components/BadgeSelectionModal";
 
 // 시간대 설정 (AuthContext에서 사용하는 값으로 대체)
 // const timeZone = "Asia/Seoul";
@@ -73,7 +74,9 @@ const HallOfFamePage: React.FC = () => {
   } = useMonthlySnapshots(currentYear, currentMonth);
 
   // --- 배지 탭 관련 상태 --- //
-  const [badgeTab, setBadgeTab] = useState<"all" | "mission" | "weekly">("weekly");
+  const [badgeTab, setBadgeTab] = useState<"all" | "mission" | "weekly">(
+    "weekly"
+  );
 
   // 필터링된 배지 탭에 따라 배지 데이터 가져오기
   const {
@@ -102,11 +105,15 @@ const HallOfFamePage: React.FC = () => {
         return missionBadges;
       case "weekly":
         // weekly_streak_1 배지는 제외하고 표시
-        return weeklyBadges.filter(badge => badge.badge.id !== "weekly_streak_1");
+        return weeklyBadges.filter(
+          (badge) => badge.badge.id !== "weekly_streak_1"
+        );
       case "all":
       default:
         // 전체 배지 탭에서도 weekly_streak_1 배지 제외
-        return allBadges.filter(badge => badge.badge.id !== "weekly_streak_1");
+        return allBadges.filter(
+          (badge) => badge.badge.id !== "weekly_streak_1"
+        );
     }
   }, [badgeTab, allBadges, missionBadges, weeklyBadges]);
 
@@ -179,7 +186,9 @@ const HallOfFamePage: React.FC = () => {
   };
 
   // 보상 표시 관련 상태 추가
-  const [selectedBadgeReward, setSelectedBadgeReward] = useState<string | null>(null);
+  const [selectedBadgeReward, setSelectedBadgeReward] = useState<string | null>(
+    null
+  );
   const [showRewardModal, setShowRewardModal] = useState(false);
   const [selectedBadgeId, setSelectedBadgeId] = useState<string | null>(null);
   const [rewardUsed, setRewardUsed] = useState(false);
@@ -188,15 +197,18 @@ const HallOfFamePage: React.FC = () => {
   // 배지를 클릭했을 때 주간 보상 표시 토글 함수
   const toggleRewardDisplay = (earnedBadge: EarnedBadge) => {
     // 주간 미션 배지이고 보상 정보가 있는 경우에만 표시
-    if (earnedBadge.badge.badge_type === 'weekly' && earnedBadge.weekly_reward_goal) {
+    if (
+      earnedBadge.badge.badge_type === "weekly" &&
+      earnedBadge.weekly_reward_goal
+    ) {
       setSelectedBadgeReward(earnedBadge.weekly_reward_goal);
       setSelectedBadgeId(earnedBadge.id);
       setRewardUsed(earnedBadge.reward_used || false);
       setShowRewardModal(true);
     } else {
-      toast('이 배지에는 보상 정보가 없습니다.', {
-        icon: '⚠️',
-        style: { backgroundColor: '#ffedd5', color: '#c2410c' }
+      toast("이 배지에는 보상 정보가 없습니다.", {
+        icon: "⚠️",
+        style: { backgroundColor: "#ffedd5", color: "#c2410c" },
       });
     }
   };
@@ -204,38 +216,182 @@ const HallOfFamePage: React.FC = () => {
   // 보상 사용 여부 토글 함수
   const toggleRewardUsed = async () => {
     if (!selectedBadgeId) return;
-    
+
     try {
       setUpdatingReward(true);
-      
+
       // 현재 상태의 반대값으로 토글
       const newRewardUsed = !rewardUsed;
-      
+
       const { error } = await supabase
-        .from('earned_badges')
+        .from("earned_badges")
         .update({ reward_used: newRewardUsed })
-        .eq('id', selectedBadgeId);
-        
+        .eq("id", selectedBadgeId);
+
       if (error) throw error;
-      
+
       // 상태 업데이트
       setRewardUsed(newRewardUsed);
-      
+
       // 배지 목록 새로고침
       await Promise.all([
-        refetchAllBadges(), 
-        refetchWeeklyBadges(), 
-        refetchMissionBadges()
+        refetchAllBadges(),
+        refetchWeeklyBadges(),
+        refetchMissionBadges(),
       ]);
-      
-      toast.success(newRewardUsed ? '보상을 사용했습니다!' : '보상 미사용으로 변경했습니다.');
+
+      toast.success(
+        newRewardUsed ? "보상을 사용했습니다!" : "보상 미사용으로 변경했습니다."
+      );
     } catch (err) {
-      console.error('보상 상태 업데이트 중 오류 발생:', err);
-      toast.error('보상 상태 업데이트에 실패했습니다.');
+      console.error("보상 상태 업데이트 중 오류 발생:", err);
+      toast.error("보상 상태 업데이트에 실패했습니다.");
     } finally {
       setUpdatingReward(false);
     }
   };
+
+  // 미선택 배지 관련 상태 추가
+  const [pendingWeeklyBadges, setPendingWeeklyBadges] = useState<
+    { id: string; earned_at: string; reward_text?: string }[]
+  >([]);
+  const [showBadgeSelectionModal, setShowBadgeSelectionModal] = useState(false);
+  const [selectedWeek, setSelectedWeek] = useState<string | null>(null);
+  const { user } = useAuth();
+
+  // 배지 모달 표시/숨김 함수 추가
+  const handleOpenBadgeSelectionModal = (week: string) => {
+    setSelectedWeek(week);
+    setShowBadgeSelectionModal(true);
+  };
+
+  const handleCloseBadgeSelectionModal = () => {
+    setShowBadgeSelectionModal(false);
+    setSelectedWeek(null);
+  };
+
+  // 배지 선택 처리 함수
+  const handleBadgeSelect = async (badgeId: string) => {
+    if (!user || !selectedWeek) return;
+
+    try {
+      // 선택한 주간 미션의 보상 목표 가져오기
+      const pendingBadge = pendingWeeklyBadges.find(
+        (badge) =>
+          formatInTimeZone(
+            new Date(badge.earned_at),
+            timeZone,
+            "yyyy-MM-dd"
+          ) === selectedWeek
+      );
+
+      if (!pendingBadge) {
+        toast.error("해당 주차의 미션 정보를 찾을 수 없습니다.");
+        return;
+      }
+
+      // 선택한 커스텀 배지 저장
+      const { error } = await supabase.from("earned_badges").insert({
+        user_id: user.id,
+        badge_id: badgeId,
+        badge_type: "weekly",
+        earned_at: pendingBadge.earned_at,
+        reward_text: pendingBadge.reward_text,
+      });
+
+      if (error) throw error;
+
+      toast.success("배지를 획득했습니다!");
+
+      // 배지 목록 새로고침
+      await Promise.all([
+        refetchAllBadges(),
+        refetchWeeklyBadges(),
+        refetchMissionBadges(),
+      ]);
+
+      // 선택 완료한 배지는 목록에서 제거
+      setPendingWeeklyBadges((prev) =>
+        prev.filter(
+          (badge) =>
+            formatInTimeZone(
+              new Date(badge.earned_at),
+              timeZone,
+              "yyyy-MM-dd"
+            ) !== selectedWeek
+        )
+      );
+
+      // 모달 닫기
+      handleCloseBadgeSelectionModal();
+    } catch (err) {
+      console.error("배지 선택 중 오류 발생:", err);
+      toast.error("배지 선택에 실패했습니다.");
+    }
+  };
+
+  // 미선택 배지 확인 useEffect 추가
+  useEffect(() => {
+    const checkPendingBadges = async () => {
+      if (!user) return;
+
+      try {
+        // 1. weekly_streak_1 배지를 획득한 모든 주차 목록 가져오기
+        const { data: weeklyStreakBadges, error: weeklyError } = await supabase
+          .from("earned_badges")
+          .select("id, earned_at, reward_text")
+          .eq("user_id", user.id)
+          .eq("badge_id", "weekly_streak_1")
+          .eq("badge_type", "weekly")
+          .order("earned_at", { ascending: false });
+
+        if (weeklyError) throw weeklyError;
+
+        if (!weeklyStreakBadges || weeklyStreakBadges.length === 0) return;
+
+        // 2. 각 주차별로 커스텀 배지(custom_ 접두사) 획득 여부 확인
+        const pendingBadges = [];
+
+        for (const weeklyBadge of weeklyStreakBadges) {
+          // 해당 주의 시작일과 종료일 계산 (주간 배지 획득일 기준)
+          const earnedDate = new Date(weeklyBadge.earned_at);
+
+          // 같은 날짜에 획득한 custom_ 접두사를 가진 배지 확인
+          const { data: customBadges, error: customError } = await supabase
+            .from("earned_badges")
+            .select("id")
+            .eq("user_id", user.id)
+            .like("badge_id", "custom_%")
+            .eq("badge_type", "weekly")
+            .gte(
+              "earned_at",
+              new Date(earnedDate.setHours(0, 0, 0, 0)).toISOString()
+            )
+            .lte(
+              "earned_at",
+              new Date(earnedDate.setHours(23, 59, 59, 999)).toISOString()
+            );
+
+          if (customError) throw customError;
+
+          // 커스텀 배지가 없으면 pendingBadges에 추가
+          if (!customBadges || customBadges.length === 0) {
+            pendingBadges.push({
+              id: weeklyBadge.id,
+              earned_at: weeklyBadge.earned_at,
+              reward_text: weeklyBadge.reward_text,
+            });
+          }
+        }
+
+        setPendingWeeklyBadges(pendingBadges);
+      } catch (err) {
+        console.error("미선택 배지 확인 중 오류 발생:", err);
+      }
+    };
+
+    checkPendingBadges();
+  }, [user, refetchWeeklyBadges]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -427,7 +583,8 @@ const HallOfFamePage: React.FC = () => {
               <div className="flex justify-center py-8">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
               </div>
-            ) : displayedBadges.length === 0 ? (
+            ) : displayedBadges.length === 0 &&
+              (badgeTab !== "weekly" || pendingWeeklyBadges.length === 0) ? (
               <p className="text-center text-gray-500 py-8">
                 {badgeTab === "all" &&
                   "아직 획득한 배지가 없습니다. 미션을 완료하여 배지를 획득해보세요!"}
@@ -438,12 +595,70 @@ const HallOfFamePage: React.FC = () => {
               </p>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {/* 주간 탭에서 미선택 배지 카드 표시 */}
+                {badgeTab === "weekly" &&
+                  pendingWeeklyBadges.map((pendingBadge) => {
+                    const formattedDate = formatInTimeZone(
+                      new Date(pendingBadge.earned_at),
+                      timeZone,
+                      "yyyy.MM.dd"
+                    );
+
+                    return (
+                      <div
+                        key={`pending-${pendingBadge.id}`}
+                        className="flex flex-col items-center p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors cursor-pointer border-2 border-dashed border-yellow-300 relative"
+                        onClick={() =>
+                          handleOpenBadgeSelectionModal(formattedDate)
+                        }
+                      >
+                        <div className="absolute top-2 right-2 w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center text-white shadow-md z-10">
+                          <LuGift size={14} />
+                        </div>
+
+                        <div
+                          className="w-20 h-20 mb-2 flex items-center justify-center rounded-full 
+                        p-1 bg-white shadow-md overflow-hidden border-4 border-yellow-200"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-12 w-12 text-yellow-400"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                            />
+                          </svg>
+                        </div>
+                        <h3 className="text-sm font-semibold text-gray-800 text-center">
+                          아직 배지를 선택하지 않았어요
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-1 text-center">
+                          {formattedDate} 달성
+                        </p>
+                        <p className="text-xs text-yellow-600 mt-1 text-center">
+                          클릭하여 배지 선택하기
+                        </p>
+                        <span className="mt-2 px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-800 bg-opacity-20 text-center font-medium">
+                          주간 도전
+                        </span>
+                      </div>
+                    );
+                  })}
+
                 {displayedBadges.map((earnedBadge) => {
                   const badge = earnedBadge.badge;
                   const earnedDate = new Date(earnedBadge.earned_at);
-                  
+
                   // 보상 정보 확인
-                  const hasReward = badge.badge_type === 'weekly' && earnedBadge.weekly_reward_goal;
+                  const hasReward =
+                    badge.badge_type === "weekly" &&
+                    earnedBadge.weekly_reward_goal;
 
                   return (
                     <div
@@ -457,10 +672,12 @@ const HallOfFamePage: React.FC = () => {
                           <LuGift size={14} />
                         </div>
                       )}
-                      
-                      <div className="w-20 h-20 mb-2 flex items-center justify-center 
+
+                      <div
+                        className="w-20 h-20 mb-2 flex items-center justify-center 
                         border-4 border-gradient-to-r from-pink-300 to-indigo-300 rounded-full 
-                        p-1 bg-white shadow-md overflow-hidden">
+                        p-1 bg-white shadow-md overflow-hidden"
+                      >
                         <img
                           src={getBadgeImageUrl(badge.image_path)}
                           alt={badge.name}
@@ -485,7 +702,11 @@ const HallOfFamePage: React.FC = () => {
                       )}
                       <span
                         className={`mt-2 px-2 py-0.5 text-xs rounded-full bg-opacity-20 text-center font-medium 
-                        ${earnedBadge.badge?.badge_type === 'weekly' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}
+                        ${
+                          earnedBadge.badge?.badge_type === "weekly"
+                            ? "bg-purple-100 text-purple-800"
+                            : "bg-blue-100 text-blue-800"
+                        }`}
                       >
                         {earnedBadge.badge?.badge_type === "weekly"
                           ? "주간 도전"
@@ -499,11 +720,11 @@ const HallOfFamePage: React.FC = () => {
           </div>
         </div>
       )}
-      
+
       {/* 보상 모달 */}
       {showRewardModal && selectedBadgeReward && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div 
+          <div
             className="absolute inset-0 bg-black bg-opacity-50"
             onClick={() => setShowRewardModal(false)}
           ></div>
@@ -514,52 +735,83 @@ const HallOfFamePage: React.FC = () => {
             >
               <LuX size={20} />
             </button>
-            
+
             <div className="text-center">
               <div className="flex items-center justify-center mb-4">
                 <LuGift className="text-yellow-500 mr-2" size={24} />
-                <h2 className="text-xl font-bold text-yellow-600">주간 미션 보상</h2>
+                <h2 className="text-xl font-bold text-yellow-600">
+                  주간 미션 보상
+                </h2>
               </div>
-              
+
               <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 mb-4">
                 <p className="text-yellow-800">{selectedBadgeReward}</p>
               </div>
-              
+
               <div className="flex items-center justify-center mb-4">
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  rewardUsed ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-700'
-                }`}>
-                  {rewardUsed ? '보상 사용 완료' : '보상 미사용'}
+                <span
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    rewardUsed
+                      ? "bg-gray-100 text-gray-600"
+                      : "bg-green-100 text-green-700"
+                  }`}
+                >
+                  {rewardUsed ? "보상 사용 완료" : "보상 미사용"}
                 </span>
               </div>
-              
+
               <button
                 onClick={toggleRewardUsed}
                 disabled={updatingReward}
                 className={`w-full px-4 py-2 rounded-lg transition-colors flex items-center justify-center ${
-                  rewardUsed 
-                    ? 'bg-indigo-500 hover:bg-indigo-600 text-white' 
-                    : 'bg-pink-500 hover:bg-pink-600 text-white'
+                  rewardUsed
+                    ? "bg-indigo-500 hover:bg-indigo-600 text-white"
+                    : "bg-pink-500 hover:bg-pink-600 text-white"
                 }`}
               >
                 {updatingReward ? (
                   <span className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2"></span>
                 ) : (
-                  <span className={`mr-2 ${rewardUsed ? 'text-white' : 'text-white'}`}>
-                    {rewardUsed ? '다시 받을래요' : '사용했어요'}
+                  <span
+                    className={`mr-2 ${
+                      rewardUsed ? "text-white" : "text-white"
+                    }`}
+                  >
+                    {rewardUsed ? "다시 받을래요" : "사용했어요"}
                   </span>
                 )}
               </button>
-              
+
               <p className="mt-4 text-sm text-gray-600">
                 주간 미션을 모두 완료했을 때 받은 보상입니다.
               </p>
               <p className="mt-4 text-sm text-gray-600">
-              {rewardUsed ? ' 보상을 이미 사용했습니다.' : ' 보상을 아직 사용하지 않았습니다.'}
+                {rewardUsed
+                  ? " 보상을 이미 사용했습니다."
+                  : " 보상을 아직 사용하지 않았습니다."}
               </p>
             </div>
           </div>
         </div>
+      )}
+
+      {/* 배지 선택 모달 */}
+      {showBadgeSelectionModal && selectedWeek && (
+        <BadgeSelectionModal
+          showModal={showBadgeSelectionModal}
+          onClose={handleCloseBadgeSelectionModal}
+          onBadgeSelect={handleBadgeSelect}
+          weeklyRewardGoal={
+            pendingWeeklyBadges.find(
+              (badge) =>
+                formatInTimeZone(
+                  new Date(badge.earned_at),
+                  timeZone,
+                  "yyyy-MM-dd"
+                ) === selectedWeek
+            )?.reward_text || ""
+          }
+        />
       )}
     </div>
   );
