@@ -192,6 +192,59 @@ export const useNotificationState = () => {
       setNotificationQueue((prevQueue) => prevQueue.slice(1));
 
       try {
+        // 사용자 정보 가져오기
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (!user) {
+          console.error("[StateHook] User not authenticated");
+          isProcessingQueue.current = false;
+          setIsLoadingBadge(false);
+          return;
+        }
+
+        // 배지가 이미 존재하는지 확인
+        const { data: existingBadge } = await supabase
+          .from("earned_badges")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("badge_id", nextBadgeId)
+          .eq("earned_at", new Date().toISOString().split("T")[0]); // 오늘 날짜만 비교
+
+        // daily_hero 배지이고 아직 오늘 획득하지 않았으면 데이터베이스에 저장
+        if (
+          (!existingBadge || existingBadge.length === 0) &&
+          nextBadgeId !== "weekly_streak_1"
+        ) {
+          // weekly_streak_1은 별도 처리
+          console.log(`[StateHook] Saving badge info for ${nextBadgeId} to DB`);
+
+          // 배지 타입 결정 (weekly_streak로 시작하면 weekly, 그 외는 mission)
+          const badgeType = nextBadgeId.startsWith("weekly_streak")
+            ? "weekly"
+            : "mission";
+
+          // 배지 정보 저장
+          const { error: insertError } = await supabase
+            .from("earned_badges")
+            .insert({
+              user_id: user.id,
+              badge_id: nextBadgeId,
+              badge_type: badgeType, // 명시적으로 badge_type 설정
+              earned_at: new Date().toISOString(),
+            });
+
+          if (insertError) {
+            console.error("[StateHook] Error saving badge info:", insertError);
+          } else {
+            console.log(
+              `[StateHook] Badge ${nextBadgeId} saved successfully with type: ${badgeType}`
+            );
+          }
+        }
+
         const { data: badgeData, error: fetchError } = await supabase
           .from("badges")
           .select("*")
