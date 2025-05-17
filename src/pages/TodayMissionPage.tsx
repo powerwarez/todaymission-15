@@ -62,7 +62,7 @@ const TodayMissionPage: React.FC = () => {
   } = useWeeklyCompletionStatus(); // 주간 현황 데이터 로드
 
   const [showConfetti, setShowConfetti] = useState(false);
-  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+  // const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [snapshotChecked, setSnapshotChecked] = useState(false); // 스냅샷 확인/생성 완료 여부
   const isSnapshotCheckRunning = useRef(false); // 스냅샷 체크 중복 실행 방지 플래그
 
