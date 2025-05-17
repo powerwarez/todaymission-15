@@ -285,6 +285,11 @@ const HallOfFamePage: React.FC = () => {
     console.log(`[DEBUG] 배지 선택 모달 열기 - 선택한 주: ${week}`);
     console.log(`[DEBUG] 미선택 배지 확인:`, pendingWeeklyBadges);
 
+    // 혹시 보상 모달이 열려있다면 닫기
+    setShowRewardModal(false);
+    setSelectedBadgeReward(null);
+    setSelectedBadgeId(null);
+
     // 해당 주의 미선택 배지가 있는지 확인
     const pendingBadge = pendingWeeklyBadges.find(
       (badge) =>
@@ -294,6 +299,12 @@ const HallOfFamePage: React.FC = () => {
     );
 
     console.log(`[DEBUG] 해당 주의 미선택 배지:`, pendingBadge);
+
+    if (!pendingBadge) {
+      console.log(`[ERROR] 해당 주(${week})의 미선택 배지를 찾을 수 없습니다.`);
+      toast.error("해당 주의 미선택 배지를 찾을 수 없습니다.");
+      return;
+    }
 
     setSelectedWeek(week);
     setShowBadgeSelectionModal(true);
@@ -734,11 +745,17 @@ const HallOfFamePage: React.FC = () => {
                       <div
                         key={`pending-${pendingBadge.id}`}
                         className="flex flex-col items-center p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors cursor-pointer border-2 border-dashed border-yellow-300 relative"
-                        onClick={() =>
+                        onClick={(e) => {
+                          e.stopPropagation(); // 이벤트 버블링 방지
+                          e.preventDefault(); // 기본 이벤트 방지
+                          console.log(
+                            "[DEBUG] 미선택 배지 카드 클릭됨 - 배지 모달 표시"
+                          );
+                          setShowRewardModal(false); // 보상 모달이 열려있으면 닫기
                           handleOpenBadgeSelectionModal(
                             pendingBadge.formatted_date || formattedDate
-                          )
-                        }
+                          );
+                        }}
                       >
                         <div className="absolute top-2 right-2 w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center text-white shadow-md z-10">
                           <LuGift size={14} />
@@ -924,7 +941,7 @@ const HallOfFamePage: React.FC = () => {
       )}
 
       {/* 배지 선택 모달 */}
-      {showBadgeSelectionModal && selectedWeek && (
+      {showBadgeSelectionModal && selectedWeek && !showRewardModal && (
         <BadgeSelectionModal
           showModal={showBadgeSelectionModal}
           onClose={handleCloseBadgeSelectionModal}
@@ -932,6 +949,7 @@ const HallOfFamePage: React.FC = () => {
           weeklyRewardGoal={
             pendingWeeklyBadges.find(
               (badge) =>
+                badge.formatted_date === selectedWeek ||
                 formatInTimeZone(
                   new Date(badge.earned_at),
                   timeZone,

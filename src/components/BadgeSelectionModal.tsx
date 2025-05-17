@@ -83,60 +83,15 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
     checkAlreadyEarnedBadge();
   }, [user, showModal]);
 
-  // 이미 배지를 획득한 경우 모달창을 띄우지 않고 패스
-  useEffect(() => {
-    if (alreadyEarned && showModal) {
-      onClose();
-    }
-  }, [alreadyEarned, showModal, onClose]);
-
   // 주간 미션에 설정된 배지 목록 가져오기
   useEffect(() => {
     const fetchBadges = async () => {
-      if (!user || alreadyEarned) return;
+      if (!user || !showModal) return;
 
       try {
         setLoading(true);
         setError(null);
         console.log("주간 배지 목록 가져오기");
-
-        // 현재 날짜 기준으로 이번 주의 시작(월요일)과 끝(일요일) 구하기
-        const now = new Date();
-        const day = now.getDay(); // 0: 일요일, 1: 월요일, ..., 6: 토요일
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1); // 이번 주 월요일 날짜 계산
-
-        const weekStart = new Date(now.setDate(diff));
-        weekStart.setHours(0, 0, 0, 0);
-
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekStart.getDate() + 6);
-        weekEnd.setHours(23, 59, 59, 999);
-
-        // 이번 주 날짜 문자열
-        const weekStartStr = weekStart.toISOString();
-        const weekEndStr = weekEnd.toISOString();
-
-        // 이미 이번 주에 weekly_streak_1 배지를 획득했는지 확인
-        const { data: existingWeeklyBadge, error: weeklyCheckError } =
-          await supabase
-            .from("earned_badges")
-            .select("*")
-            .eq("user_id", user.id)
-            .eq("badge_id", "weekly_streak_1")
-            .gte("earned_at", weekStartStr)
-            .lte("earned_at", weekEndStr);
-
-        if (weeklyCheckError) {
-          console.error("주간 미션 배지 확인 오류:", weeklyCheckError);
-          throw weeklyCheckError;
-        }
-
-        // 이미 이번 주에 배지를 획득했으면 모달 닫기
-        if (existingWeeklyBadge && existingWeeklyBadge.length > 0) {
-          console.log("이번 주 weekly_streak_1 배지가 이미 획득되었습니다.");
-          onClose();
-          return;
-        }
 
         // weekly_streak_1 배지 정보 가져오기 (전역으로 사용)
         const { data: weeklyStreakBadge, error: weeklyStreakError } =
