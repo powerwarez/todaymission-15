@@ -266,6 +266,29 @@ export const useMissionLogs = (formattedDate: string) => {
         console.error("Error incrementing snapshot count:", incrementError);
       }
 
+      // 획득한 배지를 DB에 직접 저장 (badge_type을 명시적으로 "mission"으로 설정)
+      if (newlyEarnedBadgeIds.length > 0) {
+        const badgesToInsert = newlyEarnedBadgeIds.map((badgeId) => ({
+          user_id: user.id,
+          badge_id: badgeId,
+          badge_type: "mission", // 명시적으로 badge_type 설정
+          earned_at: new Date().toISOString(),
+        }));
+
+        console.log("배지 데이터 저장:", badgesToInsert);
+
+        // earned_badges 테이블에 직접 저장
+        const { error: insertBadgeError } = await supabase
+          .from("earned_badges")
+          .insert(badgesToInsert);
+
+        if (insertBadgeError) {
+          console.error("배지 정보 저장 중 오류 발생:", insertBadgeError);
+        } else {
+          console.log("배지 정보 저장 성공");
+        }
+      }
+
       // --- DB 작업 성공 후 상태 업데이트 및 알림 ---
 
       // 6. 알림 표시 (예측된 모든 배지 동시 추가)
@@ -322,13 +345,13 @@ export const useMissionLogs = (formattedDate: string) => {
         .select("mission_id")
         .eq("id", logId)
         .single();
-        
+
       if (logError) throw logError;
       if (!logData) {
         console.error("로그 정보를 찾을 수 없습니다:", logId);
         return;
       }
-      
+
       // 2. DB에서 로그 삭제 (id로 삭제)
       const { error: deleteError } = await supabase
         .from("mission_logs")
@@ -338,9 +361,7 @@ export const useMissionLogs = (formattedDate: string) => {
       if (deleteError) throw deleteError;
 
       // --- 삭제 성공 시 클라이언트 상태 업데이트 (함수형 업데이트) ---
-      setLogs((prevLogs) =>
-        prevLogs.filter((log) => log.id !== logId)
-      );
+      setLogs((prevLogs) => prevLogs.filter((log) => log.id !== logId));
 
       // 카운트 감소 (null 체크 및 0 미만 방지)
       setTotalCompletedCount((prevCount) => Math.max(0, (prevCount ?? 0) - 1));

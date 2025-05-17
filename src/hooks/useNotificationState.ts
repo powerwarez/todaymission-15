@@ -52,26 +52,35 @@ export const useNotificationState = () => {
   // 사용자 정보와 주간 목표 가져오기
   const fetchWeeklyRewardGoal = useCallback(async () => {
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
       if (userError) throw userError;
       if (!user) {
         console.error("[StateHook] User not authenticated");
         return;
       }
-      
+
       const { data, error } = await supabase
-        .from('user_info')
-        .select('weekly_reward_goal')
-        .eq('user_id', user.id)
+        .from("user_info")
+        .select("weekly_reward_goal")
+        .eq("user_id", user.id)
         .single();
-        
+
       if (error) {
-        console.error('[StateHook] 주간 보상 목표를 가져오는 중 오류가 발생했습니다:', error);
+        console.error(
+          "[StateHook] 주간 보상 목표를 가져오는 중 오류가 발생했습니다:",
+          error
+        );
       } else if (data && data.weekly_reward_goal) {
         setWeeklyRewardGoal(data.weekly_reward_goal);
       }
     } catch (err) {
-      console.error('[StateHook] 주간 보상 목표 조회 중 오류가 발생했습니다:', err);
+      console.error(
+        "[StateHook] 주간 보상 목표 조회 중 오류가 발생했습니다:",
+        err
+      );
     }
   }, []);
 
@@ -81,128 +90,146 @@ export const useNotificationState = () => {
   }, [fetchWeeklyRewardGoal]);
 
   // 큐에서 다음 항목 처리 함수
-  const processNextInQueue = useCallback(async (queue: string[]) => {
-    // 함수 호출 시점의 큐 상태를 사용
-    if (isProcessingQueue.current || queue.length === 0) {
-      console.log(
-        "[StateHook processNextInQueue] Skipping: Already processing or queue empty."
-      );
-      return;
-    }
-
-    isProcessingQueue.current = true;
-    setIsLoadingBadge(true);
-
-    const nextBadgeId = queue[0];
-    console.log(`[StateHook] Processing queue, next ID: ${nextBadgeId}`);
-
-    // 주간 스트릭 1 달성 시 배지 선택 모달 표시
-    if (nextBadgeId === "weekly_streak_1") {
-      try {
-        console.log("[StateHook] Checking if weekly_streak_1 already earned this week");
-        
-        // 사용자 정보 가져오기
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError) throw userError;
-        if (!user) {
-          console.error("[StateHook] User not authenticated");
-          isProcessingQueue.current = false;
-          setIsLoadingBadge(false);
-          // 큐에서 제거
-          setNotificationQueue((prevQueue) => prevQueue.slice(1));
-          return;
-        }
-        
-        // 주간 목표 정보 갱신
-        await fetchWeeklyRewardGoal();
-        
-        // 이번 주의 시작(월요일)과 끝(일요일) 구하기
-        const { monday, sunday } = getWeekDates();
-        const mondayISOString = monday.toISOString();
-        const sundayISOString = sunday.toISOString();
-        
-        console.log(`[StateHook] Checking weekly streak between ${mondayISOString} and ${sundayISOString}`);
-        
-        // 이번 주에 이미 weekly_streak_1 배지를 획득했는지 확인
-        const { data: existingWeeklyBadge, error: checkError } = await supabase
-          .from("earned_badges")
-          .select("*")
-          .eq("user_id", user.id)
-          .eq("badge_id", "weekly_streak_1")
-          .gte("earned_at", mondayISOString)
-          .lte("earned_at", sundayISOString);
-
-        if (checkError) throw checkError;
-
-        // 이미 이번 주에 배지를 획득했으면 모달을 띄우지 않고 패스
-        if (existingWeeklyBadge && existingWeeklyBadge.length > 0) {
-          console.log("[StateHook] Already earned weekly_streak_1 badge this week, skipping modal");
-          // 배지 모달을 표시하지 않음
-          // 큐에서 제거하고 처리 완료
-          setNotificationQueue((prevQueue) => prevQueue.slice(1));
-          isProcessingQueue.current = false;
-          setIsLoadingBadge(false);
-          return;
-        }
-        
-        // 아직 배지를 획득하지 않았으면 배지 선택 모달 표시
-        console.log("[StateHook] Weekly streak 1 achieved, showing badge selection modal");
-        setWeeklyStreakAchieved(true);
-        setShowBadgeSelectionModal(true);
-      } catch (error) {
-        console.error("[StateHook] Error checking weekly badge status:", error);
+  const processNextInQueue = useCallback(
+    async (queue: string[]) => {
+      // 함수 호출 시점의 큐 상태를 사용
+      if (isProcessingQueue.current || queue.length === 0) {
+        console.log(
+          "[StateHook processNextInQueue] Skipping: Already processing or queue empty."
+        );
+        return;
       }
 
-      // 큐에서 처리 시작한 ID 제거
+      isProcessingQueue.current = true;
+      setIsLoadingBadge(true);
+
+      const nextBadgeId = queue[0];
+      console.log(`[StateHook] Processing queue, next ID: ${nextBadgeId}`);
+
+      // 주간 스트릭 1 달성 시 배지 선택 모달 표시
+      if (nextBadgeId === "weekly_streak_1") {
+        try {
+          console.log(
+            "[StateHook] Checking if weekly_streak_1 already earned this week"
+          );
+
+          // 사용자 정보 가져오기
+          const {
+            data: { user },
+            error: userError,
+          } = await supabase.auth.getUser();
+          if (userError) throw userError;
+          if (!user) {
+            console.error("[StateHook] User not authenticated");
+            isProcessingQueue.current = false;
+            setIsLoadingBadge(false);
+            // 큐에서 제거
+            setNotificationQueue((prevQueue) => prevQueue.slice(1));
+            return;
+          }
+
+          // 주간 목표 정보 갱신
+          await fetchWeeklyRewardGoal();
+
+          // 이번 주의 시작(월요일)과 끝(일요일) 구하기
+          const { monday, sunday } = getWeekDates();
+          const mondayISOString = monday.toISOString();
+          const sundayISOString = sunday.toISOString();
+
+          console.log(
+            `[StateHook] Checking weekly streak between ${mondayISOString} and ${sundayISOString}`
+          );
+
+          // 이번 주에 이미 weekly_streak_1 배지를 획득했는지 확인
+          const { data: existingWeeklyBadge, error: checkError } =
+            await supabase
+              .from("earned_badges")
+              .select("*")
+              .eq("user_id", user.id)
+              .eq("badge_id", "weekly_streak_1")
+              .gte("earned_at", mondayISOString)
+              .lte("earned_at", sundayISOString);
+
+          if (checkError) throw checkError;
+
+          // 이미 이번 주에 배지를 획득했으면 모달을 띄우지 않고 패스
+          if (existingWeeklyBadge && existingWeeklyBadge.length > 0) {
+            console.log(
+              "[StateHook] Already earned weekly_streak_1 badge this week, skipping modal"
+            );
+            // 배지 모달을 표시하지 않음
+            // 큐에서 제거하고 처리 완료
+            setNotificationQueue((prevQueue) => prevQueue.slice(1));
+            isProcessingQueue.current = false;
+            setIsLoadingBadge(false);
+            return;
+          }
+
+          // 아직 배지를 획득하지 않았으면 배지 선택 모달 표시
+          console.log(
+            "[StateHook] Weekly streak 1 achieved, showing badge selection modal"
+          );
+          setWeeklyStreakAchieved(true);
+          setShowBadgeSelectionModal(true);
+        } catch (error) {
+          console.error(
+            "[StateHook] Error checking weekly badge status:",
+            error
+          );
+        }
+
+        // 큐에서 처리 시작한 ID 제거
+        setNotificationQueue((prevQueue) => prevQueue.slice(1));
+
+        // 처리 완료 플래그 설정
+        isProcessingQueue.current = false;
+        setIsLoadingBadge(false);
+        return;
+      }
+
+      // 상태 업데이트: 큐에서 처리 시작한 ID 제거 (함수형 업데이트)
+      // 중요: 여기서 큐를 업데이트하면 useEffect가 다시 실행될 수 있음
       setNotificationQueue((prevQueue) => prevQueue.slice(1));
 
-      // 처리 완료 플래그 설정
-      isProcessingQueue.current = false;
-      setIsLoadingBadge(false);
-      return;
-    }
+      try {
+        const { data: badgeData, error: fetchError } = await supabase
+          .from("badges")
+          .select("*")
+          .eq("id", nextBadgeId)
+          .single();
 
-    // 상태 업데이트: 큐에서 처리 시작한 ID 제거 (함수형 업데이트)
-    // 중요: 여기서 큐를 업데이트하면 useEffect가 다시 실행될 수 있음
-    setNotificationQueue((prevQueue) => prevQueue.slice(1));
+        if (fetchError) throw fetchError;
 
-    try {
-      const { data: badgeData, error: fetchError } = await supabase
-        .from("badges")
-        .select("*")
-        .eq("id", nextBadgeId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      if (badgeData) {
+        if (badgeData) {
+          console.log(
+            "[StateHook] Fetched badge data, adding to displayedBadges:",
+            badgeData.id
+          );
+          setDisplayedBadges((prevBadges) => {
+            if (!prevBadges.some((b) => b.id === badgeData.id)) {
+              return [...prevBadges, badgeData as Badge];
+            }
+            return prevBadges;
+          });
+        } else {
+          console.warn("[StateHook] Badge data not found for id:", nextBadgeId);
+        }
+      } catch (error) {
+        console.error("[StateHook] Error fetching badge data:", error);
+      } finally {
+        setIsLoadingBadge(false);
+        // 처리가 끝났으므로 플래그 리셋
+        // 중요: 이 플래그가 false가 된 후 useEffect가 다시 트리거되어야 함
+        isProcessingQueue.current = false;
         console.log(
-          "[StateHook] Fetched badge data, adding to displayedBadges:",
-          badgeData.id
+          "[StateHook] Finished processing ID:",
+          nextBadgeId,
+          "Reset processing flag."
         );
-        setDisplayedBadges((prevBadges) => {
-          if (!prevBadges.some((b) => b.id === badgeData.id)) {
-            return [...prevBadges, badgeData as Badge];
-          }
-          return prevBadges;
-        });
-      } else {
-        console.warn("[StateHook] Badge data not found for id:", nextBadgeId);
       }
-    } catch (error) {
-      console.error("[StateHook] Error fetching badge data:", error);
-    } finally {
-      setIsLoadingBadge(false);
-      // 처리가 끝났으므로 플래그 리셋
-      // 중요: 이 플래그가 false가 된 후 useEffect가 다시 트리거되어야 함
-      isProcessingQueue.current = false;
-      console.log(
-        "[StateHook] Finished processing ID:",
-        nextBadgeId,
-        "Reset processing flag."
-      );
-    }
-  }, [fetchWeeklyRewardGoal]);
+    },
+    [fetchWeeklyRewardGoal]
+  );
 
   // 큐 상태 변경 감지 및 처리 시작
   useEffect(() => {
@@ -249,50 +276,54 @@ export const useNotificationState = () => {
   }, []);
 
   // 주간 스트릭 1 달성 시 사용자가 선택한 배지 처리
-  const handleBadgeSelect = useCallback(async (badgeId: string) => {
-    console.log(`[StateHook] Badge selected: ${badgeId}`);
+  const handleBadgeSelect = useCallback(
+    async (badgeId: string) => {
+      console.log(`[StateHook] Badge selected: ${badgeId}`);
 
-    try {
-      // 사용자 정보 가져오기
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-      if (userError) throw userError;
-      if (!user) {
-        console.error("[StateHook] User not authenticated");
-        return;
+      try {
+        // 사용자 정보 가져오기
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (!user) {
+          console.error("[StateHook] User not authenticated");
+          return;
+        }
+
+        // 주간 스트릭 달성에 대한 배지 획득 기록 저장
+        const { error: insertError } = await supabase
+          .from("earned_badges")
+          .insert({
+            user_id: user.id,
+            badge_id: badgeId,
+            badge_type: "weekly", // 명시적으로 badge_type 설정
+            earned_at: new Date().toISOString(),
+            reward_text: weeklyRewardGoal, // 주간 보상 목표 저장
+          });
+
+        if (insertError) throw insertError;
+
+        // 배지 데이터 가져와서 알림 표시
+        const { data: badgeData, error: fetchError } = await supabase
+          .from("badges")
+          .select("*")
+          .eq("id", badgeId)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        setDisplayedBadges((prevBadges) => [...prevBadges, badgeData as Badge]);
+      } catch (error) {
+        console.error("[StateHook] Error handling badge selection:", error);
+      } finally {
+        setShowBadgeSelectionModal(false);
+        setWeeklyStreakAchieved(false);
       }
-
-      // 주간 스트릭 달성에 대한 배지 획득 기록 저장
-      const { error: insertError } = await supabase
-        .from("earned_badges")
-        .insert({
-          user_id: user.id,
-          badge_id: badgeId,
-          earned_at: new Date().toISOString(),
-          reward_text: weeklyRewardGoal, // 주간 보상 목표 저장
-        });
-
-      if (insertError) throw insertError;
-
-      // 배지 데이터 가져와서 알림 표시
-      const { data: badgeData, error: fetchError } = await supabase
-        .from("badges")
-        .select("*")
-        .eq("id", badgeId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      setDisplayedBadges((prevBadges) => [...prevBadges, badgeData as Badge]);
-    } catch (error) {
-      console.error("[StateHook] Error handling badge selection:", error);
-    } finally {
-      setShowBadgeSelectionModal(false);
-      setWeeklyStreakAchieved(false);
-    }
-  }, [weeklyRewardGoal]);
+    },
+    [weeklyRewardGoal]
+  );
 
   return {
     displayedBadges,
