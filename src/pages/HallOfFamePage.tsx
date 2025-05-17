@@ -388,13 +388,12 @@ const HallOfFamePage: React.FC = () => {
       console.log("[DEBUG] 미선택 배지 확인 시작 - loadPendingBadges()");
       console.log("[DEBUG] 현재 로그인한 사용자 ID:", user.id);
 
-      // 1. 사용자의 모든 weekly_streak_1 배지 가져오기
+      // 1. 사용자의 모든 weekly_streak_1 배지 가져오기 (badge_type 상관없이)
       const { data: weeklyStreakBadges, error: weeklyError } = await supabase
         .from("earned_badges")
         .select("id, badge_id, earned_at, reward_text")
         .eq("user_id", user.id)
         .eq("badge_id", "weekly_streak_1")
-        .eq("badge_type", "weekly")
         .order("earned_at", { ascending: false });
 
       if (weeklyError) {
@@ -411,13 +410,12 @@ const HallOfFamePage: React.FC = () => {
         return;
       }
 
-      // 2. 사용자의 모든 커스텀 배지 가져오기 (한 번에 가져와서 메모리에서 처리)
+      // 2. 사용자의 모든 커스텀 배지 가져오기 (badge_type 상관없이)
       const { data: allCustomBadges, error: customError } = await supabase
         .from("earned_badges")
         .select("id, badge_id, earned_at")
         .eq("user_id", user.id)
-        .like("badge_id", "custom_%")
-        .eq("badge_type", "weekly");
+        .like("badge_id", "custom_%");
 
       if (customError) {
         console.error("[ERROR] 커스텀 배지 조회 오류:", customError);
