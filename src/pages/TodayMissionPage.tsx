@@ -242,11 +242,11 @@ const TodayMissionPage: React.FC = () => {
         await addLog(mission.id);
         console.log("로그 추가 완료");
 
-        // 효과음 재생
-        if (audio) {
-          audio.currentTime = 0;
-          audio.play().catch((e) => console.error("Audio play error:", e));
-        }
+        // // 효과음 재생
+        // if (audio) {
+        //   audio.currentTime = 0;
+        //   audio.play().catch((e) => console.error("Audio play error:", e));
+        // }
 
         // 폭죽 효과 표시
         setShowConfetti(true);
