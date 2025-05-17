@@ -559,7 +559,7 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
         onClick={handleClose}
       ></div>
       <div
-        className={`relative bg-white rounded-2xl w-full max-w-lg mx-auto p-6 shadow-xl scale-in-center overflow-y-auto max-h-[90vh] ${
+        className={`relative bg-white rounded-2xl w-full max-w-2xl mx-auto p-6 shadow-xl scale-in-center overflow-y-auto max-h-[90vh] ${
           showModal ? "scale-in-center" : "scale-out-center"
         }`}
       >
@@ -617,19 +617,19 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
               <p>설정된 배지가 없습니다. 관리자에게 문의하세요.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-3 md:grid-cols-5 gap-3 mb-4">
               {badges.map((badge, index) => (
                 <button
                   key={badge.id}
                   onClick={() => handleBadgeSelect(badge.id)}
-                  className={`badge-item p-4 rounded-lg flex flex-col items-center transition-all ${
+                  className={`badge-item p-3 rounded-lg flex flex-col items-center transition-all ${
                     selectedBadge === badge.id
                       ? "bg-pink-100 ring-2 ring-pink-500 transform scale-105"
                       : "bg-gray-100 hover:bg-pink-50"
                   }`}
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                  <div className="relative w-24 h-24 mb-2 flex items-center justify-center">
+                  <div className="relative w-16 h-16 md:w-20 md:h-20 mb-2 flex items-center justify-center">
                     <div className="absolute inset-0 rounded-full bg-gradient-to-r from-pink-400 to-purple-500 badge-glow"></div>
                     <div className="absolute inset-1 rounded-full bg-white flex items-center justify-center">
                       <img
@@ -644,7 +644,7 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
                       />
                     </div>
                   </div>
-                  <span className="text-sm font-medium text-center">
+                  <span className="text-xs md:text-sm font-medium text-center">
                     {badge.name}
                   </span>
                 </button>
