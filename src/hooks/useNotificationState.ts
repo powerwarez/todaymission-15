@@ -215,22 +215,74 @@ export const useNotificationState = () => {
             ? "weekly"
             : "mission";
 
-          // 배지 정보 저장
-          const { error: insertError } = await supabase
-            .from("earned_badges")
-            .insert({
-              user_id: user.id,
-              badge_id: nextBadgeId,
-              badge_type: badgeType, // 명시적으로 badge_type 설정
-              earned_at: new Date().toISOString(),
-            });
-
-          if (insertError) {
-            console.error("[StateHook] Error saving badge info:", insertError);
-          } else {
-            console.log(
-              `[StateHook] Badge ${nextBadgeId} saved successfully with type: ${badgeType}`
+          try {
+            // 1. RPC를 사용하여 직접 SQL 실행으로 배지 저장 (badge_type 반드시 포함)
+            const { data: insertResult, error: rpcError } = await supabase.rpc(
+              "insert_badge_with_type",
+              {
+                p_user_id: user.id,
+                p_badge_id: nextBadgeId,
+                p_badge_type: badgeType,
+              }
             );
+
+            // RPC 함수가 없으면 일반 insert 시도
+            if (rpcError) {
+              console.log(
+                "[StateHook] RPC not available, trying normal insert"
+              );
+
+              // 2. supabase client를 사용하여 저장
+              const { data: insertData, error: insertError } = await supabase
+                .from("earned_badges")
+                .insert({
+                  user_id: user.id,
+                  badge_id: nextBadgeId,
+                  badge_type: badgeType, // 명시적으로 badge_type 설정
+                  earned_at: new Date().toISOString(),
+                })
+                .select();
+
+              if (insertError) {
+                console.error(
+                  "[StateHook] Error saving badge info:",
+                  insertError
+                );
+              } else {
+                console.log(
+                  `[StateHook] Badge ${nextBadgeId} saved successfully with type: ${badgeType}`,
+                  insertData
+                );
+              }
+            } else {
+              console.log(
+                `[StateHook] Badge ${nextBadgeId} saved via RPC with type: ${badgeType}`,
+                insertResult
+              );
+            }
+
+            // 3. 저장된 배지 정보 즉시 확인
+            const { data: checkData, error: checkError } = await supabase
+              .from("earned_badges")
+              .select("*")
+              .eq("user_id", user.id)
+              .eq("badge_id", nextBadgeId)
+              .order("earned_at", { ascending: false })
+              .limit(1);
+
+            if (checkError) {
+              console.error(
+                "[StateHook] Error checking saved badge:",
+                checkError
+              );
+            } else if (checkData && checkData.length > 0) {
+              console.log(
+                `[StateHook] Latest saved badge verified: `,
+                checkData[0]
+              );
+            }
+          } catch (error) {
+            console.error("[StateHook] Critical error saving badge:", error);
           }
         }
 
