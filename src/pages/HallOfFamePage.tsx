@@ -343,7 +343,73 @@ const HallOfFamePage: React.FC = () => {
 
       console.log(`[DEBUG] 선택한 배지: ${badgeId}, 미션 정보:`, pendingBadge);
 
-      // 선택한 커스텀 배지 저장
+      // 1. badges 테이블에 해당 배지가 있는지 확인
+      const { data: existingBadge, error: checkError } = await supabase
+        .from("badges")
+        .select("id")
+        .eq("id", badgeId)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error("[ERROR] 배지 존재 여부 확인 오류:", checkError);
+      }
+
+      // 2. 배지가 없으면 badges 테이블에 먼저 추가
+      if (!existingBadge) {
+        console.log(
+          `[DEBUG] 배지 ID ${badgeId}가 badges 테이블에 없어 추가합니다.`
+        );
+
+        // 기본 배지 이름과 설명 설정
+        let badgeName = "주간 미션 달성 배지";
+        let badgeDescription = "주간 미션을 모두 완료하여 획득한 배지입니다.";
+
+        // weekly_streak_1 배지 정보 가져와서 사용
+        try {
+          const { data: weeklyStreakBadge, error: weeklyError } = await supabase
+            .from("badges")
+            .select("name, description")
+            .eq("id", "weekly_streak_1")
+            .single();
+
+          if (weeklyError) {
+            console.error(
+              "[ERROR] weekly_streak_1 배지 정보 가져오기 오류:",
+              weeklyError
+            );
+          } else if (weeklyStreakBadge) {
+            badgeName = weeklyStreakBadge.name || badgeName;
+            badgeDescription =
+              weeklyStreakBadge.description || badgeDescription;
+          }
+        } catch (err) {
+          console.error(
+            "[ERROR] weekly_streak_1 배지 정보 가져오기 중 오류:",
+            err
+          );
+        }
+
+        // badges 테이블에 새 배지 추가
+        const { error: insertBadgeError } = await supabase
+          .from("badges")
+          .insert({
+            id: badgeId,
+            name: badgeName,
+            description: badgeDescription,
+            image_path: "", // 기본 이미지 경로
+            badge_type: "weekly",
+            created_at: new Date().toISOString(),
+          });
+
+        if (insertBadgeError) {
+          console.error("[ERROR] 배지 추가 오류:", insertBadgeError);
+          throw insertBadgeError;
+        }
+
+        console.log(`[DEBUG] 배지 ID ${badgeId}를 badges 테이블에 추가 완료`);
+      }
+
+      // 3. 선택한 커스텀 배지 저장
       const { error, data } = await supabase
         .from("earned_badges")
         .insert({
