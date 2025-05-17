@@ -336,6 +336,8 @@ const HallOfFamePage: React.FC = () => {
       if (!user) return;
 
       try {
+        console.log("미선택 배지 확인 시작");
+
         // 1. weekly_streak_1 배지를 획득한 모든 주차 목록 가져오기
         const { data: weeklyStreakBadges, error: weeklyError } = await supabase
           .from("earned_badges")
@@ -347,6 +349,8 @@ const HallOfFamePage: React.FC = () => {
 
         if (weeklyError) throw weeklyError;
 
+        console.log("weekly_streak_1 배지 획득 목록:", weeklyStreakBadges);
+
         if (!weeklyStreakBadges || weeklyStreakBadges.length === 0) return;
 
         // 2. 각 주차별로 커스텀 배지(custom_ 접두사) 획득 여부 확인
@@ -356,34 +360,65 @@ const HallOfFamePage: React.FC = () => {
           // 해당 주의 시작일과 종료일 계산 (주간 배지 획득일 기준)
           const earnedDate = new Date(weeklyBadge.earned_at);
 
-          // 같은 날짜에 획득한 custom_ 접두사를 가진 배지 확인
+          console.log("확인 중인 weekly_streak_1 배지:", {
+            id: weeklyBadge.id,
+            earnedAt: earnedDate.toISOString(),
+            formattedDate: formatInTimeZone(earnedDate, timeZone, "yyyy-MM-dd"),
+          });
+
+          // 주의 시작(월요일)과 끝(일요일) 계산
+          const earnedDateClone = new Date(earnedDate.getTime()); // 원본 날짜 보존을 위해 복제
+          const day = earnedDateClone.getDay(); // 0: 일요일, 1: 월요일, ..., 6: 토요일
+          const diff = earnedDateClone.getDate() - day + (day === 0 ? -6 : 1); // 이번 주 월요일 날짜 계산
+
+          const weekStart = new Date(earnedDateClone.getTime());
+          weekStart.setDate(diff);
+          weekStart.setHours(0, 0, 0, 0);
+
+          const weekEnd = new Date(weekStart.getTime());
+          weekEnd.setDate(weekStart.getDate() + 6);
+          weekEnd.setHours(23, 59, 59, 999);
+
+          console.log("주간 범위:", {
+            weekStart: weekStart.toISOString(),
+            weekEnd: weekEnd.toISOString(),
+          });
+
+          // 같은 주에 획득한 custom_ 접두사를 가진 배지 확인
           const { data: customBadges, error: customError } = await supabase
             .from("earned_badges")
-            .select("id")
+            .select("id, badge_id, earned_at")
             .eq("user_id", user.id)
             .like("badge_id", "custom_%")
             .eq("badge_type", "weekly")
-            .gte(
-              "earned_at",
-              new Date(earnedDate.setHours(0, 0, 0, 0)).toISOString()
-            )
-            .lte(
-              "earned_at",
-              new Date(earnedDate.setHours(23, 59, 59, 999)).toISOString()
-            );
+            .gte("earned_at", weekStart.toISOString())
+            .lte("earned_at", weekEnd.toISOString());
 
           if (customError) throw customError;
 
+          console.log(
+            `${formatInTimeZone(
+              earnedDate,
+              timeZone,
+              "yyyy-MM-dd"
+            )} 주에 획득한 커스텀 배지:`,
+            customBadges
+          );
+
           // 커스텀 배지가 없으면 pendingBadges에 추가
           if (!customBadges || customBadges.length === 0) {
+            console.log("미선택 배지로 추가:", weeklyBadge.id);
             pendingBadges.push({
               id: weeklyBadge.id,
               earned_at: weeklyBadge.earned_at,
               reward_text: weeklyBadge.reward_text,
             });
+          } else {
+            console.log("이미 선택한 배지가 있음:", customBadges);
           }
         }
 
+        console.log("최종 미선택 배지 목록:", pendingBadges);
         setPendingWeeklyBadges(pendingBadges);
       } catch (err) {
         console.error("미선택 배지 확인 중 오류 발생:", err);
@@ -391,7 +426,7 @@ const HallOfFamePage: React.FC = () => {
     };
 
     checkPendingBadges();
-  }, [user, refetchWeeklyBadges]);
+  }, [user, timeZone, refetchWeeklyBadges]);
 
   return (
     <div className="container mx-auto px-4 py-8">
