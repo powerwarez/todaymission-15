@@ -253,7 +253,12 @@ const HallOfFamePage: React.FC = () => {
 
   // 미선택 배지 관련 상태 추가
   const [pendingWeeklyBadges, setPendingWeeklyBadges] = useState<
-    { id: string; earned_at: string; reward_text?: string }[]
+    {
+      id: string;
+      earned_at: string;
+      reward_text?: string;
+      formatted_date?: string;
+    }[]
   >([]);
   const [showBadgeSelectionModal, setShowBadgeSelectionModal] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<string | null>(null);
@@ -275,9 +280,12 @@ const HallOfFamePage: React.FC = () => {
     if (!user || !selectedWeek) return;
 
     try {
+      console.log(`[DEBUG] 배지 선택: ${badgeId}, 주: ${selectedWeek}`);
+
       // 선택한 주간 미션의 보상 목표 가져오기
       const pendingBadge = pendingWeeklyBadges.find(
         (badge) =>
+          badge.formatted_date === selectedWeek ||
           formatInTimeZone(
             new Date(badge.earned_at),
             timeZone,
@@ -286,21 +294,33 @@ const HallOfFamePage: React.FC = () => {
       );
 
       if (!pendingBadge) {
+        console.error(
+          `[ERROR] 해당 주차(${selectedWeek})의 미션 정보를 찾을 수 없습니다.`
+        );
         toast.error("해당 주차의 미션 정보를 찾을 수 없습니다.");
         return;
       }
 
+      console.log(`[DEBUG] 선택한 배지: ${badgeId}, 미션 정보:`, pendingBadge);
+
       // 선택한 커스텀 배지 저장
-      const { error } = await supabase.from("earned_badges").insert({
-        user_id: user.id,
-        badge_id: badgeId,
-        badge_type: "weekly",
-        earned_at: pendingBadge.earned_at,
-        reward_text: pendingBadge.reward_text,
-      });
+      const { error, data } = await supabase
+        .from("earned_badges")
+        .insert({
+          user_id: user.id,
+          badge_id: badgeId,
+          badge_type: "weekly",
+          earned_at: pendingBadge.earned_at,
+          reward_text: pendingBadge.reward_text,
+        })
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("[ERROR] 배지 저장 오류:", error);
+        throw error;
+      }
 
+      console.log(`[DEBUG] 배지 저장 성공:`, data);
       toast.success("배지를 획득했습니다!");
 
       // 배지 목록 새로고침
@@ -314,6 +334,7 @@ const HallOfFamePage: React.FC = () => {
       setPendingWeeklyBadges((prev) =>
         prev.filter(
           (badge) =>
+            badge.formatted_date !== selectedWeek &&
             formatInTimeZone(
               new Date(badge.earned_at),
               timeZone,
@@ -325,108 +346,141 @@ const HallOfFamePage: React.FC = () => {
       // 모달 닫기
       handleCloseBadgeSelectionModal();
     } catch (err) {
-      console.error("배지 선택 중 오류 발생:", err);
+      console.error("[ERROR] 배지 선택 중 오류 발생:", err);
       toast.error("배지 선택에 실패했습니다.");
     }
   };
 
-  // 미선택 배지 확인 useEffect 추가
+  // 배지탭 변경 이벤트 처리를 위한 useEffect 추가 (기존 useEffect 위에 추가)
   useEffect(() => {
-    const checkPendingBadges = async () => {
-      if (!user) return;
+    // 주간 배지 탭으로 변경되었을 때만 미선택 배지 검사
+    if (badgeTab === "weekly" && !badgesLoading) {
+      loadPendingBadges();
+    }
+  }, [badgeTab, badgesLoading]);
 
-      try {
-        console.log("미선택 배지 확인 시작");
+  // 미선택 배지 확인 함수를 컴포넌트 내에 선언 (기존 useEffect 위에 추가)
+  const loadPendingBadges = async () => {
+    if (!user) return;
 
-        // 1. weekly_streak_1 배지를 획득한 모든 주차 목록 가져오기
-        const { data: weeklyStreakBadges, error: weeklyError } = await supabase
-          .from("earned_badges")
-          .select("id, earned_at, reward_text")
-          .eq("user_id", user.id)
-          .eq("badge_id", "weekly_streak_1")
-          .eq("badge_type", "weekly")
-          .order("earned_at", { ascending: false });
+    try {
+      console.log("[DEBUG] 미선택 배지 확인 시작 - loadPendingBadges()");
 
-        if (weeklyError) throw weeklyError;
+      // 1. 사용자의 모든 weekly_streak_1 배지 가져오기
+      const { data: weeklyStreakBadges, error: weeklyError } = await supabase
+        .from("earned_badges")
+        .select("id, badge_id, earned_at, reward_text")
+        .eq("user_id", user.id)
+        .eq("badge_id", "weekly_streak_1")
+        .eq("badge_type", "weekly")
+        .order("earned_at", { ascending: false });
 
-        console.log("weekly_streak_1 배지 획득 목록:", weeklyStreakBadges);
-
-        if (!weeklyStreakBadges || weeklyStreakBadges.length === 0) return;
-
-        // 2. 각 주차별로 커스텀 배지(custom_ 접두사) 획득 여부 확인
-        const pendingBadges = [];
-
-        for (const weeklyBadge of weeklyStreakBadges) {
-          // 해당 주의 시작일과 종료일 계산 (주간 배지 획득일 기준)
-          const earnedDate = new Date(weeklyBadge.earned_at);
-
-          console.log("확인 중인 weekly_streak_1 배지:", {
-            id: weeklyBadge.id,
-            earnedAt: earnedDate.toISOString(),
-            formattedDate: formatInTimeZone(earnedDate, timeZone, "yyyy-MM-dd"),
-          });
-
-          // 주의 시작(월요일)과 끝(일요일) 계산
-          const earnedDateClone = new Date(earnedDate.getTime()); // 원본 날짜 보존을 위해 복제
-          const day = earnedDateClone.getDay(); // 0: 일요일, 1: 월요일, ..., 6: 토요일
-          const diff = earnedDateClone.getDate() - day + (day === 0 ? -6 : 1); // 이번 주 월요일 날짜 계산
-
-          const weekStart = new Date(earnedDateClone.getTime());
-          weekStart.setDate(diff);
-          weekStart.setHours(0, 0, 0, 0);
-
-          const weekEnd = new Date(weekStart.getTime());
-          weekEnd.setDate(weekStart.getDate() + 6);
-          weekEnd.setHours(23, 59, 59, 999);
-
-          console.log("주간 범위:", {
-            weekStart: weekStart.toISOString(),
-            weekEnd: weekEnd.toISOString(),
-          });
-
-          // 같은 주에 획득한 custom_ 접두사를 가진 배지 확인
-          const { data: customBadges, error: customError } = await supabase
-            .from("earned_badges")
-            .select("id, badge_id, earned_at")
-            .eq("user_id", user.id)
-            .like("badge_id", "custom_%")
-            .eq("badge_type", "weekly")
-            .gte("earned_at", weekStart.toISOString())
-            .lte("earned_at", weekEnd.toISOString());
-
-          if (customError) throw customError;
-
-          console.log(
-            `${formatInTimeZone(
-              earnedDate,
-              timeZone,
-              "yyyy-MM-dd"
-            )} 주에 획득한 커스텀 배지:`,
-            customBadges
-          );
-
-          // 커스텀 배지가 없으면 pendingBadges에 추가
-          if (!customBadges || customBadges.length === 0) {
-            console.log("미선택 배지로 추가:", weeklyBadge.id);
-            pendingBadges.push({
-              id: weeklyBadge.id,
-              earned_at: weeklyBadge.earned_at,
-              reward_text: weeklyBadge.reward_text,
-            });
-          } else {
-            console.log("이미 선택한 배지가 있음:", customBadges);
-          }
-        }
-
-        console.log("최종 미선택 배지 목록:", pendingBadges);
-        setPendingWeeklyBadges(pendingBadges);
-      } catch (err) {
-        console.error("미선택 배지 확인 중 오류 발생:", err);
+      if (weeklyError) {
+        console.error("[ERROR] weekly_streak_1 배지 조회 오류:", weeklyError);
+        return;
       }
-    };
 
-    checkPendingBadges();
-  }, [user, timeZone, refetchWeeklyBadges]);
+      console.log("[DEBUG] 조회된 weekly_streak_1 배지:", weeklyStreakBadges);
+
+      if (!weeklyStreakBadges || weeklyStreakBadges.length === 0) {
+        console.log("[DEBUG] weekly_streak_1 배지가 없습니다.");
+        setPendingWeeklyBadges([]);
+        return;
+      }
+
+      // 2. 사용자의 모든 커스텀 배지 가져오기 (한 번에 가져와서 메모리에서 처리)
+      const { data: allCustomBadges, error: customError } = await supabase
+        .from("earned_badges")
+        .select("id, badge_id, earned_at")
+        .eq("user_id", user.id)
+        .like("badge_id", "custom_%")
+        .eq("badge_type", "weekly");
+
+      if (customError) {
+        console.error("[ERROR] 커스텀 배지 조회 오류:", customError);
+        return;
+      }
+
+      console.log("[DEBUG] 조회된 모든 커스텀 배지:", allCustomBadges);
+
+      // 3. 미선택 배지 확인 (주 단위로 처리)
+      const pendingBadges = [];
+
+      for (const weeklyBadge of weeklyStreakBadges) {
+        const earnedDate = new Date(weeklyBadge.earned_at);
+        const formattedDate = formatInTimeZone(
+          earnedDate,
+          timeZone,
+          "yyyy-MM-dd"
+        );
+
+        console.log(
+          `[DEBUG] 확인 중인 배지: ${weeklyBadge.id}, 획득일: ${formattedDate}`
+        );
+
+        // 주의 시작일과 종료일 계산
+        const earnedDateClone = new Date(earnedDate.getTime());
+        const day = earnedDateClone.getDay(); // 0: 일요일, 1: 월요일, ..., 6: 토요일
+        const diff = earnedDateClone.getDate() - day + (day === 0 ? -6 : 1); // 이번 주 월요일 날짜 계산
+
+        const weekStart = new Date(earnedDateClone.getTime());
+        weekStart.setDate(diff);
+        weekStart.setHours(0, 0, 0, 0);
+
+        const weekEnd = new Date(weekStart.getTime());
+        weekEnd.setDate(weekStart.getDate() + 6);
+        weekEnd.setHours(23, 59, 59, 999);
+
+        console.log(
+          `[DEBUG] 주간 범위: ${weekStart.toISOString()} ~ ${weekEnd.toISOString()}`
+        );
+
+        // 이 주에 획득한 커스텀 배지 확인
+        const customBadgesInWeek =
+          allCustomBadges?.filter((customBadge) => {
+            const customDate = new Date(customBadge.earned_at);
+            return customDate >= weekStart && customDate <= weekEnd;
+          }) || [];
+
+        console.log(
+          `[DEBUG] 같은 주에 획득한 커스텀 배지:`,
+          customBadgesInWeek
+        );
+
+        // 커스텀 배지가 없으면 미선택 배지로 추가
+        if (customBadgesInWeek.length === 0) {
+          console.log(
+            `[DEBUG] 미선택 배지로 추가: ${weeklyBadge.id}, 날짜: ${formattedDate}`
+          );
+          pendingBadges.push({
+            id: weeklyBadge.id,
+            earned_at: weeklyBadge.earned_at,
+            reward_text: weeklyBadge.reward_text,
+            formatted_date: formattedDate,
+          });
+        } else {
+          console.log(
+            `[DEBUG] 이미 선택한 배지가 있음: ${customBadgesInWeek
+              .map((b) => b.badge_id)
+              .join(", ")}`
+          );
+        }
+      }
+
+      console.log("[DEBUG] 최종 미선택 배지 목록:", pendingBadges);
+      setPendingWeeklyBadges(pendingBadges);
+    } catch (err) {
+      console.error("[ERROR] 미선택 배지 확인 중 오류 발생:", err);
+    }
+  };
+
+  // 기존 미선택 배지 확인 useEffect를 이 코드로 대체 (기존 코드를 찾아 대체)
+  useEffect(() => {
+    // 컴포넌트 마운트 시와 user 변경 시에만 실행
+    if (user && !badgesLoading) {
+      loadPendingBadges();
+    }
+  }, [user, badgesLoading]);
 
   return (
     <div className="container mx-auto px-4 py-8">
