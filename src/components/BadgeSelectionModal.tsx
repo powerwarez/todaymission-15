@@ -36,7 +36,8 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
   // 이미 배지를 획득했는지 확인
   useEffect(() => {
     const checkAlreadyEarnedBadge = async () => {
-      if (!user || !showModal) return;
+      // HallOfFame에서 미선택 배지에 대해 호출될 때는 이 검사를 건너뜁니다
+      if (!user || !showModal || weeklyRewardGoal) return;
 
       try {
         // 현재 날짜 기준으로 이번 주의 시작(월요일)과 끝(일요일) 구하기
@@ -81,17 +82,21 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
     };
 
     checkAlreadyEarnedBadge();
-  }, [user, showModal]);
+  }, [user, showModal, weeklyRewardGoal]);
 
   // 주간 미션에 설정된 배지 목록 가져오기
   useEffect(() => {
     const fetchBadges = async () => {
+      // Hall of Fame에서 호출된 경우도 배지 목록을 가져옵니다
       if (!user || !showModal) return;
 
       try {
         setLoading(true);
         setError(null);
-        console.log("주간 배지 목록 가져오기");
+        console.log(
+          "주간 배지 목록 가져오기",
+          weeklyRewardGoal ? "(Hall of Fame에서 호출)" : ""
+        );
 
         // weekly_streak_1 배지 정보 가져오기 (전역으로 사용)
         const { data: weeklyStreakBadge, error: weeklyStreakError } =
@@ -112,6 +117,47 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
         const weeklyStreakDescription =
           weeklyStreakBadge?.description ||
           "이번 주 월-금 모든 미션을 모두 완료했습니다!";
+
+        // Hall of Fame에서 호출된 경우 이미 획득한 배지 확인 로직을 건너뜁니다
+        if (!weeklyRewardGoal) {
+          // 현재 날짜 기준으로 이번 주의 시작(월요일)과 끝(일요일) 구하기
+          const now = new Date();
+          const day = now.getDay(); // 0: 일요일, 1: 월요일, ..., 6: 토요일
+          const diff = now.getDate() - day + (day === 0 ? -6 : 1); // 이번 주 월요일 날짜 계산
+
+          const weekStart = new Date(now.setDate(diff));
+          weekStart.setHours(0, 0, 0, 0);
+
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekStart.getDate() + 6);
+          weekEnd.setHours(23, 59, 59, 999);
+
+          // 이번 주 날짜 문자열
+          const weekStartStr = weekStart.toISOString();
+          const weekEndStr = weekEnd.toISOString();
+
+          // 이미 이번 주에 weekly_streak_1 배지를 획득했는지 확인
+          const { data: existingWeeklyBadge, error: weeklyCheckError } =
+            await supabase
+              .from("earned_badges")
+              .select("*")
+              .eq("user_id", user.id)
+              .eq("badge_id", "weekly_streak_1")
+              .gte("earned_at", weekStartStr)
+              .lte("earned_at", weekEndStr);
+
+          if (weeklyCheckError) {
+            console.error("주간 미션 배지 확인 오류:", weeklyCheckError);
+            throw weeklyCheckError;
+          }
+
+          // 이미 이번 주에 배지를 획득했으면 모달 닫기 (Hall of Fame에서 호출된 경우 제외)
+          if (existingWeeklyBadge && existingWeeklyBadge.length > 0) {
+            console.log("이번 주 weekly_streak_1 배지가 이미 획득되었습니다.");
+            onClose();
+            return;
+          }
+        }
 
         // 1. 먼저 weekly_badge_settings 테이블에서 설정된 배지 ID 가져오기
         const { data: settingsData, error: settingsError } = await supabase
@@ -249,10 +295,11 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
       }
     };
 
-    if (showModal && user && !alreadyEarned) {
+    // Hall of Fame에서 호출된 경우에도 배지 목록을 표시합니다
+    if (showModal && user && (!alreadyEarned || weeklyRewardGoal)) {
       fetchBadges();
     }
-  }, [showModal, user, alreadyEarned]);
+  }, [showModal, user, alreadyEarned, weeklyRewardGoal]);
 
   // 이미지 URL 생성 함수
   const getBadgeImageUrl = (imagePath: string): string => {
@@ -275,7 +322,29 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
       setSelectedBadge(badgeId);
       setShowConfetti(true);
 
-      console.log("배지 선택:", badgeId);
+      console.log(
+        "배지 선택:",
+        badgeId,
+        weeklyRewardGoal ? "(Hall of Fame에서 호출)" : ""
+      );
+
+      // Hall of Fame 페이지에서 호출된 경우 다른 로직 실행
+      if (weeklyRewardGoal) {
+        console.log("Hall of Fame 페이지에서 배지 선택 - 간소화된 로직 사용");
+
+        // 부모 컴포넌트의 onBadgeSelect 함수 직접 호출
+        onBadgeSelect(badgeId, "weekly");
+
+        // Confetti 효과 표시
+        triggerConfetti();
+
+        // 성공 후 1.5초 뒤 모달 닫기
+        setTimeout(() => {
+          handleClose();
+        }, 1500);
+
+        return;
+      }
 
       // 배지 정보 가져오기
       const selectedBadgeData = badges.find((badge) => badge.id === badgeId);
@@ -461,8 +530,23 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
     confettiRef.current.trigger(options);
   };
 
-  // 모달을 표시하지 않는 조건: 모달이 표시되지 않거나 이미 배지를 획득한 경우
-  if (!showModal || alreadyEarned) return null;
+  // 모달을 표시하지 않는 조건 변경: weeklyRewardGoal이 있으면 항상 표시
+  if (!showModal || (alreadyEarned && !weeklyRewardGoal)) {
+    console.log("모달 표시하지 않음:", {
+      showModal,
+      alreadyEarned,
+      weeklyRewardGoal,
+      조건: !showModal || (alreadyEarned && !weeklyRewardGoal),
+    });
+    return null;
+  }
+
+  console.log("배지 선택 모달 렌더링:", {
+    showModal,
+    alreadyEarned,
+    weeklyRewardGoal,
+    badgesCount: badges.length,
+  });
 
   return (
     <div

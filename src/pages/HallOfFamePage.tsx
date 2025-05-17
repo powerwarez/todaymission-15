@@ -524,6 +524,30 @@ const HallOfFamePage: React.FC = () => {
     }
   }, [badgeTab, badgesLoading, user, timeZone, loadPendingBadges]);
 
+  // 배지 모달 디버깅을 위한 useEffect 추가
+  useEffect(() => {
+    console.log("배지 선택 모달 상태 변경:", {
+      showBadgeSelectionModal,
+      selectedWeek,
+      showRewardModal,
+      pendingBadge: pendingWeeklyBadges.find(
+        (badge) =>
+          badge.formatted_date === selectedWeek ||
+          formatInTimeZone(
+            new Date(badge.earned_at),
+            timeZone,
+            "yyyy-MM-dd"
+          ) === selectedWeek
+      ),
+    });
+  }, [
+    showBadgeSelectionModal,
+    selectedWeek,
+    showRewardModal,
+    pendingWeeklyBadges,
+    timeZone,
+  ]);
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8 bg-gradient-to-r from-pink-500 to-yellow-500 text-transparent bg-clip-text flex items-center">
