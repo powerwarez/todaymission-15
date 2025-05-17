@@ -268,24 +268,111 @@ export const useMissionLogs = (formattedDate: string) => {
 
       // 획득한 배지를 DB에 직접 저장 (badge_type을 명시적으로 "mission"으로 설정)
       if (newlyEarnedBadgeIds.length > 0) {
-        const badgesToInsert = newlyEarnedBadgeIds.map((badgeId) => ({
-          user_id: user.id,
-          badge_id: badgeId,
-          badge_type: "mission", // 명시적으로 badge_type 설정
-          earned_at: new Date().toISOString(),
-        }));
+        console.log(
+          "[useMissionLogs] 획득한 배지 저장 시작:",
+          newlyEarnedBadgeIds
+        );
 
-        console.log("배지 데이터 저장:", badgesToInsert);
+        // 일반 배지와 daily_hero 배지 분리
+        const dailyHeroBadgeIds = newlyEarnedBadgeIds.filter(
+          (id) => id === "daily_hero"
+        );
+        const otherBadgeIds = newlyEarnedBadgeIds.filter(
+          (id) => id !== "daily_hero"
+        );
 
-        // earned_badges 테이블에 직접 저장
-        const { error: insertBadgeError } = await supabase
-          .from("earned_badges")
-          .insert(badgesToInsert);
+        // 1. 일반 배지 저장
+        if (otherBadgeIds.length > 0) {
+          const otherBadges = otherBadgeIds.map((badgeId) => ({
+            user_id: user.id,
+            badge_id: badgeId,
+            badge_type: "mission", // 명시적으로 badge_type 설정
+            earned_at: new Date().toISOString(),
+          }));
 
-        if (insertBadgeError) {
-          console.error("배지 정보 저장 중 오류 발생:", insertBadgeError);
-        } else {
-          console.log("배지 정보 저장 성공");
+          const { data: otherData, error: otherError } = await supabase
+            .from("earned_badges")
+            .insert(otherBadges)
+            .select();
+
+          if (otherError) {
+            console.error("[useMissionLogs] 일반 배지 저장 오류:", otherError);
+          } else {
+            console.log("[useMissionLogs] 일반 배지 저장 성공:", otherData);
+          }
+        }
+
+        // 2. daily_hero 배지 저장 (직접 RPC 사용)
+        if (dailyHeroBadgeIds.length > 0) {
+          try {
+            console.log("[useMissionLogs] 오늘의 영웅 배지 저장 시작");
+
+            // RPC 함수 사용 시도
+            const { data: rpcData, error: rpcError } = await supabase.rpc(
+              "insert_badge_with_type",
+              {
+                p_user_id: user.id,
+                p_badge_id: "daily_hero",
+                p_badge_type: "mission",
+              }
+            );
+
+            if (rpcError) {
+              console.error(
+                "[useMissionLogs] RPC 저장 실패, 직접 저장 시도:",
+                rpcError
+              );
+
+              // 실패하면 직접 저장 시도
+              const { data: insertData, error: insertError } = await supabase
+                .from("earned_badges")
+                .insert({
+                  user_id: user.id,
+                  badge_id: "daily_hero",
+                  badge_type: "mission", // 명시적 설정
+                  earned_at: new Date().toISOString(),
+                })
+                .select();
+
+              if (insertError) {
+                console.error(
+                  "[useMissionLogs] 오늘의 영웅 직접 저장 실패:",
+                  insertError
+                );
+              } else {
+                console.log(
+                  "[useMissionLogs] 오늘의 영웅 직접 저장 성공:",
+                  insertData
+                );
+              }
+            } else {
+              console.log(
+                "[useMissionLogs] RPC로 오늘의 영웅 배지 저장 성공:",
+                rpcData
+              );
+            }
+
+            // 최종 저장 상태 확인
+            const { data: verifyData } = await supabase
+              .from("earned_badges")
+              .select("*")
+              .eq("user_id", user.id)
+              .eq("badge_id", "daily_hero")
+              .order("earned_at", { ascending: false })
+              .limit(1);
+
+            if (verifyData && verifyData.length > 0) {
+              console.log(
+                "[useMissionLogs] 최종 저장된 배지 확인:",
+                verifyData[0]
+              );
+            }
+          } catch (err) {
+            console.error(
+              "[useMissionLogs] 배지 저장 과정에서 예외 발생:",
+              err
+            );
+          }
         }
       }
 
@@ -298,6 +385,7 @@ export const useMissionLogs = (formattedDate: string) => {
             ", "
           )}`
         );
+
         for (const badgeId of newlyEarnedBadgeIds) {
           console.log(
             `🔔 Queueing: ${badgeId} (${
