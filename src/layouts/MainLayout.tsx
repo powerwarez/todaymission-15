@@ -1,22 +1,12 @@
-import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
+import React from "react";
+import { Outlet } from "react-router-dom";
+import Sidebar from "../components/Sidebar";
 
 const MainLayout: React.FC = () => {
-  const [isSidebarMinimized, setIsSidebarMinimized] = useState(true);
-
-  const toggleSidebar = () => {
-    setIsSidebarMinimized(!isSidebarMinimized);
-  };
-
   return (
     <div className="min-h-screen">
-      <Sidebar isMinimized={isSidebarMinimized} toggleSidebar={toggleSidebar} />
-      <main
-        className={`min-h-screen p-6 transition-all duration-300 ease-in-out ${
-          isSidebarMinimized ? 'ml-16' : 'ml-64'
-        }`}
-      >
+      <Sidebar />
+      <main className="min-h-screen p-6 ml-64 transition-all duration-300 ease-in-out">
         <div className="max-w-7xl mx-auto">
           <Outlet /> {/* Child routes will render here */}
         </div>
@@ -25,4 +15,4 @@ const MainLayout: React.FC = () => {
   );
 };
 
-export default MainLayout; 
+export default MainLayout;
