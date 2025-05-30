@@ -13,19 +13,14 @@ import { toast } from "react-hot-toast";
 // import { FaCheckCircle } from "react-icons/fa"; // 버튼 제거로 불필요
 // import { LuCircle } from 'react-icons/lu'; // 버튼 제거로 불필요
 
-// 완료 시 적용할 파스텔 무지개 색상 배열 (변경 없음)
-const pastelRainbowColors = [
-  { bg: "bg-red-100", border: "border-red-400", text: "text-red-800" }, // 빨
-  { bg: "bg-orange-100", border: "border-orange-400", text: "text-orange-800" }, // 주
-  { bg: "bg-yellow-100", border: "border-yellow-400", text: "text-yellow-800" }, // 노
-  { bg: "bg-green-100", border: "border-green-400", text: "text-green-800" }, // 초
-  { bg: "bg-blue-100", border: "border-blue-400", text: "text-blue-800" }, // 파
-  { bg: "bg-indigo-100", border: "border-indigo-400", text: "text-indigo-800" }, // 남
-  { bg: "bg-violet-100", border: "border-violet-400", text: "text-violet-800" }, // 보
-  { bg: "bg-pink-100", border: "border-pink-400", text: "text-pink-800" }, // 핑크
-  { bg: "bg-teal-100", border: "border-teal-400", text: "text-teal-800" }, // 틸
-  { bg: "bg-rose-100", border: "border-rose-400", text: "text-rose-800" }, // 로즈
-];
+// 완료 시 적용할 테마 기반 색상 배열
+const getCompletedMissionStyle = () => {
+  return {
+    backgroundColor: "var(--color-primary-light)",
+    borderLeftColor: "var(--color-primary-medium)",
+    color: "var(--color-text-primary)",
+  };
+};
 
 const TodayMissionPage: React.FC = () => {
   const { user, timeZone } = useAuth(); // 사용자 정보 가져오기
@@ -463,7 +458,9 @@ const TodayMissionPage: React.FC = () => {
       )}
 
       {isLoading && <p>데이터 로딩 중...</p>}
-      {error && <p className="text-red-500">오류: {error}</p>}
+      {error && (
+        <p style={{ color: "var(--color-text-error)" }}>오류: {error}</p>
+      )}
 
       {!isLoading && !error && (
         <div className="flex flex-col md:flex-row gap-6">
@@ -474,25 +471,37 @@ const TodayMissionPage: React.FC = () => {
                 만들어 보세요.
               </p>
             )}
-            {missionsWithStatus.map((mission, index) => {
-              // 완료 시 적용할 색상 결정 (index 기반)
-              const completedColor =
-                pastelRainbowColors[index % pastelRainbowColors.length];
+            {missionsWithStatus.map((mission) => {
               const missionStyle = mission.is_completed_today
-                ? `${completedColor.bg} border-l-4 ${completedColor.border}`
-                : "bg-white hover:bg-sky-50";
+                ? "border-l-4"
+                : "bg-white";
+              const hoverStyle = mission.is_completed_today
+                ? ""
+                : "hover:bg-gray-50";
               const textStyle = mission.is_completed_today
-                ? `${completedColor.text} line-through`
+                ? "line-through"
                 : "text-gray-800";
+
+              const completedStyle = mission.is_completed_today
+                ? getCompletedMissionStyle()
+                : {};
 
               return (
                 <div
                   key={mission.id}
                   onClick={() => handleToggleComplete(mission)} // div 전체 클릭 핸들러
-                  className={`flex items-center p-4 rounded-lg shadow transition-all duration-300 ease-in-out cursor-pointer ${missionStyle}`}
+                  className={`flex items-center p-4 rounded-lg shadow transition-all duration-300 ease-in-out cursor-pointer ${missionStyle} ${hoverStyle}`}
+                  style={completedStyle}
                 >
                   <div className="flex-grow mr-4">
-                    <p className={`text-lg font-medium ${textStyle}`}>
+                    <p
+                      className={`text-lg font-medium ${textStyle}`}
+                      style={{
+                        color: mission.is_completed_today
+                          ? "var(--color-text-primary)"
+                          : "var(--color-text-secondary)",
+                      }}
+                    >
                       {mission.content}
                     </p>
                   </div>

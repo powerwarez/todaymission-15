@@ -100,10 +100,13 @@ const ChallengeSettingsPage: React.FC = () => {
       </h1>
 
       {loading && <p>로딩 중...</p>}
-      {error && <p className="text-red-500">{error}</p>}
+      {error && <p style={{ color: "var(--color-text-error)" }}>{error}</p>}
 
       <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 className="text-xl font-semibold text-pink-600 mb-4">
+        <h2
+          className="text-xl font-semibold mb-4"
+          style={{ color: "var(--color-text-primary)" }}
+        >
           오늘의 미션 목록 관리
         </h2>
         <p className="text-sm text-gray-500 mb-4">
@@ -119,7 +122,17 @@ const ChallengeSettingsPage: React.FC = () => {
               onDragStart={(e) => handleDragStart(e, mission)}
               onDrop={(e) => handleDrop(e, mission)}
               onDragOver={handleDragOver}
-              className="flex items-center justify-between p-3 bg-pink-50 rounded-md cursor-grab hover:bg-pink-100 transition-colors"
+              className="flex items-center justify-between p-3 rounded-md cursor-grab transition-colors"
+              style={{
+                backgroundColor: "var(--color-bg-hover)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor =
+                  "var(--color-primary-light)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "var(--color-bg-hover)";
+              }}
             >
               {editingMission?.id === mission.id ? (
                 <input
@@ -153,21 +166,44 @@ const ChallengeSettingsPage: React.FC = () => {
                 {editingMission?.id === mission.id ? (
                   <button
                     onClick={() => handleUpdateMission(mission)}
-                    className="text-green-600 hover:text-green-800"
+                    style={{ color: "var(--color-success)" }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "var(--color-success-dark)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "var(--color-success)";
+                    }}
                   >
                     <LuSave size={18} />
                   </button>
                 ) : (
                   <button
                     onClick={() => setEditingMission({ ...mission })}
-                    className="text-blue-600 hover:text-blue-800"
+                    style={{ color: "var(--color-primary-medium)" }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "var(--color-primary-dark)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color =
+                        "var(--color-primary-medium)";
+                    }}
                   >
                     <LuPencil size={18} />
                   </button>
                 )}
                 <button
                   onClick={() => handleDeleteMission(mission.id)}
-                  className="text-red-500 hover:text-red-700 disabled:opacity-50"
+                  className="disabled:opacity-50"
+                  style={{ color: "var(--color-text-error)" }}
+                  onMouseEnter={(e) => {
+                    if (!e.currentTarget.disabled) {
+                      e.currentTarget.style.color =
+                        "var(--color-text-error-dark)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "var(--color-text-error)";
+                  }}
                   disabled={missions.length <= 3} // Cannot delete if 3 or fewer missions
                   title={
                     missions.length <= 3
@@ -192,12 +228,36 @@ const ChallengeSettingsPage: React.FC = () => {
               value={newMissionContent}
               onChange={(e) => setNewMissionContent(e.target.value)}
               placeholder="새 미션 내용 입력 (예: 이 닦기)"
-              className="flex-grow p-2 border border-pink-300 rounded-md focus:ring-pink-500 focus:border-pink-500"
+              className="flex-grow p-2 rounded-md"
+              style={{
+                border: "1px solid var(--color-border-default)",
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = "var(--color-border-focus)";
+                e.target.style.boxShadow = `0 0 0 2px var(--color-border-focus)`;
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = "var(--color-border-default)";
+                e.target.style.boxShadow = "none";
+              }}
               maxLength={100} // Example max length
             />
             <button
               type="submit"
-              className="bg-pink-500 hover:bg-pink-600 text-white p-2 rounded-md flex items-center transition-colors disabled:bg-pink-300"
+              className="text-white p-2 rounded-md flex items-center transition-colors disabled:opacity-50"
+              style={{
+                backgroundColor: "var(--color-primary-medium)",
+              }}
+              onMouseEnter={(e) => {
+                if (!e.currentTarget.disabled) {
+                  e.currentTarget.style.backgroundColor =
+                    "var(--color-primary-dark)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor =
+                  "var(--color-primary-medium)";
+              }}
               disabled={!newMissionContent.trim() || loading}
             >
               <LuCirclePlus size={18} className="mr-1" />

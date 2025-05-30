@@ -49,20 +49,51 @@ const MissionSettingItem: React.FC<MissionSettingItemProps> = ({
             type="text"
             value={editedContent}
             onChange={(e) => setEditedContent(e.target.value)}
-            className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-sky-500"
+            className="flex-1 p-2 border rounded"
+            style={{
+              borderColor: "var(--color-border-default)",
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = "var(--color-border-focus)";
+              e.target.style.boxShadow = `0 0 0 2px var(--color-border-focus)`;
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = "var(--color-border-default)";
+              e.target.style.boxShadow = "none";
+            }}
             maxLength={100}
             autoFocus
           />
           <button
             onClick={handleSave}
-            className="p-2 text-white bg-green-500 rounded hover:bg-green-600"
+            className="p-2 text-white rounded"
+            style={{
+              backgroundColor: "var(--color-success)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor =
+                "var(--color-success-dark)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "var(--color-success)";
+            }}
             title="저장"
           >
             <LuCheck />
           </button>
           <button
             onClick={handleCancel}
-            className="p-2 text-white bg-gray-500 rounded hover:bg-gray-600"
+            className="p-2 text-white rounded"
+            style={{
+              backgroundColor: "var(--color-text-muted)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor =
+                "var(--color-text-secondary)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "var(--color-text-muted)";
+            }}
             title="취소"
           >
             <LuX />
@@ -75,14 +106,28 @@ const MissionSettingItem: React.FC<MissionSettingItemProps> = ({
           </div>
           <button
             onClick={handleEdit}
-            className="p-2 text-blue-500 hover:text-blue-700"
+            className="p-2"
+            style={{ color: "var(--color-primary-medium)" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "var(--color-primary-dark)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "var(--color-primary-medium)";
+            }}
             title="수정"
           >
             <LuPencil />
           </button>
           <button
             onClick={handleDelete}
-            className="p-2 text-red-500 hover:text-red-700"
+            className="p-2"
+            style={{ color: "var(--color-text-error)" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "var(--color-text-error-dark)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "var(--color-text-error)";
+            }}
             title="삭제"
           >
             <LuTrash />

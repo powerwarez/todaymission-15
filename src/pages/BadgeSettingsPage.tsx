@@ -119,7 +119,11 @@ const BadgeSettingsPage: React.FC = () => {
       {/* 로딩 상태 표시 */}
       {loading && (
         <div className="flex justify-center items-center py-10">
-          <LuLoader className="animate-spin text-indigo-500" size={40} />
+          <LuLoader
+            className="animate-spin"
+            style={{ color: "var(--color-primary-medium)" }}
+            size={40}
+          />
           <p className="ml-3 text-lg text-gray-600">데이터를 불러오는 중...</p>
         </div>
       )}
@@ -127,8 +131,13 @@ const BadgeSettingsPage: React.FC = () => {
       {/* 에러 상태 표시 */}
       {error && (
         <div
-          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6 max-w-2xl mx-auto"
+          className="border px-4 py-3 rounded relative mb-6 max-w-2xl mx-auto"
           role="alert"
+          style={{
+            backgroundColor: "var(--color-bg-error)",
+            borderColor: "var(--color-border-error)",
+            color: "var(--color-text-error)",
+          }}
         >
           <LuTriangle className="inline mr-2" />
           <span className="block sm:inline">오류가 발생했습니다: {error}</span>
@@ -177,8 +186,14 @@ const BadgeSettingsPage: React.FC = () => {
                   <div className="text-right">
                     <span
                       className={`text-lg font-bold ${
-                        badge.count > 0 ? "text-indigo-600" : "text-gray-400"
+                        badge.count > 0 ? "" : "text-gray-400"
                       }`}
+                      style={{
+                        color:
+                          badge.count > 0
+                            ? "var(--color-primary-medium)"
+                            : undefined,
+                      }}
                     >
                       {badge.count > 0 ? `${badge.count}회 달성` : "미달성"}
                     </span>

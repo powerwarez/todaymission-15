@@ -136,11 +136,18 @@ const MissionSettingsPage: React.FC = () => {
               가능합니다.
             </p>
 
-            {error && <p className="text-red-500 mb-4">{error}</p>}
+            {error && (
+              <p style={{ color: "var(--color-text-error)" }} className="mb-4">
+                {error}
+              </p>
+            )}
 
             {loading ? (
               <div className="flex justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500"></div>
+                <div
+                  className="animate-spin rounded-full h-8 w-8 border-b-2"
+                  style={{ borderColor: "var(--color-primary-medium)" }}
+                ></div>
               </div>
             ) : (
               <>
@@ -192,7 +199,18 @@ const MissionSettingsPage: React.FC = () => {
                   />
                   <button
                     type="submit"
-                    className="bg-sky-600 text-white p-2 rounded-lg hover:bg-sky-700 flex items-center"
+                    className="text-white p-2 rounded-lg flex items-center"
+                    style={{
+                      backgroundColor: "var(--color-primary-medium)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor =
+                        "var(--color-primary-dark)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor =
+                        "var(--color-primary-medium)";
+                    }}
                   >
                     <LuPlus className="mr-1" />
                     추가

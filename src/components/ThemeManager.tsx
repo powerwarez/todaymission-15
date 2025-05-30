@@ -84,28 +84,6 @@ const ThemeManager: React.FC = () => {
           </div>
         ))}
       </div>
-
-      {/* 개발자 가이드 */}
-      <div
-        className="mt-6 p-4 rounded-lg text-sm"
-        style={{
-          backgroundColor: "var(--color-bg-hover)",
-          color: "var(--color-text-secondary)",
-        }}
-      >
-        <h4 className="font-semibold mb-2">개발자 가이드</h4>
-        <p className="mb-2">
-          새로운 테마를 추가하려면{" "}
-          <code className="bg-gray-200 px-1 rounded">src/theme/colors.ts</code>{" "}
-          파일의
-          <code className="bg-gray-200 px-1 rounded">themes</code> 객체에 새
-          테마를 추가하세요.
-        </p>
-        <p>
-          각 테마는 primary, background, text, border 색상 팔레트를 포함해야
-          합니다.
-        </p>
-      </div>
     </div>
   );
 };

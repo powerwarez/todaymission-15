@@ -55,7 +55,14 @@ const LoginPage: React.FC = () => {
           오늘 미션!
         </h1>
 
-        {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+        {error && (
+          <p
+            style={{ color: "var(--color-text-error)" }}
+            className="text-sm mb-4"
+          >
+            {error}
+          </p>
+        )}
 
         <button
           onClick={() => handleLogin("kakao")}

@@ -31,10 +31,41 @@ export const useTheme = () => {
     );
     root.style.setProperty("--color-primary-dark", theme.colors.primary.dark);
 
+    // 보조 색상 변수
+    root.style.setProperty("--color-secondary", theme.colors.secondary);
+    root.style.setProperty(
+      "--color-secondary-light",
+      theme.colors.secondary + "40"
+    ); // 투명도 추가
+    root.style.setProperty("--color-secondary-medium", theme.colors.secondary);
+    root.style.setProperty(
+      "--color-secondary-dark",
+      theme.colors.secondary + "CC"
+    ); // 더 진한 색
+    root.style.setProperty("--color-accent", theme.colors.accent);
+
     // 배경색 변수
     root.style.setProperty("--color-bg-main", theme.colors.background.main);
     root.style.setProperty("--color-bg-card", theme.colors.background.card);
     root.style.setProperty("--color-bg-hover", theme.colors.background.hover);
+
+    // 상태별 배경색
+    root.style.setProperty(
+      "--color-bg-success",
+      theme.colors.status.success + "20"
+    );
+    root.style.setProperty(
+      "--color-bg-warning",
+      theme.colors.status.warning + "20"
+    );
+    root.style.setProperty(
+      "--color-bg-warning-hover",
+      theme.colors.status.warning + "30"
+    );
+    root.style.setProperty(
+      "--color-bg-error",
+      theme.colors.status.error + "20"
+    );
 
     // 텍스트 색상 변수
     root.style.setProperty("--color-text-primary", theme.colors.text.primary);
@@ -44,6 +75,18 @@ export const useTheme = () => {
     );
     root.style.setProperty("--color-text-muted", theme.colors.text.muted);
 
+    // 상태별 텍스트 색상
+    root.style.setProperty("--color-text-error", theme.colors.status.error);
+    root.style.setProperty(
+      "--color-text-error-dark",
+      theme.colors.status.error + "DD"
+    );
+    root.style.setProperty("--color-text-warning", theme.colors.status.warning);
+    root.style.setProperty(
+      "--color-text-warning-dark",
+      theme.colors.status.warning + "DD"
+    );
+
     // 테두리 색상 변수
     root.style.setProperty("--color-border-light", theme.colors.border.light);
     root.style.setProperty(
@@ -52,14 +95,44 @@ export const useTheme = () => {
     );
     root.style.setProperty("--color-border-focus", theme.colors.border.focus);
 
-    // 보조 색상 변수
-    root.style.setProperty("--color-secondary", theme.colors.secondary);
-    root.style.setProperty("--color-accent", theme.colors.accent);
+    // 상태별 테두리 색상
+    root.style.setProperty(
+      "--color-border-error",
+      theme.colors.status.error + "80"
+    );
+    root.style.setProperty(
+      "--color-border-warning",
+      theme.colors.status.warning + "80"
+    );
 
     // 상태 색상 변수
     root.style.setProperty("--color-success", theme.colors.status.success);
+    root.style.setProperty(
+      "--color-success-light",
+      theme.colors.status.success + "20"
+    );
+    root.style.setProperty(
+      "--color-success-dark",
+      theme.colors.status.success + "DD"
+    );
     root.style.setProperty("--color-warning", theme.colors.status.warning);
+    root.style.setProperty(
+      "--color-warning-light",
+      theme.colors.status.warning + "20"
+    );
+    root.style.setProperty(
+      "--color-warning-dark",
+      theme.colors.status.warning + "DD"
+    );
     root.style.setProperty("--color-error", theme.colors.status.error);
+    root.style.setProperty(
+      "--color-error-light",
+      theme.colors.status.error + "20"
+    );
+    root.style.setProperty(
+      "--color-error-dark",
+      theme.colors.status.error + "DD"
+    );
     root.style.setProperty("--color-info", theme.colors.status.info);
   };
 

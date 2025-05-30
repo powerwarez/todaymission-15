@@ -15,20 +15,54 @@
     --color-primary-medium: #38bdf8;
     --color-primary-dark: #0284c7;
 
+    /* 보조 색상 변수 */
+    --color-secondary: #a5b4fc;
+    --color-secondary-light: #c7d2fe;
+    --color-secondary-medium: #818cf8;
+    --color-secondary-dark: #4338ca;
+    --color-accent: #34d399;
+
     /* 배경색 변수 */
     --color-bg-main: #f0f9ff;
     --color-bg-card: #ffffff;
     --color-bg-hover: #e0f2fe;
+
+    /* 상태별 배경색 */
+    --color-bg-success: #d1fae5;
+    --color-bg-warning: #fef3c7;
+    --color-bg-warning-hover: #fde68a;
+    --color-bg-error: #fee2e2;
 
     /* 텍스트 색상 변수 */
     --color-text-primary: #0c4a6e;
     --color-text-secondary: #0369a1;
     --color-text-muted: #0ea5e9;
 
+    /* 상태별 텍스트 색상 */
+    --color-text-error: #dc2626;
+    --color-text-error-dark: #991b1b;
+    --color-text-warning: #d97706;
+    --color-text-warning-dark: #92400e;
+
     /* 테두리 색상 변수 */
     --color-border-light: #bae6fd;
     --color-border-default: #7dd3fc;
     --color-border-focus: #0284c7;
+
+    /* 상태별 테두리 색상 */
+    --color-border-error: #fca5a5;
+    --color-border-warning: #fcd34d;
+
+    /* 상태 색상 */
+    --color-success: #10b981;
+    --color-success-light: #d1fae5;
+    --color-success-dark: #047857;
+    --color-warning: #f59e0b;
+    --color-warning-light: #fef3c7;
+    --color-warning-dark: #d97706;
+    --color-error: #ef4444;
+    --color-error-light: #fee2e2;
+    --color-error-dark: #dc2626;
 
     /* CSS 변수에는 글꼴 스택을 문자열로 포함 */
     --font-sans: "Pretendard", system-ui, sans-serif;

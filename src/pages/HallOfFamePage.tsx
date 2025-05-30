@@ -631,14 +631,19 @@ const HallOfFamePage: React.FC = () => {
       </h1>
 
       {isLoading && <p>데이터를 불러오는 중...</p>}
-      {error && <p className="text-red-500">오류: {error}</p>}
+      {error && (
+        <p style={{ color: "var(--color-text-error)" }}>오류: {error}</p>
+      )}
 
       {!isLoading && !error && (
         <div className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* 날짜별 기록 조회 섹션 */}
             <div className="bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-xl font-semibold text-pink-600 mb-4 flex items-center">
+              <h2
+                className="text-xl font-semibold mb-4 flex items-center"
+                style={{ color: "var(--color-text-primary)" }}
+              >
                 <LuCalendarDays className="mr-2" /> 날짜별 기록 조회
               </h2>
               <div className="flex items-center space-x-4 mb-6">
@@ -655,7 +660,18 @@ const HallOfFamePage: React.FC = () => {
                     { timeZone }
                   )}
                   onChange={handleDateChange}
-                  className="border border-pink-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  className="rounded px-3 py-2"
+                  style={{
+                    border: "1px solid var(--color-border-default)",
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = "var(--color-border-focus)";
+                    e.target.style.boxShadow = `0 0 0 2px var(--color-border-focus)`;
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = "var(--color-border-default)";
+                    e.target.style.boxShadow = "none";
+                  }}
                   // max도 KST 기준 yyyy-MM-dd
                   max={format(todayKSTObj, "yyyy-MM-dd", { timeZone })}
                 />
@@ -691,21 +707,37 @@ const HallOfFamePage: React.FC = () => {
                         key={mission.id}
                         className={`flex items-center justify-between p-3 rounded-lg transition-colors duration-200 text-sm ${
                           mission.isCompleted
-                            ? "bg-green-100 border-l-4 border-green-500"
+                            ? "border-l-4"
                             : "bg-gray-100 border-l-4 border-gray-400"
                         }`}
+                        style={
+                          mission.isCompleted
+                            ? {
+                                backgroundColor: "var(--color-primary-light)",
+                                borderLeftColor: "var(--color-primary-medium)",
+                              }
+                            : {}
+                        }
                       >
                         <span
                           className={`flex-1 ${
                             mission.isCompleted
-                              ? "text-green-800 line-through"
+                              ? "line-through"
                               : "text-gray-800"
                           }`}
+                          style={{
+                            color: mission.isCompleted
+                              ? "var(--color-text-primary)"
+                              : undefined,
+                          }}
                         >
                           {mission.content}
                         </span>
                         {mission.isCompleted && (
-                          <LuBadgeCheck className="text-green-600 text-lg ml-2" />
+                          <LuBadgeCheck
+                            className="text-lg ml-2"
+                            style={{ color: "var(--color-success)" }}
+                          />
                         )}
                       </li>
                     )
@@ -724,13 +756,24 @@ const HallOfFamePage: React.FC = () => {
             {/* 월별 달력 섹션 */}
             <div className="bg-white p-6 rounded-lg shadow-md">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-pink-600 flex items-center">
+                <h2
+                  className="text-xl font-semibold flex items-center"
+                  style={{ color: "var(--color-text-primary)" }}
+                >
                   월간 달성 현황
                 </h2>
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={handlePreviousMonth}
-                    className="p-2 rounded hover:bg-pink-100 text-pink-600"
+                    className="p-2 rounded transition-colors"
+                    style={{ color: "var(--color-primary-medium)" }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor =
+                        "var(--color-bg-hover)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
                   >
                     <LuChevronLeft size={20} />
                   </button>
@@ -740,7 +783,15 @@ const HallOfFamePage: React.FC = () => {
                   </span>
                   <button
                     onClick={handleNextMonth}
-                    className="p-2 rounded hover:bg-pink-100 text-pink-600"
+                    className="p-2 rounded transition-colors"
+                    style={{ color: "var(--color-primary-medium)" }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor =
+                        "var(--color-bg-hover)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
                   >
                     <LuChevronRight size={20} />
                   </button>
@@ -756,7 +807,10 @@ const HallOfFamePage: React.FC = () => {
 
           {/* 획득한 배지 섹션 */}
           <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-pink-600 mb-4 flex items-center">
+            <h2
+              className="text-xl font-semibold mb-4 flex items-center"
+              style={{ color: "var(--color-text-primary)" }}
+            >
               <LuAward className="mr-2" /> 획득한 배지
             </h2>
 
@@ -764,30 +818,54 @@ const HallOfFamePage: React.FC = () => {
             <div className="flex border-b mb-6">
               <button
                 className={`px-4 py-2 font-medium ${
-                  badgeTab === "weekly"
-                    ? "text-pink-600 border-b-2 border-pink-600"
-                    : "text-gray-500 hover:text-gray-700"
+                  badgeTab === "weekly" ? "border-b-2" : "hover:text-gray-700"
                 }`}
+                style={{
+                  color:
+                    badgeTab === "weekly"
+                      ? "var(--color-primary-medium)"
+                      : "var(--color-text-muted)",
+                  borderBottomColor:
+                    badgeTab === "weekly"
+                      ? "var(--color-primary-medium)"
+                      : "transparent",
+                }}
                 onClick={() => setBadgeTab("weekly")}
               >
                 주간 도전 배지
               </button>
               <button
                 className={`px-4 py-2 font-medium ${
-                  badgeTab === "mission"
-                    ? "text-pink-600 border-b-2 border-pink-600"
-                    : "text-gray-500 hover:text-gray-700"
+                  badgeTab === "mission" ? "border-b-2" : "hover:text-gray-700"
                 }`}
+                style={{
+                  color:
+                    badgeTab === "mission"
+                      ? "var(--color-primary-medium)"
+                      : "var(--color-text-muted)",
+                  borderBottomColor:
+                    badgeTab === "mission"
+                      ? "var(--color-primary-medium)"
+                      : "transparent",
+                }}
                 onClick={() => setBadgeTab("mission")}
               >
                 미션 배지
               </button>
               <button
                 className={`px-4 py-2 font-medium ${
-                  badgeTab === "all"
-                    ? "text-pink-600 border-b-2 border-pink-600"
-                    : "text-gray-500 hover:text-gray-700"
+                  badgeTab === "all" ? "border-b-2" : "hover:text-gray-700"
                 }`}
+                style={{
+                  color:
+                    badgeTab === "all"
+                      ? "var(--color-primary-medium)"
+                      : "var(--color-text-muted)",
+                  borderBottomColor:
+                    badgeTab === "all"
+                      ? "var(--color-primary-medium)"
+                      : "transparent",
+                }}
                 onClick={() => setBadgeTab("all")}
               >
                 전체 배지
@@ -796,7 +874,10 @@ const HallOfFamePage: React.FC = () => {
 
             {badgesLoading ? (
               <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+                <div
+                  className="animate-spin rounded-full h-12 w-12 border-b-2"
+                  style={{ borderColor: "var(--color-primary-medium)" }}
+                ></div>
               </div>
             ) : displayedBadges.length === 0 &&
               (badgeTab !== "weekly" || pendingWeeklyBadges.length === 0) ? (
@@ -828,7 +909,19 @@ const HallOfFamePage: React.FC = () => {
                     return (
                       <div
                         key={`pending-${pendingBadge.id}`}
-                        className="flex flex-col items-center p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors cursor-pointer border-2 border-dashed border-yellow-300 relative"
+                        className="flex flex-col items-center p-4 rounded-lg transition-colors cursor-pointer border-2 border-dashed relative"
+                        style={{
+                          backgroundColor: "var(--color-bg-warning)",
+                          borderColor: "var(--color-border-warning)",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor =
+                            "var(--color-bg-warning-hover)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor =
+                            "var(--color-bg-warning)";
+                        }}
                         onClick={(e) => {
                           e.stopPropagation(); // 이벤트 버블링 방지
                           e.preventDefault(); // 기본 이벤트 방지
@@ -841,17 +934,24 @@ const HallOfFamePage: React.FC = () => {
                           );
                         }}
                       >
-                        <div className="absolute top-2 right-2 w-6 h-6 bg-sky-500 rounded-full flex items-center justify-center text-white shadow-md z-10">
+                        <div
+                          className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-white shadow-md z-10"
+                          style={{
+                            backgroundColor: "var(--color-primary-medium)",
+                          }}
+                        >
                           <LuGift size={14} />
                         </div>
 
                         <div
                           className="w-20 h-20 mb-2 flex items-center justify-center rounded-full 
-                        p-1 bg-white shadow-md overflow-hidden border-4 border-yellow-200"
+                        p-1 bg-white shadow-md overflow-hidden border-4"
+                          style={{ borderColor: "var(--color-border-warning)" }}
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="h-12 w-12 text-yellow-400"
+                            className="h-12 w-12"
+                            style={{ color: "var(--color-text-warning)" }}
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -870,10 +970,19 @@ const HallOfFamePage: React.FC = () => {
                         <p className="text-xs text-gray-500 mt-1 text-center">
                           {formattedDate} 달성
                         </p>
-                        <p className="text-xs text-yellow-600 mt-1 text-center">
+                        <p
+                          className="text-xs mt-1 text-center"
+                          style={{ color: "var(--color-text-warning)" }}
+                        >
                           클릭하여 배지 선택하기
                         </p>
-                        <span className="mt-2 px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-800 bg-opacity-20 text-center font-medium">
+                        <span
+                          className="mt-2 px-2 py-0.5 text-xs rounded-full bg-opacity-20 text-center font-medium"
+                          style={{
+                            backgroundColor: "var(--color-primary-light)",
+                            color: "var(--color-primary-dark)",
+                          }}
+                        >
                           주간 도전
                         </span>
                       </div>
@@ -897,7 +1006,12 @@ const HallOfFamePage: React.FC = () => {
                     >
                       {/* 보상 정보가 있고 아직 사용하지 않은 경우에만 알림 배지 표시 */}
                       {hasReward && !earnedBadge.reward_used && (
-                        <div className="absolute top-2 right-2 w-6 h-6 bg-sky-500 rounded-full flex items-center justify-center text-white shadow-md z-10">
+                        <div
+                          className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-white shadow-md z-10"
+                          style={{
+                            backgroundColor: "var(--color-primary-medium)",
+                          }}
+                        >
                           <LuGift size={14} />
                         </div>
                       )}
@@ -930,12 +1044,17 @@ const HallOfFamePage: React.FC = () => {
                         </p>
                       )}
                       <span
-                        className={`mt-2 px-2 py-0.5 text-xs rounded-full bg-opacity-20 text-center font-medium 
-                        ${
-                          earnedBadge.badge?.badge_type === "weekly"
-                            ? "bg-purple-100 text-purple-800"
-                            : "bg-blue-100 text-blue-800"
-                        }`}
+                        className={`mt-2 px-2 py-0.5 text-xs rounded-full bg-opacity-20 text-center font-medium`}
+                        style={{
+                          backgroundColor:
+                            earnedBadge.badge?.badge_type === "weekly"
+                              ? "var(--color-primary-light)"
+                              : "var(--color-secondary-light)",
+                          color:
+                            earnedBadge.badge?.badge_type === "weekly"
+                              ? "var(--color-primary-dark)"
+                              : "var(--color-secondary-dark)",
+                        }}
                       >
                         {earnedBadge.badge?.badge_type === "weekly"
                           ? "주간 도전"
@@ -967,23 +1086,44 @@ const HallOfFamePage: React.FC = () => {
 
             <div className="text-center">
               <div className="flex items-center justify-center mb-4">
-                <LuGift className="text-yellow-500 mr-2" size={24} />
-                <h2 className="text-xl font-bold text-yellow-600">
+                <LuGift
+                  className="mr-2"
+                  style={{ color: "var(--color-text-warning)" }}
+                  size={24}
+                />
+                <h2
+                  className="text-xl font-bold"
+                  style={{ color: "var(--color-text-warning)" }}
+                >
                   주간 미션 보상
                 </h2>
               </div>
 
-              <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 mb-4">
-                <p className="text-yellow-800">{selectedBadgeReward}</p>
+              <div
+                className="p-4 rounded-lg border mb-4"
+                style={{
+                  backgroundColor: "var(--color-bg-warning)",
+                  borderColor: "var(--color-border-warning)",
+                }}
+              >
+                <p style={{ color: "var(--color-text-warning-dark)" }}>
+                  {selectedBadgeReward}
+                </p>
               </div>
 
               <div className="flex items-center justify-center mb-4">
                 <span
                   className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    rewardUsed
-                      ? "bg-gray-100 text-gray-600"
-                      : "bg-green-100 text-green-700"
+                    rewardUsed ? "bg-gray-100 text-gray-600" : ""
                   }`}
+                  style={
+                    !rewardUsed
+                      ? {
+                          backgroundColor: "var(--color-success-light)",
+                          color: "var(--color-success-dark)",
+                        }
+                      : {}
+                  }
                 >
                   {rewardUsed ? "보상 사용 완료" : "보상 미사용"}
                 </span>
@@ -992,11 +1132,24 @@ const HallOfFamePage: React.FC = () => {
               <button
                 onClick={toggleRewardUsed}
                 disabled={updatingReward}
-                className={`w-full px-4 py-2 rounded-lg transition-colors flex items-center justify-center ${
-                  rewardUsed
-                    ? "bg-indigo-500 hover:bg-indigo-600 text-white"
-                    : "bg-pink-500 hover:bg-pink-600 text-white"
-                }`}
+                className={`w-full px-4 py-2 rounded-lg transition-colors flex items-center justify-center text-white`}
+                style={{
+                  backgroundColor: rewardUsed
+                    ? "var(--color-secondary-medium)"
+                    : "var(--color-primary-medium)",
+                }}
+                onMouseEnter={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.backgroundColor = rewardUsed
+                      ? "var(--color-secondary-dark)"
+                      : "var(--color-primary-dark)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = rewardUsed
+                    ? "var(--color-secondary-medium)"
+                    : "var(--color-primary-medium)";
+                }}
               >
                 {updatingReward ? (
                   <span className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2"></span>
