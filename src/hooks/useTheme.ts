@@ -117,6 +117,7 @@ export const useTheme = () => {
 
     // 배경 색상
     root.style.setProperty("--color-bg-primary", theme.colors.background.main);
+    root.style.setProperty("--color-bg-main", theme.colors.background.main);
     root.style.setProperty("--color-bg-secondary", theme.colors.secondary);
     root.style.setProperty("--color-bg-card", theme.colors.background.card);
     root.style.setProperty("--color-bg-hover", theme.colors.background.hover);
