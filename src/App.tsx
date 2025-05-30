@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { useNotificationState } from "./hooks/useNotificationState";
+import { useTheme } from "./hooks/useTheme";
 import MainLayout from "./layouts/MainLayout";
 import LoginPage from "./pages/LoginPage";
 import TodayMissionPage from "./pages/TodayMissionPage";
@@ -11,7 +12,7 @@ import MissionSettingsPage from "./pages/MissionSettingsPage";
 import BadgeSettingsPage from "./pages/BadgeSettingsPage";
 import BadgeNotificationModal from "./components/BadgeNotificationModal";
 import { BadgeSelectionModal } from "./components/BadgeSelectionModal";
-import { Toaster } from 'react-hot-toast';
+import { Toaster } from "react-hot-toast";
 
 // PrivateRoute 컴포넌트: 인증된 사용자만 접근 가능
 const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({
@@ -87,6 +88,27 @@ const AppContent: React.FC = () => {
   );
 };
 
+// 테마 초기화 컴포넌트
+const ThemeInitializer: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { isInitialized } = useTheme();
+
+  // 테마가 초기화될 때까지 로딩 표시
+  if (!isInitialized) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-lg">
+          <h1 className="text-2xl font-bold text-black">테마 로딩 중...</h1>
+          <p className="mt-2 text-gray-600">잠시만 기다려주세요.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
+
 // 최상위 App 컴포넌트: Provider들로 감싸기
 const App: React.FC = () => {
   // useNotificationState 훅에서 반환 값 변경 사항 반영
@@ -107,15 +129,17 @@ const App: React.FC = () => {
     <AuthProvider>
       {/* Provider에는 show 함수만 포함된 객체를 value로 전달 */}
       <NotificationProvider value={{ showBadgeNotification }}>
-        <AppContent />
+        <ThemeInitializer>
+          <AppContent />
+        </ThemeInitializer>
         {/* Toast 알림을 위한 Toaster 컴포넌트 */}
-        <Toaster 
+        <Toaster
           position="bottom-right"
           toastOptions={{
             duration: 2000,
             style: {
-              background: '#fff',
-              color: '#333',
+              background: "#fff",
+              color: "#333",
             },
           }}
         />
