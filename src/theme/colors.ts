@@ -3,6 +3,7 @@
 
 export interface ColorTheme {
   name: string;
+  displayName: string;
   description: string;
   colors: {
     primary: {
@@ -37,89 +38,244 @@ export interface ColorTheme {
   };
 }
 
-// 여름 테마 - 파스텔톤 파란색과 하늘색 계열
-export const summerTheme: ColorTheme = {
-  name: "Summer Sky",
-  description: "여름 하늘을 닮은 파스텔톤 파란색과 하늘색 테마",
-  colors: {
-    primary: {
-      light: "#e0f2fe", // 아주 연한 하늘색 (배경 등)
-      DEFAULT: "#7dd3fc", // 기본 하늘색 (버튼, 강조)
-      medium: "#38bdf8", // 조금 더 진한 하늘색
-      dark: "#0284c7", // 진한 파란색 (텍스트, 아이콘)
+export const themes: Record<string, ColorTheme> = {
+  // 여름 하늘 테마 (기본)
+  summerSky: {
+    name: "summerSky",
+    displayName: "여름 하늘",
+    description: "시원한 파스텔 파란색과 하늘색",
+    colors: {
+      primary: {
+        light: "#e0f2fe",
+        DEFAULT: "#7dd3fc",
+        medium: "#38bdf8",
+        dark: "#0284c7",
+      },
+      secondary: "#a5b4fc",
+      accent: "#34d399",
+      background: {
+        main: "#f0f9ff",
+        card: "#ffffff",
+        hover: "#e0f2fe",
+      },
+      text: {
+        primary: "#0c4a6e",
+        secondary: "#0369a1",
+        muted: "#0ea5e9",
+      },
+      border: {
+        light: "#bae6fd",
+        DEFAULT: "#7dd3fc",
+        focus: "#0284c7",
+      },
+      status: {
+        success: "#34d399",
+        warning: "#fbbf24",
+        error: "#f87171",
+        info: "#60a5fa",
+      },
     },
-    secondary: "#a5b4fc", // 보조 색상 (파스텔 라벤더)
-    accent: "#34d399", // 강조 색상 (파스텔 그린 - 완료 표시 등)
-    background: {
-      main: "#f0f9ff", // 메인 배경색 (아주 연한 하늘색)
-      card: "#ffffff", // 카드 배경색
-      hover: "#e0f2fe", // 호버 배경색
+  },
+
+  // 핑크 파스텔 테마
+  pinkPastel: {
+    name: "pinkPastel",
+    displayName: "핑크 파스텔",
+    description: "부드러운 핑크색 계열",
+    colors: {
+      primary: {
+        light: "#fce7f3",
+        DEFAULT: "#f9a8d4",
+        medium: "#f472b6",
+        dark: "#be185d",
+      },
+      secondary: "#a78bfa",
+      accent: "#34d399",
+      background: {
+        main: "#fdf2f8",
+        card: "#ffffff",
+        hover: "#fce7f3",
+      },
+      text: {
+        primary: "#831843",
+        secondary: "#be185d",
+        muted: "#ec4899",
+      },
+      border: {
+        light: "#fbcfe8",
+        DEFAULT: "#f9a8d4",
+        focus: "#be185d",
+      },
+      status: {
+        success: "#34d399",
+        warning: "#fbbf24",
+        error: "#f87171",
+        info: "#60a5fa",
+      },
     },
-    text: {
-      primary: "#0c4a6e", // 주요 텍스트 (진한 파란색)
-      secondary: "#0369a1", // 보조 텍스트 (중간 파란색)
-      muted: "#0ea5e9", // 연한 텍스트 (밝은 파란색)
+  },
+
+  // 노란색 계열 테마 (글씨는 주황색)
+  sunnyYellow: {
+    name: "sunnyYellow",
+    displayName: "햇살 노랑",
+    description: "밝은 노란색과 따뜻한 주황색",
+    colors: {
+      primary: {
+        light: "#fef3c7",
+        DEFAULT: "#fbbf24",
+        medium: "#f59e0b",
+        dark: "#d97706",
+      },
+      secondary: "#fb923c",
+      accent: "#34d399",
+      background: {
+        main: "#fffbeb",
+        card: "#ffffff",
+        hover: "#fef3c7",
+      },
+      text: {
+        primary: "#c2410c",
+        secondary: "#ea580c",
+        muted: "#f97316",
+      },
+      border: {
+        light: "#fed7aa",
+        DEFAULT: "#fbbf24",
+        focus: "#d97706",
+      },
+      status: {
+        success: "#34d399",
+        warning: "#fbbf24",
+        error: "#f87171",
+        info: "#60a5fa",
+      },
     },
-    border: {
-      light: "#bae6fd", // 연한 테두리
-      DEFAULT: "#7dd3fc", // 기본 테두리
-      focus: "#0284c7", // 포커스 테두리
+  },
+
+  // 파스텔 녹색과 연두색 계열 테마
+  springGreen: {
+    name: "springGreen",
+    displayName: "봄 새싹",
+    description: "상쾌한 파스텔 녹색과 연두색",
+    colors: {
+      primary: {
+        light: "#dcfce7",
+        DEFAULT: "#86efac",
+        medium: "#4ade80",
+        dark: "#16a34a",
+      },
+      secondary: "#a7f3d0",
+      accent: "#34d399",
+      background: {
+        main: "#f0fdf4",
+        card: "#ffffff",
+        hover: "#dcfce7",
+      },
+      text: {
+        primary: "#14532d",
+        secondary: "#166534",
+        muted: "#22c55e",
+      },
+      border: {
+        light: "#bbf7d0",
+        DEFAULT: "#86efac",
+        focus: "#16a34a",
+      },
+      status: {
+        success: "#34d399",
+        warning: "#fbbf24",
+        error: "#f87171",
+        info: "#60a5fa",
+      },
     },
-    status: {
-      success: "#34d399", // 성공 (그린)
-      warning: "#fbbf24", // 경고 (옐로우)
-      error: "#f87171", // 에러 (레드)
-      info: "#60a5fa", // 정보 (블루)
+  },
+
+  // 빨간색과 연한 주황색 계열 테마
+  warmSunset: {
+    name: "warmSunset",
+    displayName: "따뜻한 노을",
+    description: "정열적인 빨간색과 부드러운 주황색",
+    colors: {
+      primary: {
+        light: "#fed7d7",
+        DEFAULT: "#fb7185",
+        medium: "#f43f5e",
+        dark: "#be123c",
+      },
+      secondary: "#fdba74",
+      accent: "#34d399",
+      background: {
+        main: "#fff5f5",
+        card: "#ffffff",
+        hover: "#fed7d7",
+      },
+      text: {
+        primary: "#7f1d1d",
+        secondary: "#991b1b",
+        muted: "#dc2626",
+      },
+      border: {
+        light: "#fecaca",
+        DEFAULT: "#fb7185",
+        focus: "#be123c",
+      },
+      status: {
+        success: "#34d399",
+        warning: "#fbbf24",
+        error: "#f87171",
+        info: "#60a5fa",
+      },
+    },
+  },
+
+  // 겨울 테마 (차가운 회색과 파란색)
+  winterFrost: {
+    name: "winterFrost",
+    displayName: "겨울 서리",
+    description: "차가운 회색과 은은한 파란색",
+    colors: {
+      primary: {
+        light: "#e2e8f0",
+        DEFAULT: "#94a3b8",
+        medium: "#64748b",
+        dark: "#334155",
+      },
+      secondary: "#cbd5e1",
+      accent: "#7dd3fc",
+      background: {
+        main: "#f8fafc",
+        card: "#ffffff",
+        hover: "#e2e8f0",
+      },
+      text: {
+        primary: "#1e293b",
+        secondary: "#334155",
+        muted: "#475569",
+      },
+      border: {
+        light: "#cbd5e1",
+        DEFAULT: "#94a3b8",
+        focus: "#334155",
+      },
+      status: {
+        success: "#34d399",
+        warning: "#fbbf24",
+        error: "#f87171",
+        info: "#60a5fa",
+      },
     },
   },
 };
 
-// 기존 핑크 테마 (참고용)
-export const pinkTheme: ColorTheme = {
-  name: "Pink Pastel",
-  description: "기존 파스텔 핑크 테마",
-  colors: {
-    primary: {
-      light: "#fce7f3",
-      DEFAULT: "#f9a8d4",
-      medium: "#f472b6",
-      dark: "#ec4899",
-    },
-    secondary: "#a78bfa",
-    accent: "#34d399",
-    background: {
-      main: "#fdf2f8",
-      card: "#ffffff",
-      hover: "#fce7f3",
-    },
-    text: {
-      primary: "#ec4899",
-      secondary: "#f472b6",
-      muted: "#f9a8d4",
-    },
-    border: {
-      light: "#fbcfe8",
-      DEFAULT: "#f9a8d4",
-      focus: "#ec4899",
-    },
-    status: {
-      success: "#34d399",
-      warning: "#fbbf24",
-      error: "#f87171",
-      info: "#60a5fa",
-    },
-  },
-};
-
-// 현재 활성 테마 (여기서 테마를 변경하세요!)
-export const currentTheme = summerTheme;
+export const defaultTheme = themes.summerSky;
 
 // 테마 변경을 위한 헬퍼 함수들
-export const getThemeColors = () => currentTheme.colors;
+export const getThemeColors = () => defaultTheme.colors;
 
 export const getThemeColor = (path: string): string => {
   const keys = path.split(".");
-  let value: unknown = currentTheme.colors;
+  let value: unknown = defaultTheme.colors;
 
   for (const key of keys) {
     if (value && typeof value === "object" && key in value) {
@@ -131,75 +287,4 @@ export const getThemeColor = (path: string): string => {
   }
 
   return typeof value === "string" ? value : "#000000";
-};
-
-// Tailwind CSS 클래스명 생성 헬퍼
-export const getThemeClass = (
-  type: "bg" | "text" | "border",
-  colorPath: string
-): string => {
-  // 실제 색상값을 가져와서 Tailwind 클래스로 매핑
-  // 이 함수는 런타임에서 동적으로 클래스를 생성하는 대신
-  // 미리 정의된 클래스 매핑을 사용합니다.
-
-  const colorMappings: Record<string, Record<string, string>> = {
-    "primary.light": {
-      bg: "bg-sky-50",
-      text: "text-sky-50",
-      border: "border-sky-200",
-    },
-    "primary.DEFAULT": {
-      bg: "bg-sky-300",
-      text: "text-sky-300",
-      border: "border-sky-300",
-    },
-    "primary.medium": {
-      bg: "bg-sky-400",
-      text: "text-sky-400",
-      border: "border-sky-400",
-    },
-    "primary.dark": {
-      bg: "bg-sky-700",
-      text: "text-sky-700",
-      border: "border-sky-700",
-    },
-    "background.main": {
-      bg: "bg-sky-50",
-      text: "text-sky-50",
-      border: "border-sky-50",
-    },
-    "background.hover": {
-      bg: "bg-sky-100",
-      text: "text-sky-100",
-      border: "border-sky-100",
-    },
-    "text.primary": {
-      bg: "bg-sky-900",
-      text: "text-sky-900",
-      border: "border-sky-900",
-    },
-    "text.secondary": {
-      bg: "bg-sky-700",
-      text: "text-sky-700",
-      border: "border-sky-700",
-    },
-    "text.muted": {
-      bg: "bg-sky-500",
-      text: "text-sky-500",
-      border: "border-sky-500",
-    },
-    "border.focus": {
-      bg: "bg-sky-700",
-      text: "text-sky-700",
-      border: "border-sky-700",
-    },
-  };
-
-  const mapping = colorMappings[colorPath];
-  if (mapping && mapping[type]) {
-    return mapping[type];
-  }
-
-  console.warn(`테마 클래스 매핑을 찾을 수 없습니다: ${type}.${colorPath}`);
-  return "";
 };
