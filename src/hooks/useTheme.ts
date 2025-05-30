@@ -36,7 +36,36 @@ export const useTheme = () => {
 
     // 주요 색상 변수 업데이트
     root.style.setProperty("--color-primary-light", theme.colors.primary.light);
+    root.style.setProperty(
+      "--color-primary-default",
+      theme.colors.primary.DEFAULT
+    );
+    root.style.setProperty(
+      "--color-primary-medium",
+      theme.colors.primary.medium
+    );
     root.style.setProperty("--color-primary-dark", theme.colors.primary.dark);
+
+    // 배경색 변수
+    root.style.setProperty("--color-bg-main", theme.colors.background.main);
+    root.style.setProperty("--color-bg-card", theme.colors.background.card);
+    root.style.setProperty("--color-bg-hover", theme.colors.background.hover);
+
+    // 텍스트 색상 변수
+    root.style.setProperty("--color-text-primary", theme.colors.text.primary);
+    root.style.setProperty(
+      "--color-text-secondary",
+      theme.colors.text.secondary
+    );
+    root.style.setProperty("--color-text-muted", theme.colors.text.muted);
+
+    // 테두리 색상 변수
+    root.style.setProperty("--color-border-light", theme.colors.border.light);
+    root.style.setProperty(
+      "--color-border-default",
+      theme.colors.border.DEFAULT
+    );
+    root.style.setProperty("--color-border-focus", theme.colors.border.focus);
 
     // 배경색 업데이트
     document.body.style.backgroundColor = theme.colors.background.main;

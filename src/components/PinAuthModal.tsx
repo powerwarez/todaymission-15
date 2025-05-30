@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
-import { useAuth } from '../contexts/AuthContext';
-import { LuX, LuLock, LuKey } from 'react-icons/lu';
+import React, { useState, useEffect } from "react";
+import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "../contexts/AuthContext";
+import { LuX, LuLock, LuKey } from "react-icons/lu";
 
 interface PinAuthModalProps {
   onSuccess: () => void;
@@ -10,38 +10,41 @@ interface PinAuthModalProps {
 
 const PinAuthModal: React.FC<PinAuthModalProps> = ({ onSuccess, onCancel }) => {
   const { user } = useAuth();
-  const [pin, setPin] = useState<string>('');
+  const [pin, setPin] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [userInfo, setUserInfo] = useState<{pin_code: string; child_name: string} | null>(null);
+  const [userInfo, setUserInfo] = useState<{
+    pin_code: string;
+    child_name: string;
+  } | null>(null);
 
   useEffect(() => {
     const fetchUserInfo = async () => {
       if (!user) return;
-      
+
       setLoading(true);
-      
+
       try {
         const { data, error } = await supabase
-          .from('user_info')
-          .select('pin_code, child_name')
-          .eq('user_id', user.id)
+          .from("user_info")
+          .select("pin_code, child_name")
+          .eq("user_id", user.id)
           .single();
-          
+
         if (error) {
-          console.error('PIN 정보를 가져오는 중 오류가 발생했습니다:', error);
-          setError('PIN 정보를 가져오는 중 오류가 발생했습니다.');
+          console.error("PIN 정보를 가져오는 중 오류가 발생했습니다:", error);
+          setError("PIN 정보를 가져오는 중 오류가 발생했습니다.");
         } else if (data) {
           setUserInfo(data);
         }
       } catch (err) {
-        console.error('PIN 정보 조회 중 오류가 발생했습니다:', err);
-        setError('PIN 정보 조회 중 오류가 발생했습니다.');
+        console.error("PIN 정보 조회 중 오류가 발생했습니다:", err);
+        setError("PIN 정보 조회 중 오류가 발생했습니다.");
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchUserInfo();
   }, [user]);
 
@@ -56,17 +59,17 @@ const PinAuthModal: React.FC<PinAuthModalProps> = ({ onSuccess, onCancel }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (pin.length !== 4) {
-      setError('PIN은 4자리 숫자여야 합니다.');
+      setError("PIN은 4자리 숫자여야 합니다.");
       return;
     }
 
     if (userInfo && pin === userInfo.pin_code) {
       onSuccess();
     } else {
-      setError('올바르지 않은 PIN입니다.');
-      setPin('');
+      setError("올바르지 않은 PIN입니다.");
+      setPin("");
     }
   };
 
@@ -85,20 +88,24 @@ const PinAuthModal: React.FC<PinAuthModalProps> = ({ onSuccess, onCancel }) => {
             <LuX size={20} />
           </button>
         </div>
-        
+
         <div className="p-6">
           {loading ? (
             <div className="flex justify-center py-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500"></div>
             </div>
           ) : (
             <form onSubmit={handleSubmit}>
               <p className="text-gray-600 mb-4">
-                {userInfo?.child_name || '아이'} 설정 페이지에 접근하기 위해 PIN을 입력해주세요.
+                {userInfo?.child_name || "아이"} 설정 페이지에 접근하기 위해
+                PIN을 입력해주세요.
               </p>
-              
+
               <div className="mb-4">
-                <label htmlFor="pin" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="pin"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   PIN 코드 (4자리)
                 </label>
                 <input
@@ -106,19 +113,19 @@ const PinAuthModal: React.FC<PinAuthModalProps> = ({ onSuccess, onCancel }) => {
                   id="pin"
                   value={pin}
                   onChange={handlePinChange}
-                  className="w-full px-4 py-3 text-center text-2xl tracking-widest border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  className="w-full px-4 py-3 text-center text-2xl tracking-widest border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
                   placeholder="****"
                   maxLength={4}
                   autoFocus
                 />
               </div>
-              
+
               {error && (
                 <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">
                   {error}
                 </div>
               )}
-              
+
               <div className="flex justify-end space-x-3">
                 <button
                   type="button"
@@ -129,7 +136,7 @@ const PinAuthModal: React.FC<PinAuthModalProps> = ({ onSuccess, onCancel }) => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-pink-500 text-white rounded hover:bg-pink-600 flex items-center"
+                  className="px-4 py-2 bg-sky-500 text-white rounded hover:bg-sky-600 flex items-center"
                 >
                   <LuKey className="mr-2" />
                   확인
@@ -143,4 +150,4 @@ const PinAuthModal: React.FC<PinAuthModalProps> = ({ onSuccess, onCancel }) => {
   );
 };
 
-export default PinAuthModal; 
+export default PinAuthModal;

@@ -571,7 +571,7 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
         </button>
 
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-6 text-pink-600 flex items-center justify-center">
+          <h2 className="text-2xl font-bold mb-6 text-sky-600 flex items-center justify-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-8 w-8 text-yellow-500 mr-2"
@@ -610,7 +610,7 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
 
           {loading ? (
             <div className="w-full min-h-[200px] flex items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500"></div>
             </div>
           ) : badges.length === 0 ? (
             <div className="text-center text-gray-600 p-6">
@@ -624,13 +624,13 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
                   onClick={() => handleBadgeSelect(badge.id)}
                   className={`badge-item p-3 rounded-lg flex flex-col items-center transition-all ${
                     selectedBadge === badge.id
-                      ? "bg-pink-100 ring-2 ring-pink-500 transform scale-105"
-                      : "bg-gray-100 hover:bg-pink-50"
+                      ? "bg-sky-100 ring-2 ring-sky-500 transform scale-105"
+                      : "bg-gray-100 hover:bg-sky-50"
                   }`}
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <div className="relative w-16 h-16 md:w-20 md:h-20 mb-2 flex items-center justify-center">
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-pink-400 to-purple-500 badge-glow"></div>
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-sky-400 to-purple-500 badge-glow"></div>
                     <div className="absolute inset-1 rounded-full bg-white flex items-center justify-center">
                       <img
                         src={getBadgeImageUrl(badge.image_path)}
@@ -678,8 +678,8 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
             disabled={!selectedBadge || loading}
             className={`px-4 py-2 rounded-md ${
               selectedBadge && !loading
-                ? "bg-pink-500 text-white hover:bg-pink-600"
-                : "bg-pink-300 text-white cursor-not-allowed"
+                ? "bg-sky-500 text-white hover:bg-sky-600"
+                : "bg-sky-300 text-white cursor-not-allowed"
             }`}
           >
             선택 완료

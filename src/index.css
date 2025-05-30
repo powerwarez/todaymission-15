@@ -4,14 +4,33 @@
 /* Pretendard Font (CDN 예시 - 로컬 설치 권장) */
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
 
-@import "tailwindcss";
+@import "tailwindcss/preflight";
+@import "tailwindcss/utilities";
 
 @layer base {
   /* :root 선택자를 사용하여 CSS 변수 정의 */
   :root {
     /* 여름 하늘 테마 색상 변수 */
     --color-primary-light: #e0f2fe;
+    --color-primary-default: #7dd3fc;
+    --color-primary-medium: #38bdf8;
     --color-primary-dark: #0284c7;
+
+    /* 배경색 변수 */
+    --color-bg-main: #f0f9ff;
+    --color-bg-card: #ffffff;
+    --color-bg-hover: #e0f2fe;
+
+    /* 텍스트 색상 변수 */
+    --color-text-primary: #0c4a6e;
+    --color-text-secondary: #0369a1;
+    --color-text-muted: #0ea5e9;
+
+    /* 테두리 색상 변수 */
+    --color-border-light: #bae6fd;
+    --color-border-default: #7dd3fc;
+    --color-border-focus: #0284c7;
+
     /* CSS 변수에는 글꼴 스택을 문자열로 포함 */
     --font-sans: "Pretendard", system-ui, sans-serif;
     --font-cute: "Quicksand", "Nunito", sans-serif;
@@ -19,13 +38,13 @@
 
   html {
     font-family: var(--font-sans);
-    color: var(--color-primary-dark);
+    color: var(--color-text-primary);
   }
 
   body {
     /* body 기본 스타일 리셋 또는 추가 설정 (Tailwind base가 대부분 처리) */
     min-height: 100vh;
-    background-color: var(--color-primary-light);
+    background-color: var(--color-bg-main);
     font-feature-settings: "tnum"; /* 숫자 고정폭 */
   }
 
@@ -42,7 +61,10 @@
   input[type="password"],
   textarea,
   select {
-    @apply border border-sky-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent;
+    border: 1px solid var(--color-border-light);
+    @apply px-3 py-2 focus:outline-none focus:ring-2;
+    focus-ring-color: var(--color-border-focus);
+    border-color: transparent;
   }
 
   /* 기본 H1~H6 스타일 */
@@ -54,7 +76,7 @@
   h6 {
     font-family: var(--font-cute);
     font-weight: 700;
-    /* color 속성은 html에서 상속받거나 필요시 개별 설정 */
+    color: var(--color-text-primary);
   }
 }
 
@@ -81,13 +103,9 @@
 }
 */
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 html,
 body {
-  background-color: #f0f9ff; /* sky-50 색상 직접 지정 */
+  background-color: var(--color-bg-main); /* CSS 변수 사용 */
   min-height: 100%;
   margin: 0;
   padding: 0;

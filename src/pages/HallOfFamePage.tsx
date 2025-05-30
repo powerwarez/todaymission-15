@@ -14,6 +14,7 @@ import {
   LuAward,
   LuGift,
   LuX,
+  LuTrophy,
 } from "react-icons/lu";
 import { Mission, EarnedBadge } from "../types"; // Mission 타입만 필요할 수 있음
 // date-fns-tz import 추가, format 추가
@@ -616,23 +617,8 @@ const HallOfFamePage: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8 bg-gradient-to-r from-pink-500 to-yellow-500 text-transparent bg-clip-text flex items-center">
-        <span className="mr-2">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-8 w-8 text-yellow-500"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"
-            />
-          </svg>
-        </span>
+      <h1 className="text-3xl font-bold mb-8 bg-gradient-to-r from-sky-500 to-yellow-500 text-transparent bg-clip-text flex items-center">
+        <LuTrophy className="mr-3 text-yellow-500" />
         명예의 전당
       </h1>
 
@@ -847,7 +833,7 @@ const HallOfFamePage: React.FC = () => {
                           );
                         }}
                       >
-                        <div className="absolute top-2 right-2 w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center text-white shadow-md z-10">
+                        <div className="absolute top-2 right-2 w-6 h-6 bg-sky-500 rounded-full flex items-center justify-center text-white shadow-md z-10">
                           <LuGift size={14} />
                         </div>
 
@@ -903,7 +889,7 @@ const HallOfFamePage: React.FC = () => {
                     >
                       {/* 보상 정보가 있고 아직 사용하지 않은 경우에만 알림 배지 표시 */}
                       {hasReward && !earnedBadge.reward_used && (
-                        <div className="absolute top-2 right-2 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center text-white shadow-md z-10">
+                        <div className="absolute top-2 right-2 w-6 h-6 bg-sky-500 rounded-full flex items-center justify-center text-white shadow-md z-10">
                           <LuGift size={14} />
                         </div>
                       )}

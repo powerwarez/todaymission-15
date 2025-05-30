@@ -5,7 +5,10 @@ import { LuPencil, LuTrash, LuCheck, LuX } from "react-icons/lu";
 interface MissionSettingItemProps {
   mission: Mission;
   onDelete: (id: string) => Promise<void>;
-  onUpdate: (id: string, updates: { content?: string; order?: number }) => Promise<void>;
+  onUpdate: (
+    id: string,
+    updates: { content?: string; order?: number }
+  ) => Promise<void>;
 }
 
 const MissionSettingItem: React.FC<MissionSettingItemProps> = ({
@@ -46,7 +49,7 @@ const MissionSettingItem: React.FC<MissionSettingItemProps> = ({
             type="text"
             value={editedContent}
             onChange={(e) => setEditedContent(e.target.value)}
-            className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-sky-500"
             maxLength={100}
             autoFocus
           />
@@ -90,4 +93,4 @@ const MissionSettingItem: React.FC<MissionSettingItemProps> = ({
   );
 };
 
-export default MissionSettingItem; 
+export default MissionSettingItem;

@@ -777,7 +777,7 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
           className="flex items-center px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-md shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? (
-            <span className="mr-2 animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500"></div>
           ) : (
             <LuSave className="mr-2" size={18} />
           )}
@@ -850,7 +850,7 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
                     />
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 focus:outline-none"
+                      className="bg-sky-600 text-white p-2 rounded-lg hover:bg-sky-700 flex items-center"
                     >
                       파일 선택
                     </button>
@@ -869,10 +869,10 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
               <button
                 onClick={saveCustomBadge}
                 disabled={!selectedFile || uploadLoading}
-                className="px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className="bg-sky-600 text-white p-2 rounded-lg hover:bg-sky-700 flex items-center"
               >
                 {uploadLoading && (
-                  <span className="mr-2 animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mr-2"></div>
                 )}
                 업로드
               </button>

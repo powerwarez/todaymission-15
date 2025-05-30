@@ -333,16 +333,16 @@ const TodayMissionPage: React.FC = () => {
       />
 
       <div className="flex justify-between items-center mb-2">
-        <h1 className="text-3xl font-bold text-pink-700">
+        <h1 className="text-3xl font-bold text-sky-700">
           {childName || "우리 아이의 방울방울 미션 챌린지"}
         </h1>
         <div className="text-right">
-          <p className="text-lg font-semibold text-pink-600">
+          <p className="text-lg font-semibold text-sky-600">
             {/* 표시 날짜도 KST 기준으로 명확하게 */}
             {format(todayKSTObj, "yyyy년 M월 d일", { timeZone })}
           </p>
           {/* 요일 표시는 로컬 Date 객체의 getDay() 사용 가능 */}
-          <p className="text-md text-pink-500">
+          <p className="text-md text-sky-500">
             {getWeekdayString(todayKSTObj)}요일
           </p>
         </div>
@@ -350,16 +350,16 @@ const TodayMissionPage: React.FC = () => {
 
       {/* 주간 보상 목표 표시 */}
       <div
-        className="mb-6 flex items-center bg-pink-50 p-3 rounded-lg cursor-pointer"
+        className="mb-6 flex items-center bg-sky-50 p-3 rounded-lg cursor-pointer"
         onClick={openRewardModal}
       >
         <div className="flex-1">
           <div className="flex items-center">
-            <LuGift className="text-pink-500 mr-2" size={28} />
-            <p className="text-2xl text-pink-700 font-semibold">이번주 보상</p>
+            <LuGift className="text-sky-500 mr-2" size={28} />
+            <p className="text-2xl text-sky-700 font-semibold">이번주 보상</p>
           </div>
-          <div className="inline-flex items-center bg-pink-400/20 rounded-lg p-2 mt-2">
-            <p className="text-2xl text-pink-600">{weeklyRewardGoal}</p>
+          <div className="inline-flex items-center bg-sky-400/20 rounded-lg p-2 mt-2">
+            <p className="text-2xl text-sky-600">{weeklyRewardGoal}</p>
           </div>
         </div>
       </div>
@@ -380,7 +380,7 @@ const TodayMissionPage: React.FC = () => {
             </button>
 
             <div className="text-center">
-              <h2 className="text-xl font-bold text-pink-600 mb-4">
+              <h2 className="text-xl font-bold text-sky-600 mb-4">
                 주간 보상 설정
               </h2>
               <p className="text-sm text-gray-600 mb-4">
@@ -390,7 +390,7 @@ const TodayMissionPage: React.FC = () => {
               <textarea
                 value={editingReward}
                 onChange={(e) => setEditingReward(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 mb-4"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 mb-4"
                 rows={3}
                 placeholder="예: 김밥 싸서 먹기, 맛있는 디저트 먹기, 새 책 사기"
               />
@@ -398,7 +398,7 @@ const TodayMissionPage: React.FC = () => {
               <button
                 onClick={saveWeeklyRewardGoal}
                 disabled={savingReward}
-                className="bg-pink-600 text-white px-6 py-2 rounded-lg hover:bg-pink-700 transition-colors flex items-center justify-center w-full"
+                className="bg-sky-600 text-white px-6 py-2 rounded-lg hover:bg-sky-700 transition-colors flex items-center justify-center w-full"
               >
                 {savingReward ? (
                   <span className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2"></span>
@@ -430,7 +430,7 @@ const TodayMissionPage: React.FC = () => {
                 pastelRainbowColors[index % pastelRainbowColors.length];
               const missionStyle = mission.is_completed_today
                 ? `${completedColor.bg} border-l-4 ${completedColor.border}`
-                : "bg-white hover:bg-pink-50";
+                : "bg-white hover:bg-sky-50";
               const textStyle = mission.is_completed_today
                 ? `${completedColor.text} line-through`
                 : "text-gray-800";

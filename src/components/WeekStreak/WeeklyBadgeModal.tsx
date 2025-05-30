@@ -28,24 +28,27 @@ export const WeeklyBadgeModal: React.FC<WeeklyBadgeModalProps> = ({
   useEffect(() => {
     const fetchWeeklyRewardGoal = async () => {
       if (!user || !isVisible) return;
-      
+
       try {
         const { data, error } = await supabase
-          .from('user_info')
-          .select('weekly_reward_goal')
-          .eq('user_id', user.id)
+          .from("user_info")
+          .select("weekly_reward_goal")
+          .eq("user_id", user.id)
           .single();
-          
+
         if (error) {
-          console.error('주간 보상 목표를 가져오는 중 오류가 발생했습니다:', error);
+          console.error(
+            "주간 보상 목표를 가져오는 중 오류가 발생했습니다:",
+            error
+          );
         } else if (data && data.weekly_reward_goal) {
           setWeeklyRewardGoal(data.weekly_reward_goal);
         }
       } catch (err) {
-        console.error('주간 보상 목표 조회 중 오류가 발생했습니다:', err);
+        console.error("주간 보상 목표 조회 중 오류가 발생했습니다:", err);
       }
     };
-    
+
     fetchWeeklyRewardGoal();
   }, [user, isVisible]);
 
@@ -57,14 +60,15 @@ export const WeeklyBadgeModal: React.FC<WeeklyBadgeModalProps> = ({
       try {
         setLoading(true);
         // weekly_streak_1 배지가 이번 주에 획득되었는지 확인
-        const { data: weeklyStreakBadge, error: weeklyStreakError } = await supabase
-          .from("earned_badges")
-          .select("*")
-          .eq("user_id", user.id)
-          .eq("badge_id", "weekly_streak_1")
-          .eq("badge_type", "weekly")
-          .gte("earned_at", weekStartDate)
-          .lte("earned_at", weekEndDate);
+        const { data: weeklyStreakBadge, error: weeklyStreakError } =
+          await supabase
+            .from("earned_badges")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("badge_id", "weekly_streak_1")
+            .eq("badge_type", "weekly")
+            .gte("earned_at", weekStartDate)
+            .lte("earned_at", weekEndDate);
 
         if (weeklyStreakError) throw weeklyStreakError;
 
@@ -90,7 +94,7 @@ export const WeeklyBadgeModal: React.FC<WeeklyBadgeModalProps> = ({
 
         const hasEarnedBadge = data && data.length > 0;
         setAlreadyEarned(hasEarnedBadge);
-        
+
         // 이미 배지를 획득했으면 모달을 닫음
         if (hasEarnedBadge) {
           onClose();
@@ -139,7 +143,7 @@ export const WeeklyBadgeModal: React.FC<WeeklyBadgeModalProps> = ({
       <div className="fixed inset-0 z-50 flex items-center justify-center">
         <div className="absolute inset-0 bg-black bg-opacity-50"></div>
         <div className="relative bg-white rounded-lg p-6 max-w-md w-full m-4 flex justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500"></div>
         </div>
       </div>
     );
@@ -160,7 +164,7 @@ export const WeeklyBadgeModal: React.FC<WeeklyBadgeModalProps> = ({
         </button>
 
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-pink-600 mb-4">
+          <h2 className="text-2xl font-bold text-sky-600 mb-4">
             주간 미션 달성!
           </h2>
           <p className="mb-4">
@@ -168,13 +172,15 @@ export const WeeklyBadgeModal: React.FC<WeeklyBadgeModalProps> = ({
             <br />
             모든 오늘의 미션을 완료했습니다.
           </p>
-          
+
           {/* 주간 목표 표시 */}
           {weeklyRewardGoal && (
             <div className="bg-yellow-50 p-4 rounded-lg mb-6 border border-yellow-200">
               <div className="flex items-center justify-center mb-2">
                 <LuStar className="text-yellow-500 mr-2" />
-                <h3 className="text-lg font-semibold text-yellow-700">이번 주 보상</h3>
+                <h3 className="text-lg font-semibold text-yellow-700">
+                  이번 주 보상
+                </h3>
               </div>
               <p className="text-yellow-800">{weeklyRewardGoal}</p>
             </div>
@@ -191,7 +197,7 @@ export const WeeklyBadgeModal: React.FC<WeeklyBadgeModalProps> = ({
           ) : (
             <button
               onClick={() => setShowBadgeSelection(true)}
-              className="bg-pink-600 text-white px-6 py-3 rounded-lg hover:bg-pink-700 transition-colors"
+              className="bg-sky-600 text-white px-6 py-3 rounded-lg hover:bg-sky-700 transition-colors"
             >
               배지 선택하기
             </button>
