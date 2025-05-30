@@ -43,9 +43,17 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-sky-100">
+    <div
+      className="flex items-center justify-center h-screen"
+      style={{ backgroundColor: "var(--color-bg-main)" }}
+    >
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-xs text-center">
-        <h1 className="text-3xl font-bold text-sky-700 mb-8">오늘 미션!</h1>
+        <h1
+          className="text-3xl font-bold mb-8"
+          style={{ color: "var(--color-text-primary)" }}
+        >
+          오늘 미션!
+        </h1>
 
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 

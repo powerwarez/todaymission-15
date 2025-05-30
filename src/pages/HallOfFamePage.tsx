@@ -617,8 +617,16 @@ const HallOfFamePage: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8 bg-gradient-to-r from-sky-500 to-yellow-500 text-transparent bg-clip-text flex items-center">
-        <LuTrophy className="mr-3 text-yellow-500" />
+      <h1
+        className="text-3xl font-bold mb-8 flex items-center"
+        style={{
+          background: `linear-gradient(to right, var(--color-primary-medium), var(--color-accent))`,
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          backgroundClip: "text",
+        }}
+      >
+        <LuTrophy className="mr-3" style={{ color: "var(--color-accent)" }} />
         명예의 전당
       </h1>
 

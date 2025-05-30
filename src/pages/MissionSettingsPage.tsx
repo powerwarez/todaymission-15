@@ -103,7 +103,10 @@ const MissionSettingsPage: React.FC = () => {
         <div className="max-w-4xl mx-auto p-4">
           {/* 테마 설정 섹션 */}
           <div className="mb-8">
-            <h1 className="text-2xl font-bold mb-6 text-sky-700 flex items-center">
+            <h1
+              className="text-2xl font-bold mb-6 flex items-center"
+              style={{ color: "var(--color-text-primary)" }}
+            >
               <LuPalette className="mr-2" /> 테마 설정
             </h1>
             <ThemeManager />
@@ -111,14 +114,20 @@ const MissionSettingsPage: React.FC = () => {
 
           {/* 계정 설정 섹션 */}
           <div className="mb-8">
-            <h1 className="text-2xl font-bold mb-6 text-sky-700 flex items-center">
+            <h1
+              className="text-2xl font-bold mb-6 flex items-center"
+              style={{ color: "var(--color-text-primary)" }}
+            >
               <LuUser className="mr-2" /> 계정 설정
             </h1>
             {user && <AccountSettings />}
           </div>
 
           {/* 일일 미션 설정 섹션 */}
-          <h1 className="text-2xl font-bold mb-8 text-sky-700 flex items-center">
+          <h1
+            className="text-2xl font-bold mb-8 flex items-center"
+            style={{ color: "var(--color-text-primary)" }}
+          >
             <LuSettings className="mr-2" /> 오늘의 미션 설정
           </h1>
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
@@ -194,7 +203,10 @@ const MissionSettingsPage: React.FC = () => {
           </div>
 
           {/* 주간 배지 설정 섹션 */}
-          <h1 className="text-xl font-bold mb-8 text-sky-700 flex items-center">
+          <h1
+            className="text-xl font-bold mb-8 flex items-center"
+            style={{ color: "var(--color-text-primary)" }}
+          >
             <LuSettings className="mr-2" /> 주간 배지 설정
           </h1>
           {user && <WeeklyBadgeSetting userId={user.id} />}
