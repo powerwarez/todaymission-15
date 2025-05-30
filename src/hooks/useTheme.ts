@@ -184,6 +184,9 @@ export const useTheme = () => {
 
     // 보조 색상
     root.style.setProperty("--color-secondary", theme.colors.secondary);
+
+    // 액센트 색상 (트로피 등에 사용)
+    root.style.setProperty("--color-accent", theme.colors.accent);
   };
 
   // 테마 변경 함수

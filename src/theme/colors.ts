@@ -52,7 +52,7 @@ export const themes: Record<string, ColorTheme> = {
         dark: "#0284c7",
       },
       secondary: "#a5b4fc",
-      accent: "#34d399",
+      accent: "#fb923c",
       background: {
         main: "#f0f9ff",
         card: "#ffffff",
@@ -90,7 +90,7 @@ export const themes: Record<string, ColorTheme> = {
         dark: "#be185d",
       },
       secondary: "#a78bfa",
-      accent: "#34d399",
+      accent: "#a78bfa",
       background: {
         main: "#fdf2f8",
         card: "#ffffff",
@@ -128,7 +128,7 @@ export const themes: Record<string, ColorTheme> = {
         dark: "#d97706",
       },
       secondary: "#fb923c",
-      accent: "#34d399",
+      accent: "#f97316",
       background: {
         main: "#fffbeb",
         card: "#ffffff",
@@ -166,7 +166,7 @@ export const themes: Record<string, ColorTheme> = {
         dark: "#16a34a",
       },
       secondary: "#a7f3d0",
-      accent: "#34d399",
+      accent: "#65a30d",
       background: {
         main: "#f0fdf4",
         card: "#ffffff",
@@ -204,7 +204,7 @@ export const themes: Record<string, ColorTheme> = {
         dark: "#be123c",
       },
       secondary: "#fdba74",
-      accent: "#34d399",
+      accent: "#ea580c",
       background: {
         main: "#fff5f5",
         card: "#ffffff",
