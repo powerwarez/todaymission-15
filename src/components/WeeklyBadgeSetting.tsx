@@ -650,7 +650,15 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
       </p>
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <div
+          className="px-4 py-3 rounded mb-4"
+          style={{
+            backgroundColor: "var(--color-bg-error)",
+            borderColor: "var(--color-border-error)",
+            color: "var(--color-text-error)",
+            border: "1px solid",
+          }}
+        >
           {error}
         </div>
       )}
@@ -673,11 +681,26 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {weeklyBadges.map((badge) => (
                 <div key={badge.id} className="relative group">
-                  <div className="bg-white p-4 rounded-lg flex flex-col items-center hover:bg-pink-50 transition-colors">
+                  <div
+                    className="bg-white p-4 rounded-lg flex flex-col items-center transition-colors"
+                    style={{
+                      backgroundColor: "var(--color-bg-card)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor =
+                        "var(--color-bg-hover)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor =
+                        "var(--color-bg-card)";
+                    }}
+                  >
                     <div
                       className="w-16 h-16 mb-2 flex items-center justify-center 
-                      border-4 border-gradient-to-r from-pink-300 to-indigo-300 rounded-full 
-                      p-1 bg-white shadow-md overflow-hidden"
+                      border-4 rounded-full p-1 bg-white shadow-md overflow-hidden"
+                      style={{
+                        borderColor: "var(--color-primary-medium)",
+                      }}
                     >
                       <img
                         src={getBadgeImageUrl(badge.image_path)}
@@ -695,7 +718,18 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
                   </div>
                   <button
                     onClick={() => handleBadgeSelect(badge)}
-                    className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 invisible group-hover:visible transition-all"
+                    className="absolute -top-2 -right-2 text-white rounded-full p-1 invisible group-hover:visible transition-all"
+                    style={{
+                      backgroundColor: "var(--color-text-error)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor =
+                        "var(--color-text-error-dark)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor =
+                        "var(--color-text-error)";
+                    }}
                     title="배지 제거"
                   >
                     <LuTrash size={16} />
@@ -714,11 +748,29 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
           {customBadges.map((badge) => (
             <div key={badge.id} className="relative group">
               <div
-                className={`bg-white p-4 rounded-lg flex flex-col items-center transition-colors ${
-                  selectedBadges.includes(badge.id)
-                    ? "bg-pink-50 border-2 border-pink-300"
-                    : "hover:bg-gray-100 border-2 border-transparent"
+                className={`bg-white p-4 rounded-lg flex flex-col items-center transition-colors border-2 ${
+                  selectedBadges.includes(badge.id) ? "" : "border-transparent"
                 }`}
+                style={{
+                  backgroundColor: selectedBadges.includes(badge.id)
+                    ? "var(--color-primary-light)"
+                    : "var(--color-bg-card)",
+                  borderColor: selectedBadges.includes(badge.id)
+                    ? "var(--color-border-focus)"
+                    : "transparent",
+                }}
+                onMouseEnter={(e) => {
+                  if (!selectedBadges.includes(badge.id)) {
+                    e.currentTarget.style.backgroundColor =
+                      "var(--color-bg-hover)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!selectedBadges.includes(badge.id)) {
+                    e.currentTarget.style.backgroundColor =
+                      "var(--color-bg-card)";
+                  }
+                }}
                 onClick={() => handleBadgeSelect(badge)}
               >
                 <div
@@ -744,7 +796,18 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
                   e.stopPropagation();
                   deleteCustomBadge(badge.id);
                 }}
-                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-sm transition-all"
+                className="absolute -top-2 -right-2 text-white rounded-full p-1 shadow-sm transition-all"
+                style={{
+                  backgroundColor: "var(--color-text-error)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor =
+                    "var(--color-text-error-dark)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor =
+                    "var(--color-text-error)";
+                }}
                 title="배지 삭제"
               >
                 <LuTrash size={16} />
@@ -774,10 +837,26 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
         <button
           onClick={saveWeeklyBadgeSettings}
           disabled={loading}
-          className="flex items-center px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-md shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center px-4 py-2 text-white rounded-md shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            backgroundColor: "var(--color-primary-medium)",
+          }}
+          onMouseEnter={(e) => {
+            if (!e.currentTarget.disabled) {
+              e.currentTarget.style.backgroundColor =
+                "var(--color-primary-dark)";
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor =
+              "var(--color-primary-medium)";
+          }}
         >
           {loading ? (
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500"></div>
+            <div
+              className="animate-spin rounded-full h-8 w-8 border-b-2"
+              style={{ borderColor: "var(--color-primary-medium)" }}
+            ></div>
           ) : (
             <LuSave className="mr-2" size={18} />
           )}
@@ -827,7 +906,8 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
                     </p>
                     <button
                       onClick={handleCancelUpload}
-                      className="text-red-500 text-sm hover:underline"
+                      className="text-sm hover:underline"
+                      style={{ color: "var(--color-text-error)" }}
                     >
                       취소
                     </button>
@@ -850,7 +930,18 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
                     />
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="bg-sky-600 text-white p-2 rounded-lg hover:bg-sky-700 flex items-center"
+                      className="text-white p-2 rounded-lg flex items-center"
+                      style={{
+                        backgroundColor: "var(--color-primary-medium)",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          "var(--color-primary-dark)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          "var(--color-primary-medium)";
+                      }}
                     >
                       파일 선택
                     </button>
@@ -869,7 +960,20 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
               <button
                 onClick={saveCustomBadge}
                 disabled={!selectedFile || uploadLoading}
-                className="bg-sky-600 text-white p-2 rounded-lg hover:bg-sky-700 flex items-center"
+                className="text-white p-2 rounded-lg flex items-center"
+                style={{
+                  backgroundColor: "var(--color-primary-medium)",
+                }}
+                onMouseEnter={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.backgroundColor =
+                      "var(--color-primary-dark)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor =
+                    "var(--color-primary-medium)";
+                }}
               >
                 {uploadLoading && (
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mr-2"></div>
@@ -884,11 +988,20 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
       {/* 설정 저장 완료 모달 */}
       {showSuccessModal && (
         <div className="fixed bottom-5 right-5 z-50 max-w-sm">
-          <div className="bg-white rounded-lg shadow-lg p-4 border border-green-200 animate-fade-in-up">
+          <div
+            className="bg-white rounded-lg shadow-lg p-4 border animate-fade-in-up"
+            style={{ borderColor: "var(--color-success)" }}
+          >
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <LuCheck size={24} className="text-green-600" />
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: "var(--color-success-light)" }}
+                >
+                  <LuCheck
+                    size={24}
+                    style={{ color: "var(--color-success)" }}
+                  />
                 </div>
               </div>
               <div className="ml-3">

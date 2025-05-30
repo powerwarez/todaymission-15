@@ -92,7 +92,10 @@ const PinAuthModal: React.FC<PinAuthModalProps> = ({ onSuccess, onCancel }) => {
         <div className="p-6">
           {loading ? (
             <div className="flex justify-center py-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500"></div>
+              <div
+                className="animate-spin rounded-full h-8 w-8 border-b-2"
+                style={{ borderColor: "var(--color-primary-medium)" }}
+              ></div>
             </div>
           ) : (
             <form onSubmit={handleSubmit}>
@@ -113,7 +116,18 @@ const PinAuthModal: React.FC<PinAuthModalProps> = ({ onSuccess, onCancel }) => {
                   id="pin"
                   value={pin}
                   onChange={handlePinChange}
-                  className="w-full px-4 py-3 text-center text-2xl tracking-widest border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  className="w-full px-4 py-3 text-center text-2xl tracking-widest border border-gray-300 rounded-md focus:outline-none"
+                  style={{
+                    borderColor: "var(--color-border-default)",
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = "var(--color-border-focus)";
+                    e.target.style.boxShadow = `0 0 0 2px var(--color-border-focus)`;
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = "var(--color-border-default)";
+                    e.target.style.boxShadow = "none";
+                  }}
                   placeholder="****"
                   maxLength={4}
                   autoFocus
@@ -121,7 +135,13 @@ const PinAuthModal: React.FC<PinAuthModalProps> = ({ onSuccess, onCancel }) => {
               </div>
 
               {error && (
-                <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">
+                <div
+                  className="mb-4 p-2 rounded"
+                  style={{
+                    backgroundColor: "var(--color-bg-error)",
+                    color: "var(--color-text-error)",
+                  }}
+                >
                   {error}
                 </div>
               )}
@@ -136,7 +156,18 @@ const PinAuthModal: React.FC<PinAuthModalProps> = ({ onSuccess, onCancel }) => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-sky-500 text-white rounded hover:bg-sky-600 flex items-center"
+                  className="px-4 py-2 text-white rounded flex items-center"
+                  style={{
+                    backgroundColor: "var(--color-primary-medium)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor =
+                      "var(--color-primary-dark)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor =
+                      "var(--color-primary-medium)";
+                  }}
                 >
                   <LuKey className="mr-2" />
                   확인
