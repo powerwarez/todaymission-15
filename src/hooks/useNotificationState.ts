@@ -395,6 +395,7 @@ export const useNotificationState = () => {
             badge_type: "weekly", // 명시적으로 badge_type 설정
             earned_at: new Date().toISOString(),
             reward_text: weeklyRewardGoal, // 주간 보상 목표 저장
+            reward_used: false, // 보상 사용 여부 초기값 false
           });
 
         if (insertError) throw insertError;

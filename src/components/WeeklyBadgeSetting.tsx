@@ -29,8 +29,44 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
+  // weekly_streak_1 배지 정보 state
+  const [weeklyStreakBadgeInfo, setWeeklyStreakBadgeInfo] = useState<{
+    name: string;
+    description: string;
+  }>({
+    name: "주간 미션 달성!",
+    description: "이번 주 월-금 모든 미션을 모두 완료했습니다!",
+  });
+
   // 최대 선택 가능한 배지 수
   const MAX_WEEKLY_BADGES = 5;
+
+  // weekly_streak_1 배지 정보 가져오기
+  const fetchWeeklyStreakBadgeInfo = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("badges")
+        .select("name, description")
+        .eq("id", "weekly_streak_1")
+        .single();
+
+      if (error) {
+        console.error("weekly_streak_1 배지 정보 가져오기 오류:", error);
+        return;
+      }
+
+      if (data) {
+        setWeeklyStreakBadgeInfo({
+          name: data.name,
+          description:
+            data.description || "이번 주 월-금 모든 미션을 모두 완료했습니다!",
+        });
+        console.log("weekly_streak_1 배지 정보:", data);
+      }
+    } catch (err) {
+      console.error("weekly_streak_1 배지 정보 가져오기 오류:", err);
+    }
+  };
 
   // 주간 배지 목록 가져오기 함수 (재사용 가능)
   const fetchWeeklyBadges = async () => {
@@ -145,21 +181,6 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
       setLoading(true);
       console.log("커스텀 배지 가져오기 시작 - 사용자 ID:", userId);
 
-      console.log("Supabase 클라이언트 상태:", {
-        isInitialized: !!supabase,
-        hasAuth: !!supabase.auth,
-        hasFromMethod: !!supabase.from,
-      });
-
-      // 테이블 구조 조회 로그 추가
-      const { data: tableInfo, error: tableError } = await supabase
-        .from("custom_badges")
-        .select()
-        .limit(1);
-
-      console.log("custom_badges 테이블 샘플:", tableInfo);
-      console.log("custom_badges 테이블 구조 조회 오류:", tableError);
-
       // 사용자의 커스텀 배지 가져오기
       const { data: customBadges, error: customError } = await supabase
         .from("custom_badges")
@@ -173,23 +194,11 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
 
       console.log("가져온 커스텀 배지 데이터:", customBadges);
 
-      // weekly_streak_1 배지 정보 가져오기
-      const { data: weeklyStreakBadge } = await supabase
-        .from("badges")
-        .select("name, description")
-        .eq("id", "weekly_streak_1")
-        .single();
-
-      const weeklyStreakName = weeklyStreakBadge?.name || "주간 미션 달성!";
-      const weeklyStreakDescription =
-        weeklyStreakBadge?.description ||
-        "이번 주 월-금 모든 미션을 모두 완료했습니다!";
-
       // 커스텀 배지 데이터를 Badge 형식으로 변환
       const formattedCustomBadges = (customBadges || []).map((badge) => ({
-        id: badge.badge_id, // 주의: badge_id를 Badge 객체의 id로 매핑
-        name: weeklyStreakName,
-        description: weeklyStreakDescription,
+        id: badge.badge_id,
+        name: weeklyStreakBadgeInfo.name,
+        description: weeklyStreakBadgeInfo.description,
         image_path: badge.image_path,
         created_at: badge.created_at,
         badge_type: badge.badge_type || "weekly",
@@ -207,49 +216,17 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
     }
   };
 
-  // 컴포넌트 마운트 시 배지 목록 가져오기
+  // 컴포넌트 마운트 시 배지 정보와 목록 가져오기
   useEffect(() => {
     if (userId) {
-      fetchWeeklyBadges();
-      fetchCustomBadges();
-      fetchWeeklyStreakBadgeInfo();
+      const loadData = async () => {
+        await fetchWeeklyStreakBadgeInfo();
+        await fetchWeeklyBadges();
+        await fetchCustomBadges();
+      };
+      loadData();
     }
   }, [userId]);
-
-  // weekly_streak_1 배지 정보 가져오기
-  const [weeklyStreakBadgeInfo, setWeeklyStreakBadgeInfo] = useState<{
-    name: string;
-    description: string;
-  }>({
-    name: "주간 미션 달성!",
-    description: "이번 주 월-금 모든 미션을 모두 완료했습니다!",
-  });
-
-  const fetchWeeklyStreakBadgeInfo = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("badges")
-        .select("name, description")
-        .eq("id", "weekly_streak_1")
-        .single();
-
-      if (error) {
-        console.error("weekly_streak_1 배지 정보 가져오기 오류:", error);
-        return;
-      }
-
-      if (data) {
-        setWeeklyStreakBadgeInfo({
-          name: data.name,
-          description:
-            data.description || "이번 주 월-금 모든 미션을 모두 완료했습니다!",
-        });
-        console.log("weekly_streak_1 배지 정보:", data);
-      }
-    } catch (err) {
-      console.error("weekly_streak_1 배지 정보 가져오기 오류:", err);
-    }
-  };
 
   // 배지 선택 또는 선택 해제
   const handleBadgeSelect = (badge: Badge) => {

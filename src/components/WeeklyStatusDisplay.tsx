@@ -1,6 +1,5 @@
 import React from "react";
 import { WeekdayStatus } from "../hooks/useWeeklyCompletionStatus";
-// import { LuCheck, LuX, LuMinus } from 'react-icons/lu'; // 아이콘 임포트 제거
 
 interface WeeklyStatusDisplayProps {
   weekStatus: WeekdayStatus[];
@@ -18,12 +17,12 @@ const WeeklyStatusDisplay: React.FC<WeeklyStatusDisplayProps> = ({
   // 상태에 따른 원형 구슬 스타일 반환
   const getStatusIndicatorStyle = (status: WeekdayStatus): string => {
     const baseStyle =
-      "rounded-full shadow-md transition-colors duration-200 flex items-center justify-center font-extrabold"; // 텍스트 가운데 정렬 및 굵기 조정
+      "rounded-full shadow-md transition-colors duration-200 flex items-center justify-center font-extrabold";
     const sizeStyle = "h-12 w-12";
 
     let bgColor = "";
     let textColor = "text-gray-700";
-    let borderStyle = ""; // 테두리 스타일 추가
+    let borderStyle = "";
 
     // 진행률에 따른 색상 처리
     if (status.totalMissions > 0) {
@@ -35,7 +34,6 @@ const WeeklyStatusDisplay: React.FC<WeeklyStatusDisplayProps> = ({
         textColor = "text-white";
       } else if (ratio > 0) {
         // 일부 완료: 진행도에 따라 색상 강도 결정
-        // 회색 -> 연한 녹색 -> 중간 녹색으로 단계별 변경
         if (ratio < 0.25) {
           bgColor = "bg-gray-300";
         } else if (ratio < 0.5) {
@@ -63,14 +61,6 @@ const WeeklyStatusDisplay: React.FC<WeeklyStatusDisplayProps> = ({
     return `${baseStyle} ${sizeStyle} ${bgColor} ${textColor} ${borderStyle}`;
   };
 
-  // 아이콘 렌더링 함수 제거
-  /*
-  const renderStatusIcon = (status: WeekdayStatus) => {
-    ...
-  };
-  */
-
-  // 로딩 및 에러 처리 (변경 없음)
   if (loading) {
     return (
       <div className="flex flex-col items-center space-y-4 p-4 bg-white rounded-lg min-h-[280px] justify-center">
@@ -80,6 +70,7 @@ const WeeklyStatusDisplay: React.FC<WeeklyStatusDisplayProps> = ({
       </div>
     );
   }
+
   if (error) {
     return (
       <div className="flex flex-col items-center space-y-4 p-4 bg-white rounded-lg min-h-[280px] justify-center">
@@ -90,8 +81,6 @@ const WeeklyStatusDisplay: React.FC<WeeklyStatusDisplayProps> = ({
 
   return (
     <div className="flex flex-col items-center space-y-3 p-6 bg-white rounded-lg min-w-[80px]">
-      {" "}
-      {/* 간격 재조정 */}
       <h3 className="text-lg font-semibold text-sky-700 mb-2">주간 미션</h3>
       {weekStatus.map((status, index) => (
         <div key={status.dayIndex} className="flex flex-col items-center">
@@ -103,20 +92,17 @@ const WeeklyStatusDisplay: React.FC<WeeklyStatusDisplayProps> = ({
                 : `미션 없음 (${status.date})`
             }
           >
-            {/* 원 안에 요일 텍스트만 표시 */}
             <span
               className={`text-2xl leading-none ${
                 status.isToday ? "animate-pulse" : ""
               }`}
             >
               {dayNames[index]}
-            </span>{" "}
-            {/* 오늘 날짜는 깜빡임 효과 추가 */}
+            </span>
           </div>
           {status.isToday && (
             <span className="text-xs text-sky-600 mt-1 font-bold">오늘</span>
-          )}{" "}
-          {/* 오늘 날짜 아래에 텍스트 추가 */}
+          )}
         </div>
       ))}
     </div>
