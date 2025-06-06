@@ -163,7 +163,6 @@ export const useWeeklyCompletionStatus = () => {
       weeklyStreakAchieved,
       weeklyStreakRewarded,
       showBadgeNotification,
-      formatDate,
     ]
   );
 
@@ -173,9 +172,11 @@ export const useWeeklyCompletionStatus = () => {
     setLoading(true);
     setError(null);
 
-    // 주간 스트릭 상태 초기화
-    setWeeklyStreakAchieved(false);
-    setWeeklyStreakRewarded(false);
+    // 주간 스트릭 상태 초기화 (한 번만 실행되도록)
+    if (weeklyStreakAchieved || weeklyStreakRewarded) {
+      setWeeklyStreakAchieved(false);
+      setWeeklyStreakRewarded(false);
+    }
 
     try {
       // 1. 해당 주의 스냅샷 데이터 가져오기
@@ -311,14 +312,7 @@ export const useWeeklyCompletionStatus = () => {
     } finally {
       setLoading(false);
     }
-  }, [
-    user,
-    formattedMonday,
-    formattedFriday,
-    todayKST,
-    monday,
-    checkWeeklyStreak,
-  ]);
+  }, [user, formattedMonday, formattedFriday, checkWeeklyStreak]);
 
   useEffect(() => {
     fetchWeeklyStatus();

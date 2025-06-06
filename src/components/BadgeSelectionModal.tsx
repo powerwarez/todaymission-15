@@ -314,23 +314,8 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
         weeklyRewardGoal ? "(Hall of Fame에서 호출)" : ""
       );
 
-      // Hall of Fame 페이지에서 호출된 경우 다른 로직 실행
-      if (weeklyRewardGoal) {
-        console.log("Hall of Fame 페이지에서 배지 선택 - 간소화된 로직 사용");
-
-        // 부모 컴포넌트의 onBadgeSelect 함수 직접 호출
-        onBadgeSelect(selectedBadge, "weekly");
-
-        // Confetti 효과 표시
-        triggerConfetti();
-
-        // 성공 후 1.5초 뒤 모달 닫기
-        setTimeout(() => {
-          handleClose();
-        }, 1500);
-
-        return;
-      }
+      // Hall of Fame 페이지에서 호출된 경우는 별도 처리하지 않고 일반 로직 사용
+      // weeklyRewardGoal이 있어도 주간 미션 달성 시에는 정상적으로 저장해야 함
 
       // user_info 테이블에서 weekly_reward_goal 가져오기
       let userWeeklyRewardGoal = "";
