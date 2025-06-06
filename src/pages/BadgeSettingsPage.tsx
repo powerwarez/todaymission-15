@@ -54,19 +54,32 @@ const BadgeSettingsPage: React.FC = () => {
         const { data: earnedBadgesData, error: earnedBadgesError } =
           await supabase
             .from("earned_badges")
-            .select("badge_id") // 획득 횟수 계산에 필요한 badge_id만 선택
+            .select("badge_id, badge_type") // badge_type도 함께 가져오기
             .eq("user_id", user.id);
 
         if (earnedBadgesError) throw earnedBadgesError;
 
         // 4. 배지별 획득 횟수 계산
         const badgeCounts: { [key: string]: number } = {};
+        let weeklyBadgeCount = 0; // weekly 타입 배지 총 개수
+
         if (earnedBadgesData) {
-          earnedBadgesData.forEach((record: { badge_id: string }) => {
-            badgeCounts[record.badge_id] =
-              (badgeCounts[record.badge_id] || 0) + 1;
-          });
+          earnedBadgesData.forEach(
+            (record: { badge_id: string; badge_type: string | null }) => {
+              // 일반 배지 카운트
+              badgeCounts[record.badge_id] =
+                (badgeCounts[record.badge_id] || 0) + 1;
+
+              // weekly 타입 배지 카운트 (주간 미션 달성 배지용)
+              if (record.badge_type === "weekly") {
+                weeklyBadgeCount++;
+              }
+            }
+          );
         }
+
+        // weekly_streak_1 배지의 카운트를 weekly 타입 배지 총 개수로 설정
+        badgeCounts["weekly_streak_1"] = weeklyBadgeCount;
 
         // 5. 배지 이미지 URL 사용 (DB 값을 그대로 사용)
         const displayDataPromises = (allBadges as Badge[]).map(
