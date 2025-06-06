@@ -168,7 +168,7 @@ export const useWeeklyCompletionStatus = () => {
 
   const fetchWeeklyStatus = useCallback(async () => {
     if (!user) return;
-    console.log("[useWeeklyCompletionStatus] Fetching weekly status...");
+    // console.log("[useWeeklyCompletionStatus] Fetching weekly status...");
     setLoading(true);
     setError(null);
 

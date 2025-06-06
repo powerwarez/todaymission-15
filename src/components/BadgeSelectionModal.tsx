@@ -377,19 +377,25 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
         console.error("weekly_streak_1 배지 정보 가져오기 오류:", err);
       }
 
-      // 선택한 배지가 커스텀 배지인 경우 badges 테이블에 레코드가 있는지 확인하고 생성
-      if (isCustomBadge) {
-        const { data: existingBadge, error } = await supabase
-          .from("badges")
-          .select("id")
-          .eq("id", selectedBadge)
-          .maybeSingle();
+      // 선택한 배지가 badges 테이블에 있는지 확인하고, 없으면 생성
+      console.log("🔍 badges 테이블에서 배지 확인:", selectedBadge);
+      const { data: existingBadge, error: badgeCheckError } = await supabase
+        .from("badges")
+        .select("id, name")
+        .eq("id", selectedBadge)
+        .maybeSingle();
 
-        if (error) {
-          console.error("badges 테이블 조회 오류:", error);
-        } else if (!existingBadge) {
-          // badges 테이블에 레코드 생성
-          const { error: insertError } = await supabase.from("badges").insert({
+      if (badgeCheckError) {
+        console.error("❌ badges 테이블 조회 오류:", badgeCheckError);
+        throw badgeCheckError;
+      }
+
+      if (!existingBadge) {
+        console.log("📝 badges 테이블에 배지 레코드 생성:", selectedBadge);
+        // badges 테이블에 레코드 생성
+        const { error: insertBadgeError } = await supabase
+          .from("badges")
+          .insert({
             id: selectedBadge,
             name: weeklyStreakName, // weekly_streak_1 배지 이름 사용
             description: weeklyStreakDescription, // weekly_streak_1 배지 설명 사용
@@ -398,11 +404,16 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
             created_at: new Date().toISOString(),
           });
 
-          if (insertError) {
-            console.error("badges 테이블에 레코드 생성 오류:", insertError);
-            throw insertError;
-          }
+        if (insertBadgeError) {
+          console.error(
+            "❌ badges 테이블에 레코드 생성 오류:",
+            insertBadgeError
+          );
+          throw insertBadgeError;
         }
+        console.log("✅ badges 테이블에 배지 레코드 생성 완료");
+      } else {
+        console.log("✅ badges 테이블에 배지가 이미 존재:", existingBadge);
       }
 
       // 선택한 배지를 earned_badges 테이블에 저장
@@ -445,9 +456,21 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
       setTimeout(() => {
         handleClose();
       }, 1500);
-    } catch (err) {
-      console.error("배지 선택/저장 중 오류 발생:", err);
-      setError("배지 선택 중 오류가 발생했습니다. 다시 시도해주세요.");
+    } catch (err: unknown) {
+      console.error("❌ 배지 선택/저장 중 오류 발생:", err);
+
+      let errorMessage = "배지 선택 중 오류가 발생했습니다.";
+      if (err instanceof Error) {
+        console.error("❌ 오류 상세:", {
+          message: err.message,
+          stack: err.stack,
+        });
+        errorMessage += ` (${err.message})`;
+      } else if (typeof err === "object" && err !== null) {
+        console.error("❌ 오류 객체:", err);
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -42,12 +42,13 @@ export const useNotificationState = () => {
   // 주간 보상 목표 상태 추가
   const [weeklyRewardGoal, setWeeklyRewardGoal] = useState<string>("");
 
-  console.log(
-    "[StateHook] Running/Re-rendering. Queue:",
-    notificationQueue,
-    "Displayed:",
-    displayedBadges.map((b) => b.id)
-  );
+  // 무한 로그 방지를 위해 주석 처리
+  // console.log(
+  //   "[StateHook] Running/Re-rendering. Queue:",
+  //   notificationQueue,
+  //   "Displayed:",
+  //   displayedBadges.map((b) => b.id)
+  // );
 
   // 사용자 정보와 주간 목표 가져오기
   const fetchWeeklyRewardGoal = useCallback(async () => {
@@ -327,19 +328,21 @@ export const useNotificationState = () => {
 
   // 큐 상태 변경 감지 및 처리 시작
   useEffect(() => {
-    console.log(
-      `[StateHook useEffect Check] Queue Length: ${notificationQueue.length}, Processing: ${isProcessingQueue.current}`
-    );
+    // 무한 로그 방지를 위해 주석 처리
+    // console.log(
+    //   `[StateHook useEffect Check] Queue Length: ${notificationQueue.length}, Processing: ${isProcessingQueue.current}`
+    // );
     // 처리 중이 아니고 큐에 항목이 있을 때만 처리 시작
     if (!isProcessingQueue.current && notificationQueue.length > 0) {
-      console.log("[StateHook useEffect] Triggering processNextInQueue.");
+      // console.log("[StateHook useEffect] Triggering processNextInQueue.");
       // 현재 시점의 notificationQueue를 인자로 전달
       processNextInQueue(notificationQueue);
-    } else {
-      console.log(
-        "[StateHook useEffect] Conditions not met, not triggering process."
-      );
     }
+    // else {
+    //   console.log(
+    //     "[StateHook useEffect] Conditions not met, not triggering process."
+    //   );
+    // }
   }, [notificationQueue, processNextInQueue]);
 
   const showBadgeNotification = useCallback((badgeId: string) => {
