@@ -26,7 +26,7 @@ const getWeekDates = (today: Date): { monday: Date; friday: Date } => {
   monday.setDate(todayKST.getDate() + diffToMonday);
   monday.setHours(0, 0, 0, 0); // 날짜 시작 시간으로 설정
 
-  // 금요일 계산
+  // 금요일 계산 (실제로는 주간 배지 확인을 위해 일요일까지 포함)
   const friday = new Date(todayKST);
   friday.setDate(todayKST.getDate() + diffToFriday);
   friday.setHours(23, 59, 59, 999); // 날짜 종료 시간으로 설정 (포함하기 위해)
@@ -115,17 +115,26 @@ export const useWeeklyCompletionStatus = () => {
         setWeeklyStreakAchieved(true);
 
         try {
-          // 이번 주 월요일 구하기
+          // 이번 주 월요일과 일요일 구하기
           const currentWeekMonday = formatDate(monday);
 
-          // 주간 스트릭 배지 획득 여부 확인
+          // 일요일 계산 (이번 주 끝)
+          const todayKST = toZonedTime(new Date(), timeZone);
+          const currentDay = todayKST.getDay();
+          const diffToSunday = currentDay === 0 ? 0 : 7 - currentDay; // 일요일이면 오늘, 아니면 다음 일요일
+          const sunday = new Date(todayKST);
+          sunday.setDate(todayKST.getDate() + diffToSunday);
+          sunday.setHours(23, 59, 59, 999);
+          const currentWeekSunday = formatDate(sunday);
+
+          // 주간 스트릭 배지 획득 여부 확인 (이번 주 전체 기간)
           const { data: existingRewards, error: checkError } = await supabase
             .from("earned_badges")
             .select("id, badge_id")
             .eq("user_id", user.id)
             .eq("badge_id", "weekly_streak_1")
             .gte("earned_at", new Date(currentWeekMonday).toISOString())
-            .lte("earned_at", new Date().toISOString());
+            .lte("earned_at", new Date(currentWeekSunday).toISOString());
 
           if (checkError) throw checkError;
 
@@ -133,7 +142,7 @@ export const useWeeklyCompletionStatus = () => {
 
           // 이미 배지를 획득했는지 확인
           if (existingRewards && existingRewards.length > 0) {
-            console.log("이미 주간 스트릭 배지를 획득했습니다.");
+            console.log("이미 이번 주에 주간 스트릭 배지를 획득했습니다.");
             setWeeklyStreakRewarded(true);
           } else {
             // 아직 배지가 부여되지 않았다면 배지 선택 모달 표시
@@ -163,6 +172,10 @@ export const useWeeklyCompletionStatus = () => {
     console.log("[useWeeklyCompletionStatus] Fetching weekly status...");
     setLoading(true);
     setError(null);
+
+    // 주간 스트릭 상태 초기화
+    setWeeklyStreakAchieved(false);
+    setWeeklyStreakRewarded(false);
 
     try {
       // 1. 해당 주의 스냅샷 데이터 가져오기

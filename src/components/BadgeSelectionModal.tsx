@@ -118,45 +118,13 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
           weeklyStreakBadge?.description ||
           "이번 주 월-금 모든 미션을 모두 완료했습니다!";
 
-        // Hall of Fame에서 호출된 경우 이미 획득한 배지 확인 로직을 건너뜁니다
+        // Hall of Fame에서 호출된 경우에만 이미 획득한 배지 확인 로직을 건너뜁니다
+        // 주간 미션 달성 시에는 이 체크를 하지 않습니다
         if (!weeklyRewardGoal) {
-          // 현재 날짜 기준으로 이번 주의 시작(월요일)과 끝(일요일) 구하기
-          const now = new Date();
-          const day = now.getDay(); // 0: 일요일, 1: 월요일, ..., 6: 토요일
-          const diff = now.getDate() - day + (day === 0 ? -6 : 1); // 이번 주 월요일 날짜 계산
-
-          const weekStart = new Date(now.setDate(diff));
-          weekStart.setHours(0, 0, 0, 0);
-
-          const weekEnd = new Date(weekStart);
-          weekEnd.setDate(weekStart.getDate() + 6);
-          weekEnd.setHours(23, 59, 59, 999);
-
-          // 이번 주 날짜 문자열
-          const weekStartStr = weekStart.toISOString();
-          const weekEndStr = weekEnd.toISOString();
-
-          // 이미 이번 주에 weekly_streak_1 배지를 획득했는지 확인
-          const { data: existingWeeklyBadge, error: weeklyCheckError } =
-            await supabase
-              .from("earned_badges")
-              .select("*")
-              .eq("user_id", user.id)
-              .eq("badge_id", "weekly_streak_1")
-              .gte("earned_at", weekStartStr)
-              .lte("earned_at", weekEndStr);
-
-          if (weeklyCheckError) {
-            console.error("주간 미션 배지 확인 오류:", weeklyCheckError);
-            throw weeklyCheckError;
-          }
-
-          // 이미 이번 주에 배지를 획득했으면 모달 닫기 (Hall of Fame에서 호출된 경우 제외)
-          if (existingWeeklyBadge && existingWeeklyBadge.length > 0) {
-            console.log("이번 주 weekly_streak_1 배지가 이미 획득되었습니다.");
-            onClose();
-            return;
-          }
+          // 주간 미션 달성으로 인한 호출인 경우 배지 확인을 건너뜁니다
+          console.log(
+            "주간 미션 달성으로 인한 배지 선택 모달 - 중복 체크 건너뜀"
+          );
         }
 
         // 1. 먼저 weekly_badge_settings 테이블에서 설정된 배지 ID 가져오기
@@ -379,39 +347,43 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
         console.error("weekly_streak_1 배지 정보 가져오기 오류:", err);
       }
 
-      // 1. 먼저 weekly_streak_1 배지가 이미 획득되었는지 확인
+      // 현재 날짜 기준으로 이번 주의 시작(월요일)과 끝(일요일) 구하기
+      const now = new Date();
+      const day = now.getDay(); // 0: 일요일, 1: 월요일, ..., 6: 토요일
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1); // 이번 주 월요일 날짜 계산
+
+      const weekStart = new Date(now.setDate(diff));
+      weekStart.setHours(0, 0, 0, 0);
+
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
+
+      // 이번 주 날짜 문자열
+      const weekStartStr = weekStart.toISOString();
+      const weekEndStr = weekEnd.toISOString();
+
+      // 1. 먼저 이번 주에 weekly_streak_1 배지가 이미 획득되었는지 확인
       const { data: existingWeeklyBadge, error: weeklyCheckError } =
         await supabase
           .from("earned_badges")
           .select("id")
           .eq("user_id", user.id)
           .eq("badge_id", "weekly_streak_1")
-          .eq("badge_type", "weekly");
+          .gte("earned_at", weekStartStr)
+          .lte("earned_at", weekEndStr);
 
       if (weeklyCheckError) {
         console.error("주간 미션 배지 확인 오류:", weeklyCheckError);
         throw weeklyCheckError;
       }
 
-      // 2. 선택한 커스텀 배지가 이미 획득되었는지 확인
-      const { data: existingCustomBadge, error: customCheckError } =
-        await supabase
-          .from("earned_badges")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("badge_id", badgeId)
-          .eq("badge_type", "weekly");
-
-      if (customCheckError) {
-        console.error("커스텀 배지 확인 오류:", customCheckError);
-        throw customCheckError;
-      }
-
       // 트랜잭션 처리를 위한 배열
       const badgesToInsert = [];
 
-      // 3. weekly_streak_1 배지가 없으면 추가
+      // 2. weekly_streak_1 배지가 이번 주에 없으면 추가
       if (!existingWeeklyBadge || existingWeeklyBadge.length === 0) {
+        console.log("weekly_streak_1 배지를 이번 주에 처음 획득합니다.");
         badgesToInsert.push({
           user_id: user.id,
           badge_id: "weekly_streak_1", // 주간 미션 달성 배지 ID
@@ -419,13 +391,12 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
           earned_at: new Date().toISOString(),
           reward_text: weeklyRewardGoal, // 주간 보상 목표 저장
         });
+      } else {
+        console.log("이번 주에 이미 weekly_streak_1 배지를 획득했습니다.");
       }
 
-      // 4. 선택한 커스텀 배지가 weekly_streak_1이 아니고 아직 획득하지 않았으면 추가
-      if (
-        badgeId !== "weekly_streak_1" &&
-        (!existingCustomBadge || existingCustomBadge.length === 0)
-      ) {
+      // 3. 선택한 배지가 weekly_streak_1이 아닌 경우 커스텀 배지도 추가
+      if (badgeId !== "weekly_streak_1") {
         // 커스텀 배지 테이블에 레코드 생성이 필요한 경우
         if (isCustomBadge) {
           const { data: existingBadge, error } = await supabase
@@ -456,7 +427,8 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
           }
         }
 
-        // 선택한 커스텀 배지 획득 기록 추가
+        // 선택한 커스텀 배지 획득 기록 추가 (이번 주에 이미 획득했는지 확인하지 않음)
+        console.log("선택한 커스텀 배지를 추가합니다:", badgeId);
         badgesToInsert.push({
           user_id: user.id,
           badge_id: badgeId,
@@ -466,7 +438,7 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
         });
       }
 
-      // 5. 배지 획득 기록 저장 (있는 경우에만)
+      // 4. 배지 획득 기록 저장 (있는 경우에만)
       if (badgesToInsert.length > 0) {
         console.log("저장할 배지 데이터:", badgesToInsert);
 
@@ -481,7 +453,7 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
 
         console.log("배지 획득 기록 성공");
       } else {
-        console.log("이미 획득한 배지입니다. 중복 저장하지 않습니다.");
+        console.log("저장할 배지가 없습니다.");
       }
 
       // Confetti 효과 표시
@@ -530,14 +502,15 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
     confettiRef.current.trigger(options);
   };
 
-  // 모달을 표시하지 않는 조건 변경: weeklyRewardGoal이 있으면 항상 표시
-  if (!showModal || (alreadyEarned && !weeklyRewardGoal)) {
-    console.log("모달 표시하지 않음:", {
-      showModal,
-      alreadyEarned,
-      weeklyRewardGoal,
-      조건: !showModal || (alreadyEarned && !weeklyRewardGoal),
-    });
+  // 모달을 표시하지 않는 조건: showModal이 false이거나, Hall of Fame이 아닌데 이미 획득한 경우
+  if (!showModal) {
+    console.log("모달 표시하지 않음 - showModal이 false");
+    return null;
+  }
+
+  // Hall of Fame에서 호출된 경우가 아니고 이미 획득한 경우에만 모달을 표시하지 않음
+  if (alreadyEarned && !weeklyRewardGoal) {
+    console.log("모달 표시하지 않음 - 이미 획득했고 Hall of Fame이 아님");
     return null;
   }
 
