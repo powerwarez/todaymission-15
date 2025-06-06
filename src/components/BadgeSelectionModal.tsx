@@ -281,18 +281,23 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
     return `${supabaseUrl}/storage/v1/object/public/${bucketName}/${cleanRelativePath}`;
   };
 
-  // 배지 선택 처리
-  const handleBadgeSelect = async (badgeId: string) => {
-    if (!user) return;
+  // 배지 선택 처리 (UI에서 선택만 함)
+  const handleBadgeClick = (badgeId: string) => {
+    setSelectedBadge(badgeId);
+    console.log("배지 선택됨:", badgeId);
+  };
+
+  // 선택 완료 버튼 클릭 시 실제 저장 처리
+  const handleConfirmSelection = async () => {
+    if (!user || !selectedBadge) return;
 
     try {
       setLoading(true);
-      setSelectedBadge(badgeId);
       setShowConfetti(true);
 
       console.log(
-        "배지 선택:",
-        badgeId,
+        "배지 선택 완료:",
+        selectedBadge,
         weeklyRewardGoal ? "(Hall of Fame에서 호출)" : ""
       );
 
@@ -301,7 +306,7 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
         console.log("Hall of Fame 페이지에서 배지 선택 - 간소화된 로직 사용");
 
         // 부모 컴포넌트의 onBadgeSelect 함수 직접 호출
-        onBadgeSelect(badgeId, "weekly");
+        onBadgeSelect(selectedBadge, "weekly");
 
         // Confetti 효과 표시
         triggerConfetti();
@@ -334,14 +339,16 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
       }
 
       // 배지 정보 가져오기
-      const selectedBadgeData = badges.find((badge) => badge.id === badgeId);
+      const selectedBadgeData = badges.find(
+        (badge) => badge.id === selectedBadge
+      );
       if (!selectedBadgeData) {
-        console.error("선택한 배지 정보를 찾을 수 없습니다:", badgeId);
+        console.error("선택한 배지 정보를 찾을 수 없습니다:", selectedBadge);
         throw new Error("선택한 배지 정보를 찾을 수 없습니다");
       }
 
       const isCustomBadge =
-        badgeId.startsWith("custom_") || selectedBadgeData.is_custom;
+        selectedBadge.startsWith("custom_") || selectedBadgeData.is_custom;
       console.log("커스텀 배지 여부:", isCustomBadge);
 
       // weekly_streak_1 배지 정보 가져오기
@@ -371,7 +378,7 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
         const { data: existingBadge, error } = await supabase
           .from("badges")
           .select("id")
-          .eq("id", badgeId)
+          .eq("id", selectedBadge)
           .maybeSingle();
 
         if (error) {
@@ -379,7 +386,7 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
         } else if (!existingBadge) {
           // badges 테이블에 레코드 생성
           const { error: insertError } = await supabase.from("badges").insert({
-            id: badgeId,
+            id: selectedBadge,
             name: weeklyStreakName, // weekly_streak_1 배지 이름 사용
             description: weeklyStreakDescription, // weekly_streak_1 배지 설명 사용
             image_path: selectedBadgeData.image_path,
@@ -395,12 +402,12 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
       }
 
       // 선택한 배지를 earned_badges 테이블에 저장
-      console.log("선택한 배지를 저장합니다:", badgeId);
+      console.log("선택한 배지를 저장합니다:", selectedBadge);
       const { error: insertError } = await supabase
         .from("earned_badges")
         .insert({
           user_id: user.id,
-          badge_id: badgeId, // 선택한 배지 ID
+          badge_id: selectedBadge, // 선택한 배지 ID
           badge_type: "weekly", // 항상 weekly
           earned_at: new Date().toISOString(),
           reward_text: userWeeklyRewardGoal, // user_info에서 가져온 주간 보상 목표 저장
@@ -412,7 +419,7 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
       }
 
       console.log("배지 획득 기록 성공:", {
-        badge_id: badgeId,
+        badge_id: selectedBadge,
         badge_type: "weekly",
         reward_text: userWeeklyRewardGoal,
       });
@@ -421,7 +428,12 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
       triggerConfetti();
 
       // 선택한 배지 ID를 부모 컴포넌트로 전달
-      onBadgeSelect(badgeId, "weekly");
+      onBadgeSelect(selectedBadge, "weekly");
+
+      // 성공 후 1.5초 뒤 모달 닫기
+      setTimeout(() => {
+        handleClose();
+      }, 1500);
     } catch (err) {
       console.error("배지 선택/저장 중 오류 발생:", err);
       setError("배지 선택 중 오류가 발생했습니다. 다시 시도해주세요.");
@@ -554,7 +566,7 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
               {badges.map((badge, index) => (
                 <button
                   key={badge.id}
-                  onClick={() => handleBadgeSelect(badge.id)}
+                  onClick={() => handleBadgeClick(badge.id)}
                   className={`badge-item p-3 rounded-lg flex flex-col items-center transition-all ${
                     selectedBadge === badge.id
                       ? "bg-sky-100 ring-2 ring-sky-500 transform scale-105"
@@ -594,20 +606,7 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
             취소
           </button>
           <button
-            onClick={() => {
-              if (selectedBadge) {
-                handleBadgeSelect(selectedBadge)
-                  .then(() => {
-                    // 선택 완료 후 모달 닫기 추가
-                    setTimeout(() => {
-                      handleClose();
-                    }, 1500); // confetti 효과를 볼 수 있도록 약간의 지연 추가
-                  })
-                  .catch((err) => {
-                    console.error("배지 선택 완료 중 오류:", err);
-                  });
-              }
-            }}
+            onClick={handleConfirmSelection}
             disabled={!selectedBadge || loading}
             className={`px-4 py-2 rounded-md ${
               selectedBadge && !loading
