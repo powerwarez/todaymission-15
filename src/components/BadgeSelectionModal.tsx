@@ -416,6 +416,43 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
         console.log("✅ badges 테이블에 배지가 이미 존재:", existingBadge);
       }
 
+      // 오늘 이미 같은 배지를 획득했는지 확인
+      console.log("🔍 오늘 배지 중복 획득 여부 확인:", selectedBadge);
+      const { data: existingTodayBadge, error: duplicateCheckError } =
+        await supabase
+          .from("earned_badges")
+          .select("id, earned_at")
+          .eq("user_id", user.id)
+          .eq("badge_id", selectedBadge)
+          .gte(
+            "earned_at",
+            new Date().toISOString().split("T")[0] + "T00:00:00.000Z"
+          ) // 오늘 00:00:00부터
+          .lt(
+            "earned_at",
+            new Date(new Date().getTime() + 24 * 60 * 60 * 1000)
+              .toISOString()
+              .split("T")[0] + "T00:00:00.000Z"
+          ) // 내일 00:00:00 전까지
+          .maybeSingle();
+
+      if (duplicateCheckError) {
+        console.error("❌ 중복 체크 오류:", duplicateCheckError);
+        throw duplicateCheckError;
+      }
+
+      if (existingTodayBadge) {
+        console.log(
+          "⚠️ 오늘 이미 같은 배지를 획득했습니다:",
+          existingTodayBadge
+        );
+        setError(
+          "오늘 이미 같은 배지를 획득하셨습니다. 다른 배지를 선택해주세요."
+        );
+        setLoading(false);
+        return;
+      }
+
       // 선택한 배지를 earned_badges 테이블에 저장
       const insertData = {
         user_id: user.id,

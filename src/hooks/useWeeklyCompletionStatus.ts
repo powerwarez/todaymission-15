@@ -115,8 +115,9 @@ export const useWeeklyCompletionStatus = () => {
         setWeeklyStreakAchieved(true);
 
         try {
-          // 이번 주 월요일과 일요일 구하기
-          const currentWeekMonday = formatDate(monday);
+          // 이번 주 월요일과 일요일 구하기 (한국 시간 기준)
+          const mondayStart = new Date(monday);
+          mondayStart.setHours(0, 0, 0, 0);
 
           // 일요일 계산 (이번 주 끝)
           const todayKST = toZonedTime(new Date(), timeZone);
@@ -125,16 +126,19 @@ export const useWeeklyCompletionStatus = () => {
           const sunday = new Date(todayKST);
           sunday.setDate(todayKST.getDate() + diffToSunday);
           sunday.setHours(23, 59, 59, 999);
-          const currentWeekSunday = formatDate(sunday);
 
-          // 주간 스트릭 배지 획득 여부 확인 (이번 주 전체 기간)
+          console.log(
+            `[StateHook] Checking weekly streak between ${mondayStart.toISOString()} and ${sunday.toISOString()}`
+          );
+
+          // 주간 스트릭 배지 획득 여부 확인 (이번 주 전체 기간, badge_type이 weekly인 모든 배지)
           const { data: existingRewards, error: checkError } = await supabase
             .from("earned_badges")
-            .select("id, badge_id")
+            .select("id, badge_id, badge_type, earned_at")
             .eq("user_id", user.id)
-            .eq("badge_id", "weekly_streak_1")
-            .gte("earned_at", new Date(currentWeekMonday).toISOString())
-            .lte("earned_at", new Date(currentWeekSunday).toISOString());
+            .eq("badge_type", "weekly")
+            .gte("earned_at", mondayStart.toISOString())
+            .lte("earned_at", sunday.toISOString());
 
           if (checkError) throw checkError;
 
