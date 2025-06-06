@@ -128,8 +128,8 @@ export const useNotificationState = () => {
             return;
           }
 
-          // 주간 목표 정보 갱신
-          await fetchWeeklyRewardGoal();
+          // 주간 목표 정보 갱신 (직접 호출하지 않고 현재 상태 사용)
+          // await fetchWeeklyRewardGoal(); // 이 부분이 무한 루프 원인
 
           // 이번 주의 시작(월요일)과 끝(일요일) 구하기
           const { monday, sunday } = getWeekDates();
@@ -322,7 +322,7 @@ export const useNotificationState = () => {
         );
       }
     },
-    [fetchWeeklyRewardGoal]
+    [] // 의존성 제거하여 무한 루프 방지
   );
 
   // 큐 상태 변경 감지 및 처리 시작
@@ -367,6 +367,7 @@ export const useNotificationState = () => {
   // 배지 선택 모달 닫기
   const handleCloseBadgeSelectionModal = useCallback(() => {
     setShowBadgeSelectionModal(false);
+    setWeeklyStreakAchieved(false);
   }, []);
 
   // 주간 스트릭 1 달성 시 사용자가 선택한 배지 처리

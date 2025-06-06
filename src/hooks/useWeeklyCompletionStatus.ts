@@ -110,7 +110,7 @@ export const useWeeklyCompletionStatus = () => {
       console.log("- 이미 달성 상태:", weeklyStreakAchieved);
       console.log("- 이미 보상 받음:", weeklyStreakRewarded);
 
-      if (allCompleted && !weeklyStreakAchieved) {
+      if (allCompleted && !weeklyStreakAchieved && !weeklyStreakRewarded) {
         console.log("🎉 금요일에 주간 미션 모두 완료!");
         setWeeklyStreakAchieved(true);
 
