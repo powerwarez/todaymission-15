@@ -53,6 +53,7 @@ const TodayMissionPage: React.FC = () => {
     weekStatus,
     loading: weekStatusLoading,
     error: weekStatusError,
+    refetch: refetchWeeklyStatus,
   } = useWeeklyCompletionStatus(); // 주간 현황 데이터 로드
 
   const [showConfetti, setShowConfetti] = useState(false);
@@ -244,6 +245,11 @@ const TodayMissionPage: React.FC = () => {
         setShowConfetti(true);
         // 로그 목록 다시 가져오기
         await fetchLogs();
+
+        // 주간 상태 다시 체크 (주간 미션 달성 여부 확인)
+        setTimeout(() => {
+          refetchWeeklyStatus();
+        }, 500); // 스냅샷 업데이트 후 주간 상태 체크
       }
     } catch (error) {
       console.error("미션 상태 변경 중 오류 발생:", error);
