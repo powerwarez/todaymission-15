@@ -53,7 +53,6 @@ const TodayMissionPage: React.FC = () => {
     weekStatus,
     loading: weekStatusLoading,
     error: weekStatusError,
-    refetch: refetchWeeklyStatus,
   } = useWeeklyCompletionStatus(); // 주간 현황 데이터 로드
 
   const [showConfetti, setShowConfetti] = useState(false);
@@ -227,8 +226,6 @@ const TodayMissionPage: React.FC = () => {
           console.log("삭제할 로그 ID:", missionToUpdate.log_id);
           await deleteLog(missionToUpdate.log_id);
           console.log("로그 삭제 완료");
-          // 주간 현황 갱신
-          await refetchWeeklyStatus();
           // 로컬 상태 업데이트
           await fetchLogs(); // 로그 목록 다시 가져오기
         }
@@ -245,8 +242,6 @@ const TodayMissionPage: React.FC = () => {
 
         // 폭죽 효과 표시
         setShowConfetti(true);
-        // 주간 현황 갱신
-        await refetchWeeklyStatus();
         // 로그 목록 다시 가져오기
         await fetchLogs();
       }

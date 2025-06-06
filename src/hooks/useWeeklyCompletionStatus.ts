@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../contexts/AuthContext";
 import { toZonedTime, format } from "date-fns-tz";
@@ -78,7 +78,7 @@ export const useWeeklyCompletionStatus = () => {
   // 주간 스트릭 달성 여부 확인
   const checkWeeklyStreak = useCallback(
     async (weeklyStatus: WeekdayStatus[]) => {
-      if (!user || weeklyStreakRewarded) return;
+      if (!user || weeklyStreakRewarded || weeklyStreakAchieved) return;
 
       // 오늘이 금요일인지 확인 (KST 기준)
       const todayKST = toZonedTime(new Date(), timeZone);
@@ -166,17 +166,15 @@ export const useWeeklyCompletionStatus = () => {
     ]
   );
 
+  // 무한 루프 방지를 위한 ref
+  const isProcessing = useRef(false);
+
   const fetchWeeklyStatus = useCallback(async () => {
-    if (!user) return;
-    // console.log("[useWeeklyCompletionStatus] Fetching weekly status...");
+    if (!user || isProcessing.current) return;
+
+    isProcessing.current = true;
     setLoading(true);
     setError(null);
-
-    // 주간 스트릭 상태 초기화 (한 번만 실행되도록)
-    if (weeklyStreakAchieved || weeklyStreakRewarded) {
-      setWeeklyStreakAchieved(false);
-      setWeeklyStreakRewarded(false);
-    }
 
     try {
       // 1. 해당 주의 스냅샷 데이터 가져오기
@@ -311,12 +309,15 @@ export const useWeeklyCompletionStatus = () => {
       }
     } finally {
       setLoading(false);
+      isProcessing.current = false;
     }
-  }, [user, formattedMonday, formattedFriday, checkWeeklyStreak]);
+  }, [user, formattedMonday, formattedFriday]);
 
   useEffect(() => {
-    fetchWeeklyStatus();
-  }, [fetchWeeklyStatus]);
+    if (user) {
+      fetchWeeklyStatus();
+    }
+  }, [user, formattedMonday, formattedFriday]);
 
   return {
     weekStatus,
