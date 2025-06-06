@@ -289,14 +289,27 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
 
   // 선택 완료 버튼 클릭 시 실제 저장 처리
   const handleConfirmSelection = async () => {
-    if (!user || !selectedBadge) return;
+    console.log("🔥 handleConfirmSelection 시작", {
+      user: !!user,
+      selectedBadge,
+    });
+
+    if (!user) {
+      console.error("❌ 사용자 정보가 없습니다");
+      return;
+    }
+
+    if (!selectedBadge) {
+      console.error("❌ 선택된 배지가 없습니다");
+      return;
+    }
 
     try {
       setLoading(true);
       setShowConfetti(true);
 
       console.log(
-        "배지 선택 완료:",
+        "✅ 배지 선택 완료:",
         selectedBadge,
         weeklyRewardGoal ? "(Hall of Fame에서 호출)" : ""
       );
@@ -321,6 +334,8 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
 
       // user_info 테이블에서 weekly_reward_goal 가져오기
       let userWeeklyRewardGoal = "";
+      console.log("📋 사용자 정보 조회 시작, user.id:", user.id);
+
       try {
         const { data: userInfo, error: userInfoError } = await supabase
           .from("user_info")
@@ -328,14 +343,18 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
           .eq("user_id", user.id)
           .single();
 
+        console.log("📋 사용자 정보 조회 결과:", { userInfo, userInfoError });
+
         if (userInfoError) {
-          console.error("사용자 정보 가져오기 오류:", userInfoError);
+          console.error("❌ 사용자 정보 가져오기 오류:", userInfoError);
         } else if (userInfo && userInfo.weekly_reward_goal) {
           userWeeklyRewardGoal = userInfo.weekly_reward_goal;
-          console.log("사용자 주간 목표:", userWeeklyRewardGoal);
+          console.log("✅ 사용자 주간 목표:", userWeeklyRewardGoal);
+        } else {
+          console.log("⚠️ 사용자 주간 목표가 설정되지 않음");
         }
       } catch (err) {
-        console.error("사용자 주간 목표 가져오기 중 오류:", err);
+        console.error("❌ 사용자 주간 목표 가져오기 중 오류:", err);
       }
 
       // 배지 정보 가져오기
@@ -402,26 +421,33 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
       }
 
       // 선택한 배지를 earned_badges 테이블에 저장
-      console.log("선택한 배지를 저장합니다:", selectedBadge);
-      const { error: insertError } = await supabase
+      const insertData = {
+        user_id: user.id,
+        badge_id: selectedBadge, // 선택한 배지 ID
+        badge_type: "weekly", // 항상 weekly
+        earned_at: new Date().toISOString(),
+        reward_text: userWeeklyRewardGoal, // user_info에서 가져온 주간 보상 목표 저장
+      };
+
+      console.log("💾 선택한 배지를 저장합니다:", insertData);
+
+      const { data: insertResult, error: insertError } = await supabase
         .from("earned_badges")
-        .insert({
-          user_id: user.id,
-          badge_id: selectedBadge, // 선택한 배지 ID
-          badge_type: "weekly", // 항상 weekly
-          earned_at: new Date().toISOString(),
-          reward_text: userWeeklyRewardGoal, // user_info에서 가져온 주간 보상 목표 저장
-        });
+        .insert(insertData)
+        .select(); // 삽입된 데이터 반환
+
+      console.log("💾 데이터베이스 삽입 결과:", { insertResult, insertError });
 
       if (insertError) {
-        console.error("배지 획득 기록 실패:", insertError);
+        console.error("❌ 배지 획득 기록 실패:", insertError);
         throw insertError;
       }
 
-      console.log("배지 획득 기록 성공:", {
+      console.log("✅ 배지 획득 기록 성공:", {
         badge_id: selectedBadge,
         badge_type: "weekly",
         reward_text: userWeeklyRewardGoal,
+        insertResult,
       });
 
       // Confetti 효과 표시
