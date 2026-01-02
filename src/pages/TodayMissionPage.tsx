@@ -83,6 +83,7 @@ const TodayMissionPage: React.FC = () => {
     snapshot: dailySnapshot,
     loading: snapshotLoading,
     error: snapshotError,
+    fallbackMissions, // 같은 주의 다른 날짜에서 가져온 미션 목록
   } = useDailySnapshot(selectedDate);
 
   const {
@@ -381,15 +382,23 @@ const TodayMissionPage: React.FC = () => {
     weekStatusError ||
     snapshotError;
 
-  // 선택된 날짜의 미션 목록 가져오기 (오늘이면 missions, 과거면 스냅샷)
+  // 선택된 날짜의 미션 목록 가져오기 (오늘이면 missions, 과거면 스냅샷 또는 폴백)
   const selectedDateMissions = useMemo((): Mission[] => {
     if (isToday) {
       return missions || [];
     } else {
       // 과거 날짜: 스냅샷에서 미션 목록 가져오기
-      return dailySnapshot?.missions_snapshot || [];
+      // 스냅샷이 있고 미션이 있으면 사용
+      if (dailySnapshot?.missions_snapshot && dailySnapshot.missions_snapshot.length > 0) {
+        return dailySnapshot.missions_snapshot;
+      }
+      // 스냅샷이 없거나 미션이 비어있으면 폴백 미션 사용 (같은 주 또는 현재 미션)
+      if (fallbackMissions && fallbackMissions.length > 0) {
+        return fallbackMissions;
+      }
+      return [];
     }
-  }, [isToday, missions, dailySnapshot]);
+  }, [isToday, missions, dailySnapshot, fallbackMissions]);
 
   // 미션 데이터와 로그 데이터 결합
   const missionsWithStatus = useMemo(() => {
@@ -796,9 +805,7 @@ const TodayMissionPage: React.FC = () => {
               <p className="text-center text-gray-500 bg-white p-6 rounded-lg shadow">
                 {isToday
                   ? '아직 설정된 미션이 없어요! "도전과제 설정"에서 오늘의 미션을 만들어 보세요.'
-                  : !dailySnapshot
-                  ? "이 날짜에는 기록된 미션이 없어요."
-                  : "이 날짜에는 등록된 미션이 없어요."}
+                  : "이 날짜에는 등록된 미션이 없어요. 미션 설정에서 새로운 미션을 추가해보세요."}
               </p>
             )}
             {missionsWithStatus.map((mission) => {

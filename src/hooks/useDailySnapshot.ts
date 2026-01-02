@@ -1,9 +1,27 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import { DailyMissionSnapshot } from '../types'; // 타입 정의 필요
+import { DailyMissionSnapshot, Mission } from '../types'; // 타입 정의 필요
 
-// 사용하지 않는 formatDate 함수 제거
+// 주어진 날짜가 속한 주의 월요일과 일요일을 계산하는 함수
+const getWeekRange = (dateString: string): { monday: string; sunday: string } => {
+  const date = new Date(dateString + 'T00:00:00Z');
+  const dayOfWeek = date.getUTCDay();
+  
+  // 월요일 계산 (일요일=0이면 -6, 그 외는 1-dayOfWeek)
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(date);
+  monday.setUTCDate(date.getUTCDate() + mondayOffset);
+  
+  // 일요일 계산 (월요일 + 6일)
+  const sunday = new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate() + 6);
+  
+  return {
+    monday: monday.toISOString().split('T')[0],
+    sunday: sunday.toISOString().split('T')[0],
+  };
+};
 
 // 파라미터 타입을 string으로 변경
 export const useDailySnapshot = (formattedDate: string) => {
@@ -11,43 +29,91 @@ export const useDailySnapshot = (formattedDate: string) => {
   const [snapshot, setSnapshot] = useState<DailyMissionSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // 내부 formatDate 호출 제거
+  // 폴백으로 사용된 미션 목록 (같은 주의 다른 스냅샷에서 가져온 경우)
+  const [fallbackMissions, setFallbackMissions] = useState<Mission[] | null>(null);
 
   const fetchSnapshot = useCallback(async () => {
-    if (!user || !formattedDate) { // formattedDate 유효성 검사 추가
+    if (!user || !formattedDate) {
       setSnapshot(null);
+      setFallbackMissions(null);
       setLoading(false);
       return;
     }
     setLoading(true);
     setError(null);
+    setFallbackMissions(null);
 
     try {
+      // 1. 먼저 해당 날짜의 스냅샷을 찾습니다
       const { data, error: fetchError } = await supabase
         .from('daily_mission_snapshots')
-        .select('*') // missions_snapshot, total_missions_count 등 포함
+        .select('*')
         .eq('user_id', user.id)
-        // 파라미터로 받은 formattedDate 직접 사용
         .eq('date', formattedDate)
-        .maybeSingle(); // 결과가 없거나 하나일 수 있음
+        .maybeSingle();
 
       if (fetchError) throw fetchError;
-      setSnapshot(data);
+      
+      // 스냅샷이 있으면 그대로 사용
+      if (data && data.missions_snapshot && data.missions_snapshot.length > 0) {
+        setSnapshot(data);
+        return;
+      }
+      
+      // 2. 스냅샷이 없거나 미션이 비어있으면 같은 주의 다른 스냅샷에서 미션 목록을 가져옵니다
+      const { monday, sunday } = getWeekRange(formattedDate);
+      console.log(`[useDailySnapshot] 해당 날짜(${formattedDate})에 스냅샷 없음, 같은 주(${monday} ~ ${sunday}) 스냅샷 검색`);
+      
+      const { data: weekSnapshots, error: weekError } = await supabase
+        .from('daily_mission_snapshots')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('date', monday)
+        .lte('date', sunday)
+        .not('missions_snapshot', 'is', null)
+        .order('date', { ascending: false })
+        .limit(5);
+      
+      if (weekError) throw weekError;
+      
+      // 같은 주에 미션이 있는 스냅샷 찾기
+      const validWeekSnapshot = weekSnapshots?.find(
+        (s) => s.missions_snapshot && s.missions_snapshot.length > 0
+      );
+      
+      if (validWeekSnapshot) {
+        console.log(`[useDailySnapshot] 같은 주의 스냅샷(${validWeekSnapshot.date})에서 미션 목록 가져옴`);
+        // 빈 스냅샷으로 설정 (해당 날짜에 실제 스냅샷은 없음)
+        setSnapshot(data);
+        // 폴백 미션 목록 설정
+        setFallbackMissions(validWeekSnapshot.missions_snapshot);
+      } else {
+        // 같은 주에도 스냅샷이 없으면 현재 미션 목록을 가져옵니다
+        console.log('[useDailySnapshot] 같은 주에 스냅샷 없음, 현재 미션 목록 사용');
+        const { data: currentMissions, error: missionsError } = await supabase
+          .from('missions')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('order', { ascending: true });
+        
+        if (missionsError) throw missionsError;
+        
+        setSnapshot(data);
+        setFallbackMissions(currentMissions || []);
+      }
     } catch (err: unknown) {
       console.error('Error fetching daily snapshot:', err);
       setError('일일 스냅샷을 불러오는 중 오류가 발생했습니다.');
-      // 에러 발생 시 스냅샷 상태를 null로 설정하는 것이 좋을 수 있음
       setSnapshot(null);
+      setFallbackMissions(null);
     } finally {
       setLoading(false);
     }
-  // 의존성 배열에 user와 formattedDate 추가
   }, [user, formattedDate]);
 
   useEffect(() => {
     fetchSnapshot();
   }, [fetchSnapshot]);
 
-  return { snapshot, loading, error, refetch: fetchSnapshot };
+  return { snapshot, loading, error, fallbackMissions, refetch: fetchSnapshot };
 }; 
