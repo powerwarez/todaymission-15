@@ -143,17 +143,20 @@ const App: React.FC = () => {
             },
           }}
         />
-        {/* 모달은 displayedBadges 배열을 순회하며 여러 개 렌더링 */}
-        {displayedBadges.map((badge, index) => (
+        {/* 모달은 displayedBadges 배열을 순회하며 여러 개 렌더링 (최대 3개) */}
+        {displayedBadges.slice(0, 3).map((badge, index) => (
           <BadgeNotificationModal
             key={badge.id} // 각 모달 인스턴스는 고유 키 필요
             badge={badge}
             // onClose는 이제 badgeId를 받아 handleCloseNotification 호출
             onClose={() => handleCloseNotification(badge.id)}
-            // 모달 위치를 조정하여 겹치지 않게 표시 (예: index 사용)
+            // 모달 위치를 조정하여 겹치지 않게 표시 (상단에 간격을 두고 배치)
+            // 첫 번째(index=0): 기본 위치 (bottom-5)
+            // 두 번째(index=1): 첫 번째 위로 약 130px
+            // 세 번째(index=2): 두 번째 위로 약 130px
             style={{
-              transform: `translateY(-${index * 110}%)`, // 각 모달을 위로 110% 만큼 이동
-              zIndex: 9999 - index, // 위에 쌓이는 모달이 더 높은 z-index 가짐
+              transform: `translateY(-${index * 130}px)`, // 각 모달을 위로 130px씩 이동
+              zIndex: 9999 - index, // 아래쪽 모달이 더 높은 z-index를 가짐
             }}
           />
         ))}
