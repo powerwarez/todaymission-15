@@ -30,8 +30,8 @@ export const useMissionLogs = (formattedDate: string) => {
 
   // 오늘 완료된 로그 수 상태 추가 (예측용)
   const [completedTodayCount, setCompletedTodayCount] = useState(0);
-  // 전체 완료 로그 수 상태 추가 (예측용)
-  const [totalCompletedCount, setTotalCompletedCount] = useState<number | null>(
+  // 전체 완료 로그 수 상태 추가 (예측용) - setter만 사용
+  const [, setTotalCompletedCount] = useState<number | null>(
     null
   );
   // 오늘 필요한 총 미션 수 상태 추가 (예측용)
