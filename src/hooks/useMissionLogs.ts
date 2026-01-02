@@ -44,8 +44,8 @@ export const useMissionLogs = (formattedDate: string) => {
   >(new Set());
   // 사용자 정의 도전과제 목록
   const [userChallenges, setUserChallenges] = useState<UserChallenge[]>([]);
-  // 주간 완료 횟수 (이번 주) - 더 이상 사용하지 않음
-  const [weeklyCompletedCount, setWeeklyCompletedCount] = useState<number>(0);
+  // 주간 완료 횟수 (이번 주) - 더 이상 사용하지 않음 (호환성 유지)
+  const [, setWeeklyCompletedCount] = useState<number>(0);
   // 오늘의 영웅 배지 획득 횟수 (전체)
   const [dailyHeroCount, setDailyHeroCount] = useState<number>(0);
   // 주간 미션 달성 배지 획득 횟수 (전체)
@@ -325,7 +325,7 @@ export const useMissionLogs = (formattedDate: string) => {
 
     // 2. 다음 상태 예측
     const newCompletedToday = currentCompletedToday + 1;
-    const newTotalCompleted = currentTotalCompleted + 1;
+    const _newTotalCompleted = currentTotalCompleted + 1; // 미래 사용을 위해 보존
 
     // 3. 배지 획득 조건 한 번에 검사
     const newlyEarnedBadgeIds: string[] = []; // 이번에 획득한 배지 IDs
