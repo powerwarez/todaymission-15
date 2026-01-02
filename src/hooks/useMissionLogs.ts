@@ -11,6 +11,15 @@ const playSound = (soundFile: string) => {
   audio.play().catch((e) => console.error("Error playing sound:", e));
 };
 
+// 사용자 정의 도전과제 타입
+interface UserChallenge {
+  id: string;
+  name: string;
+  badge_id: string;
+  condition_type: "DAILY_COMPLETIONS" | "WEEKLY_COMPLETIONS" | "TOTAL_COMPLETIONS";
+  required_count: number;
+}
+
 export const useMissionLogs = (formattedDate: string) => {
   const { user } = useAuth();
   const { showBadgeNotification } = useNotification();
@@ -32,6 +41,10 @@ export const useMissionLogs = (formattedDate: string) => {
   const [previouslyEarnedBadgeIds, setPreviouslyEarnedBadgeIds] = useState<
     Set<string>
   >(new Set());
+  // 사용자 정의 도전과제 목록
+  const [userChallenges, setUserChallenges] = useState<UserChallenge[]>([]);
+  // 주간 완료 횟수 (이번 주)
+  const [weeklyCompletedCount, setWeeklyCompletedCount] = useState<number>(0);
 
   const fetchLogs = useCallback(async () => {
     if (!user || !formattedDate) {
@@ -133,18 +146,38 @@ export const useMissionLogs = (formattedDate: string) => {
         `[useMissionLogs] Initial totalCompletedCount: ${totalCount}`
       );
 
-      // Fetch previously earned one-time badges ('첫 도전', '열정 가득')
+      // Fetch previously earned one-time badges ('첫 도전', '열정 가득', '꾸준한 도전자')
       // 실제 badge_id는 challenges 테이블 확인 후 정확히 기입해야 함
       const oneTimeBadgeIds = [
         "first_mission_completed",
         "ten_missions_completed",
+        "mission_150_completed",
       ]; // 예시 ID
+
+      // 사용자 정의 도전과제 로드
+      const { data: userChallengesData, error: userChallengesError } =
+        await supabase
+          .from("challenges")
+          .select("id, name, badge_id, condition_type, required_count")
+          .eq("user_id", user.id);
+
+      if (userChallengesError) {
+        console.error("사용자 도전과제 로드 오류:", userChallengesError);
+      } else {
+        setUserChallenges(userChallengesData || []);
+        console.log("[useMissionLogs] User challenges loaded:", userChallengesData);
+      }
+
+      // 사용자 도전과제 배지 ID도 추가
+      const userChallengeBadgeIds = (userChallengesData || []).map(c => c.badge_id);
+      const allBadgeIdsToCheck = [...oneTimeBadgeIds, ...userChallengeBadgeIds];
+
       const { data: earnedBadgesData, error: earnedBadgesError } =
         await supabase
           .from("earned_badges")
           .select("badge_id")
           .eq("user_id", user.id)
-          .in("badge_id", oneTimeBadgeIds);
+          .in("badge_id", allBadgeIdsToCheck);
 
       if (earnedBadgesError) throw earnedBadgesError;
       const earnedSet = new Set(earnedBadgesData?.map((b) => b.badge_id) || []);
@@ -153,6 +186,28 @@ export const useMissionLogs = (formattedDate: string) => {
         "[useMissionLogs] Initial previouslyEarnedBadgeIds:",
         earnedSet
       );
+
+      // 주간 완료 횟수 계산 (이번 주 월요일부터 오늘까지)
+      const today = new Date(formattedDate);
+      const dayOfWeek = today.getDay();
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const monday = new Date(today);
+      monday.setDate(today.getDate() + mondayOffset);
+      const mondayStr = monday.toISOString().split("T")[0];
+
+      const { count: weeklyCount, error: weeklyCountError } = await supabase
+        .from("mission_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("completed_at", mondayStr)
+        .lte("completed_at", formattedDate);
+
+      if (weeklyCountError) {
+        console.error("주간 완료 횟수 로드 오류:", weeklyCountError);
+      } else {
+        setWeeklyCompletedCount(weeklyCount ?? 0);
+        console.log(`[useMissionLogs] Weekly completed count: ${weeklyCount}`);
+      }
     } catch (err: unknown) {
       console.error("Error fetching initial data for badge prediction:", err);
       setError("초기 데이터 로딩 중 오류 발생");
@@ -209,6 +264,17 @@ export const useMissionLogs = (formattedDate: string) => {
       badgesToUpdateInSet.add(passionBadgeId);
     }
 
+    // 꾸준한 도전자 배지 체크 (150개 완료)
+    const mission150BadgeId = "mission_150_completed";
+    if (
+      newTotalCompleted >= 150 &&
+      !previouslyEarnedBadgeIds.has(mission150BadgeId)
+    ) {
+      console.log("🎉 Predicted badge earn: 꾸준한 도전자 (150회 달성)");
+      newlyEarnedBadgeIds.push(mission150BadgeId);
+      badgesToUpdateInSet.add(mission150BadgeId);
+    }
+
     // 오늘의 영웅 배지 체크 (오늘 할당량 모두 완료)
     const dailyHeroBadgeId = "daily_hero";
     if (
@@ -219,6 +285,44 @@ export const useMissionLogs = (formattedDate: string) => {
       console.log("🎉 Predicted badge earn: 오늘의 영웅");
       // 오늘의 영웅은 반복 획득 가능하므로 previouslyEarnedBadgeIds에 추가하지 않음
       newlyEarnedBadgeIds.push(dailyHeroBadgeId);
+    }
+
+    // 사용자 정의 도전과제 체크
+    const newWeeklyCompleted = weeklyCompletedCount + 1;
+    for (const challenge of userChallenges) {
+      // 이미 획득한 배지는 스킵
+      if (previouslyEarnedBadgeIds.has(challenge.badge_id)) {
+        continue;
+      }
+
+      let shouldEarn = false;
+
+      switch (challenge.condition_type) {
+        case "TOTAL_COMPLETIONS":
+          // 총 미션 완료 횟수 체크
+          if (newTotalCompleted >= challenge.required_count) {
+            shouldEarn = true;
+          }
+          break;
+        case "DAILY_COMPLETIONS":
+          // 일일 미션 완료 횟수 체크
+          if (newCompletedToday >= challenge.required_count) {
+            shouldEarn = true;
+          }
+          break;
+        case "WEEKLY_COMPLETIONS":
+          // 주간 미션 완료 횟수 체크
+          if (newWeeklyCompleted >= challenge.required_count) {
+            shouldEarn = true;
+          }
+          break;
+      }
+
+      if (shouldEarn) {
+        console.log(`🎉 Predicted badge earn: ${challenge.name} (사용자 도전과제)`);
+        newlyEarnedBadgeIds.push(challenge.badge_id);
+        badgesToUpdateInSet.add(challenge.badge_id);
+      }
     }
 
     // --- DB 작업 시작 ---
@@ -387,14 +491,14 @@ export const useMissionLogs = (formattedDate: string) => {
         );
 
         for (const badgeId of newlyEarnedBadgeIds) {
+          const badgeNames: Record<string, string> = {
+            ten_missions_completed: "열정가득",
+            daily_hero: "오늘의 영웅",
+            first_mission_completed: "첫 도전",
+            mission_150_completed: "꾸준한 도전자",
+          };
           console.log(
-            `🔔 Queueing: ${badgeId} (${
-              badgeId === "ten_missions_completed"
-                ? "열정가득"
-                : badgeId === "daily_hero"
-                ? "오늘의 영웅"
-                : "첫 도전"
-            })`
+            `🔔 Queueing: ${badgeId} (${badgeNames[badgeId] || badgeId})`
           );
           showBadgeNotification(badgeId);
         }
@@ -404,6 +508,7 @@ export const useMissionLogs = (formattedDate: string) => {
       setLogs((prevLogs) => [...prevLogs, insertedLog]);
       setCompletedTodayCount((prevCount) => prevCount + 1);
       setTotalCompletedCount((prevCount) => (prevCount ?? 0) + 1);
+      setWeeklyCompletedCount((prevCount) => prevCount + 1);
       // 이전에 획득한 배지 Set 업데이트 (필요한 경우)
       if (badgesToUpdateInSet.size > 0) {
         setPreviouslyEarnedBadgeIds((prevSet) => {
@@ -454,6 +559,7 @@ export const useMissionLogs = (formattedDate: string) => {
       // 카운트 감소 (null 체크 및 0 미만 방지)
       setTotalCompletedCount((prevCount) => Math.max(0, (prevCount ?? 0) - 1));
       setCompletedTodayCount((prevCount) => Math.max(0, prevCount - 1));
+      setWeeklyCompletedCount((prevCount) => Math.max(0, prevCount - 1));
 
       console.log("[deleteLog] States updated after deletion.");
 
