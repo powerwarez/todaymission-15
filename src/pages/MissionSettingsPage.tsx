@@ -411,7 +411,7 @@ const MissionSettingsPage: React.FC = () => {
                             className="flex items-center gap-4 p-4 rounded-lg border"
                             style={{
                               borderColor: "var(--color-border-light)",
-                              backgroundColor: "var(--color-bg-secondary)",
+                              backgroundColor: "var(--color-bg-hover)",
                             }}
                           >
                             {/* 배지 이미지 */}
@@ -494,7 +494,7 @@ const MissionSettingsPage: React.FC = () => {
                             className="flex items-center gap-4 p-4 rounded-lg border"
                             style={{
                               borderColor: "var(--color-border-light)",
-                              backgroundColor: "var(--color-bg-secondary)",
+                              backgroundColor: "var(--color-bg-hover)",
                             }}
                           >
                             {/* 배지 이미지 */}

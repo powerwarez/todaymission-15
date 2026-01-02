@@ -20,7 +20,7 @@ const Sidebar: React.FC = () => {
     { path: "/", name: "오늘의 미션", icon: LuLayoutDashboard },
     { path: "/hall-of-fame", name: "명예의 전당", icon: LuAward },
     { path: "/mission-settings", name: "오늘의 미션 설정", icon: LuSettings }, // 경로 및 이름 변경
-    { path: "/badge-settings", name: "도전과제 설정", icon: LuBadge }, // 새로운 항목 추가
+    { path: "/badge-settings", name: "달성한 도전과제", icon: LuBadge }, // 새로운 항목 추가
   ];
 
   const handleLogout = async () => {
