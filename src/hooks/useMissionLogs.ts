@@ -321,11 +321,9 @@ export const useMissionLogs = (formattedDate: string) => {
 
     // 1. 현재 상태 스냅샷 (badge 체크 로직 이동을 위해 필요)
     const currentCompletedToday = completedTodayCount;
-    const currentTotalCompleted = totalCompletedCount ?? 0;
 
     // 2. 다음 상태 예측
     const newCompletedToday = currentCompletedToday + 1;
-    const _newTotalCompleted = currentTotalCompleted + 1; // 미래 사용을 위해 보존
 
     // 3. 배지 획득 조건 한 번에 검사
     const newlyEarnedBadgeIds: string[] = []; // 이번에 획득한 배지 IDs
