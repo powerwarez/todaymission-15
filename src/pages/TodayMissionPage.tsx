@@ -84,7 +84,17 @@ const TodayMissionPage: React.FC = () => {
     loading: snapshotLoading,
     error: snapshotError,
     fallbackMissions, // 같은 주의 다른 날짜에서 가져온 미션 목록
+    totalMissionsCount: snapshotTotalMissions, // 스냅샷/폴백에서 가져온 총 미션 수
   } = useDailySnapshot(selectedDate);
+
+  // 선택된 날짜의 총 미션 수 계산
+  // 오늘이면 현재 missions 배열의 길이, 과거 날짜면 스냅샷에서 가져온 값
+  const totalMissionsForDate = useMemo(() => {
+    if (isToday) {
+      return missions?.length || 0;
+    }
+    return snapshotTotalMissions || 0;
+  }, [isToday, missions, snapshotTotalMissions]);
 
   const {
     logs,
@@ -93,7 +103,7 @@ const TodayMissionPage: React.FC = () => {
     addLog,
     deleteLog,
     fetchLogs,
-  } = useMissionLogs(selectedDate);
+  } = useMissionLogs(selectedDate, totalMissionsForDate);
   const {
     weekStatus,
     loading: weekStatusLoading,

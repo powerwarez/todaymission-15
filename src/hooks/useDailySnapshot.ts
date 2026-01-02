@@ -31,17 +31,21 @@ export const useDailySnapshot = (formattedDate: string) => {
   const [error, setError] = useState<string | null>(null);
   // 폴백으로 사용된 미션 목록 (같은 주의 다른 스냅샷에서 가져온 경우)
   const [fallbackMissions, setFallbackMissions] = useState<Mission[] | null>(null);
+  // 해당 날짜의 총 미션 수 (스냅샷 또는 폴백에서 계산)
+  const [totalMissionsCount, setTotalMissionsCount] = useState<number>(0);
 
   const fetchSnapshot = useCallback(async () => {
     if (!user || !formattedDate) {
       setSnapshot(null);
       setFallbackMissions(null);
+      setTotalMissionsCount(0);
       setLoading(false);
       return;
     }
     setLoading(true);
     setError(null);
     setFallbackMissions(null);
+    setTotalMissionsCount(0);
 
     try {
       // 1. 먼저 해당 날짜의 스냅샷을 찾습니다
@@ -54,9 +58,11 @@ export const useDailySnapshot = (formattedDate: string) => {
 
       if (fetchError) throw fetchError;
       
-      // 스냅샷이 있으면 그대로 사용
+      // 스냅샷이 있고 미션이 있으면 그대로 사용
       if (data && data.missions_snapshot && data.missions_snapshot.length > 0) {
         setSnapshot(data);
+        setTotalMissionsCount(data.missions_snapshot.length);
+        console.log(`[useDailySnapshot] 스냅샷에서 미션 수: ${data.missions_snapshot.length}`);
         return;
       }
       
@@ -87,6 +93,8 @@ export const useDailySnapshot = (formattedDate: string) => {
         setSnapshot(data);
         // 폴백 미션 목록 설정
         setFallbackMissions(validWeekSnapshot.missions_snapshot);
+        setTotalMissionsCount(validWeekSnapshot.missions_snapshot.length);
+        console.log(`[useDailySnapshot] 폴백 미션 수: ${validWeekSnapshot.missions_snapshot.length}`);
       } else {
         // 같은 주에도 스냅샷이 없으면 현재 미션 목록을 가져옵니다
         console.log('[useDailySnapshot] 같은 주에 스냅샷 없음, 현재 미션 목록 사용');
@@ -100,12 +108,15 @@ export const useDailySnapshot = (formattedDate: string) => {
         
         setSnapshot(data);
         setFallbackMissions(currentMissions || []);
+        setTotalMissionsCount(currentMissions?.length || 0);
+        console.log(`[useDailySnapshot] 현재 미션 목록에서 미션 수: ${currentMissions?.length || 0}`);
       }
     } catch (err: unknown) {
       console.error('Error fetching daily snapshot:', err);
       setError('일일 스냅샷을 불러오는 중 오류가 발생했습니다.');
       setSnapshot(null);
       setFallbackMissions(null);
+      setTotalMissionsCount(0);
     } finally {
       setLoading(false);
     }
@@ -115,5 +126,5 @@ export const useDailySnapshot = (formattedDate: string) => {
     fetchSnapshot();
   }, [fetchSnapshot]);
 
-  return { snapshot, loading, error, fallbackMissions, refetch: fetchSnapshot };
+  return { snapshot, loading, error, fallbackMissions, totalMissionsCount, refetch: fetchSnapshot };
 }; 

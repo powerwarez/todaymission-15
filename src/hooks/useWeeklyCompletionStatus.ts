@@ -258,11 +258,14 @@ export const useWeeklyCompletionStatus = () => {
           }
         } else {
           // 스냅샷 자체가 없는 경우
-          // 로그 데이터가 있으면 완료로 판단 (스냅샷은 없지만 로그가 있는 경우)
+          // 스냅샷이 없으면 완료 여부를 판단할 수 없음 (총 미션 수를 모름)
+          // 미완료로 처리하거나 null로 처리
           if (logsForDay.length > 0) {
-            isCompleted = true;
+            // 로그가 있지만 스냅샷이 없으면 미완료로 처리
+            // (스냅샷이 있어야 정확한 완료 여부 판단 가능)
+            isCompleted = null; // 데이터 불완전
             console.log(
-              `[${currentDateStr}] ✅ 스냅샷 없지만 로그 있음 - 완료로 처리`
+              `[${currentDateStr}] ⚠️ 스냅샷 없지만 로그 있음 (${logsForDay.length}개) - 완료 판단 불가`
             );
           } else {
             isCompleted = null; // 데이터 없음

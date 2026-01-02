@@ -21,7 +21,8 @@ interface UserChallenge {
   is_global?: boolean;
 }
 
-export const useMissionLogs = (formattedDate: string) => {
+// 파라미터: formattedDate - 선택된 날짜, totalMissionsForDate - 해당 날짜의 총 미션 수 (optional)
+export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: number) => {
   const { user } = useAuth();
   const { showBadgeNotification } = useNotification();
   const [logs, setLogs] = useState<MissionLog[]>([]);
@@ -34,10 +35,18 @@ export const useMissionLogs = (formattedDate: string) => {
   const [, setTotalCompletedCount] = useState<number | null>(
     null
   );
-  // 오늘 필요한 총 미션 수 상태 추가 (예측용)
+  // 선택된 날짜의 총 미션 수 상태 (파라미터로 받은 값 또는 DB에서 조회한 값)
   const [totalMissionsToday, setTotalMissionsToday] = useState<number | null>(
     null
   );
+  
+  // totalMissionsForDate가 전달되면 해당 값을 사용
+  useEffect(() => {
+    if (totalMissionsForDate !== undefined && totalMissionsForDate > 0) {
+      setTotalMissionsToday(totalMissionsForDate);
+      console.log(`[useMissionLogs] totalMissionsForDate from parameter: ${totalMissionsForDate}`);
+    }
+  }, [totalMissionsForDate]);
   // 이전에 획득한 배지 ID 목록 상태 추가 (예측용, Set 사용) - 최초 획득 확인용
   const [previouslyEarnedBadgeIds, setPreviouslyEarnedBadgeIds] = useState<
     Set<string>
@@ -126,18 +135,38 @@ export const useMissionLogs = (formattedDate: string) => {
         `[useMissionLogs] Initial completedTodayCount: ${initialLogs.length}`
       );
 
-      // Fetch total mission count for today
-      // 이 값은 자주 변하지 않으므로 별도 훅이나 컨텍스트에서 관리하는 것이 더 효율적일 수 있음
-      const { count: missionsCount, error: missionsError } = await supabase
-        .from("missions")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id);
+      // Fetch total mission count for the selected date
+      // totalMissionsForDate가 파라미터로 전달된 경우 해당 값 사용
+      let missionsCount = totalMissionsForDate;
+      
+      if (missionsCount === undefined || missionsCount <= 0) {
+        // 파라미터가 없으면 해당 날짜의 스냅샷에서 미션 수를 가져오거나, 없으면 현재 미션 수 사용
+        const { data: snapshotData, error: snapshotError } = await supabase
+          .from("daily_mission_snapshots")
+          .select("total_missions_count")
+          .eq("user_id", user.id)
+          .eq("date", formattedDate)
+          .maybeSingle();
+        
+        if (!snapshotError && snapshotData && snapshotData.total_missions_count > 0) {
+          missionsCount = snapshotData.total_missions_count;
+          console.log(`[useMissionLogs] totalMissionsToday from snapshot: ${missionsCount}`);
+        } else {
+          // 스냅샷이 없으면 현재 미션 테이블에서 가져옴
+          const { count: currentMissionsCount, error: missionsError } = await supabase
+            .from("missions")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id);
 
-      if (missionsError) throw missionsError;
+          if (missionsError) throw missionsError;
+          missionsCount = currentMissionsCount ?? 0;
+          console.log(`[useMissionLogs] totalMissionsToday from missions table: ${missionsCount}`);
+        }
+      } else {
+        console.log(`[useMissionLogs] totalMissionsToday from parameter: ${missionsCount}`);
+      }
+      
       setTotalMissionsToday(missionsCount ?? 0);
-      console.log(
-        `[useMissionLogs] Initial totalMissionsToday: ${missionsCount}`
-      );
 
       // Fetch total completed count (all time)
       const { count: totalCount, error: totalCountError } = await supabase
@@ -303,7 +332,7 @@ export const useMissionLogs = (formattedDate: string) => {
     } finally {
       setLoading(false); // 초기 데이터 로딩 완료
     }
-  }, [user, formattedDate, showBadgeNotification]);
+  }, [user, formattedDate, showBadgeNotification, totalMissionsForDate]);
 
   // 컴포넌트 마운트 또는 사용자/날짜 변경 시 초기 데이터 로드
   useEffect(() => {
@@ -398,7 +427,81 @@ export const useMissionLogs = (formattedDate: string) => {
         return null;
       }
 
-      // 4. 로그 삽입
+      // 4. 해당 날짜의 스냅샷 확인 및 생성 (과거 날짜에서 미션 완료 시)
+      const { data: existingSnapshot, error: snapshotCheckError } = await supabase
+        .from("daily_mission_snapshots")
+        .select("id, total_missions_count")
+        .eq("user_id", user.id)
+        .eq("date", todayKSTString)
+        .maybeSingle();
+
+      if (snapshotCheckError) {
+        console.error("Error checking snapshot:", snapshotCheckError);
+      }
+
+      // 스냅샷이 없으면 생성
+      if (!existingSnapshot) {
+        console.log(`[useMissionLogs] 해당 날짜(${todayKSTString})에 스냅샷 없음, 새로 생성`);
+        
+        // 같은 주의 다른 스냅샷에서 미션 목록 가져오기
+        const dateObj = new Date(todayKSTString + 'T00:00:00Z');
+        const dayOfWeek = dateObj.getUTCDay();
+        const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const mondayDate = new Date(dateObj);
+        mondayDate.setUTCDate(dateObj.getUTCDate() + mondayOffset);
+        const sundayDate = new Date(mondayDate);
+        sundayDate.setUTCDate(mondayDate.getUTCDate() + 6);
+        
+        const mondayStr = mondayDate.toISOString().split('T')[0];
+        const sundayStr = sundayDate.toISOString().split('T')[0];
+
+        // 같은 주의 다른 스냅샷에서 미션 목록 가져오기
+        const { data: weekSnapshots } = await supabase
+          .from("daily_mission_snapshots")
+          .select("missions_snapshot, total_missions_count")
+          .eq("user_id", user.id)
+          .gte("date", mondayStr)
+          .lte("date", sundayStr)
+          .not("missions_snapshot", "is", null)
+          .order("date", { ascending: false })
+          .limit(1);
+
+        let missionsToUse: unknown[] = [];
+        let totalCount = totalMissionsToday || 0;
+
+        if (weekSnapshots && weekSnapshots.length > 0 && weekSnapshots[0].missions_snapshot) {
+          missionsToUse = weekSnapshots[0].missions_snapshot;
+          totalCount = weekSnapshots[0].total_missions_count || missionsToUse.length;
+        } else {
+          // 같은 주에 스냅샷이 없으면 현재 미션 목록 사용
+          const { data: currentMissions } = await supabase
+            .from("missions")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("order", { ascending: true });
+          missionsToUse = currentMissions || [];
+          totalCount = missionsToUse.length;
+        }
+
+        // 스냅샷 생성
+        const { error: insertSnapshotError } = await supabase
+          .from("daily_mission_snapshots")
+          .insert({
+            user_id: user.id,
+            date: todayKSTString,
+            missions_snapshot: missionsToUse,
+            total_missions_count: totalCount,
+            completed_missions_count: 0, // 새로 생성하므로 0
+          });
+
+        if (insertSnapshotError) {
+          console.error("Error creating snapshot:", insertSnapshotError);
+        } else {
+          console.log(`[useMissionLogs] 스냅샷 생성 완료: ${todayKSTString}, 총 미션: ${totalCount}`);
+        }
+      }
+
+      // 5. 로그 삽입
       const { data: insertedLog, error: insertError } = await supabase
         .from("mission_logs")
         .insert({
@@ -412,7 +515,7 @@ export const useMissionLogs = (formattedDate: string) => {
       if (insertError) throw insertError;
       if (!insertedLog) return null;
 
-      // 5. 스냅샷 카운트 증가 RPC 호출 (성공 여부 중요하지 않음)
+      // 6. 스냅샷 카운트 증가 RPC 호출 (성공 여부 중요하지 않음)
       const { error: incrementError } = await supabase.rpc(
         "increment_completed_count",
         {
