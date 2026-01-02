@@ -30,6 +30,7 @@ interface UserChallenge {
   condition_type: string;
   required_count: number;
   created_at: string;
+  is_global?: boolean;
   badge?: {
     id: string;
     name: string;
@@ -53,12 +54,13 @@ const MissionSettingsPage: React.FC = () => {
   const [challengesLoading, setChallengesLoading] = useState(false);
   const [deletingChallengeId, setDeletingChallengeId] = useState<string | null>(null);
 
-  // 사용자 도전과제 로드 함수
+  // 도전과제 로드 함수 (공용 + 사용자 정의)
   const loadUserChallenges = useCallback(async () => {
     if (!user) return;
 
     setChallengesLoading(true);
     try {
+      // 공용 도전과제(is_global=true)와 사용자 정의 도전과제 모두 로드
       const { data, error: fetchError } = await supabase
         .from("challenges")
         .select(`
@@ -68,9 +70,11 @@ const MissionSettingsPage: React.FC = () => {
           badge_id,
           condition_type,
           required_count,
-          created_at
+          created_at,
+          is_global
         `)
-        .eq("user_id", user.id)
+        .or(`is_global.eq.true,user_id.eq.${user.id}`)
+        .order("is_global", { ascending: false }) // 공용 도전과제 먼저
         .order("created_at", { ascending: false });
 
       if (fetchError) throw fetchError;
@@ -371,7 +375,7 @@ const MissionSettingsPage: React.FC = () => {
                 나만의 도전과제를 만들어보세요! 미션을 완료하면 설정한 조건에 따라 배지를 획득할 수 있습니다.
               </p>
 
-              {/* 기존 도전과제 목록 */}
+              {/* 도전과제 목록 */}
               {challengesLoading ? (
                 <div className="flex justify-center py-8">
                   <div
@@ -379,108 +383,208 @@ const MissionSettingsPage: React.FC = () => {
                     style={{ borderColor: "var(--color-primary-medium)" }}
                   ></div>
                 </div>
-              ) : userChallenges.length > 0 ? (
-                <div className="space-y-4 mb-6">
-                  <h3
-                    className="text-sm font-medium"
-                    style={{ color: "var(--color-text-muted)" }}
-                  >
-                    내가 만든 도전과제
-                  </h3>
-                  {userChallenges.map((challenge) => (
-                    <div
-                      key={challenge.id}
-                      className="flex items-center gap-4 p-4 rounded-lg border"
-                      style={{
-                        borderColor: "var(--color-border-light)",
-                        backgroundColor: "var(--color-bg-secondary)",
-                      }}
-                    >
-                      {/* 배지 이미지 */}
-                      <div className="flex-shrink-0">
-                        {challenge.badge?.image_path ? (
-                          <img
-                            src={challenge.badge.image_path}
-                            alt={challenge.name}
-                            className="w-12 h-12 object-cover rounded-full border-2"
-                            style={{ borderColor: "var(--color-primary-light)" }}
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src =
-                                "/placeholder_badge.png";
-                            }}
-                          />
-                        ) : (
-                          <div
-                            className="w-12 h-12 rounded-full flex items-center justify-center"
-                            style={{
-                              backgroundColor: "var(--color-primary-light)",
-                            }}
-                          >
-                            <LuTarget
-                              size={24}
-                              style={{ color: "var(--color-primary-medium)" }}
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 도전과제 정보 */}
-                      <div className="flex-1 min-w-0">
-                        <h4
-                          className="font-medium truncate"
-                          style={{ color: "var(--color-text-primary)" }}
-                        >
-                          {challenge.name}
-                        </h4>
-                        <p
-                          className="text-sm truncate"
-                          style={{ color: "var(--color-text-muted)" }}
-                        >
-                          {challenge.description}
-                        </p>
-                        <div className="flex gap-2 mt-1">
-                          <span
-                            className="text-xs px-2 py-0.5 rounded-full"
-                            style={{
-                              backgroundColor: "var(--color-primary-light)",
-                              color: "var(--color-primary-dark)",
-                            }}
-                          >
-                            {challenge.condition_type === "DAILY_COMPLETIONS"
-                              ? "일일"
-                              : challenge.condition_type === "WEEKLY_COMPLETIONS"
-                              ? "주간"
-                              : "총"}{" "}
-                            {challenge.required_count}회
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* 삭제 버튼 */}
-                      <button
-                        onClick={() =>
-                          handleDeleteChallenge(challenge.id, challenge.badge_id)
-                        }
-                        disabled={deletingChallengeId === challenge.id}
-                        className="flex-shrink-0 p-2 rounded-lg transition-colors hover:bg-red-50"
-                        style={{ color: "var(--color-text-error)" }}
-                      >
-                        {deletingChallengeId === challenge.id ? (
-                          <span className="animate-spin rounded-full h-5 w-5 border-t-2 border-red-500 inline-block"></span>
-                        ) : (
-                          <LuTrash2 size={20} />
-                        )}
-                      </button>
-                    </div>
-                  ))}
-                </div>
               ) : (
-                <p
-                  className="text-center py-8"
-                  style={{ color: "var(--color-text-muted)" }}
-                >
-                  아직 만든 도전과제가 없습니다.
-                </p>
+                <>
+                  {/* 공용 도전과제 */}
+                  {userChallenges.filter((c) => c.is_global).length > 0 && (
+                    <div className="space-y-4 mb-6">
+                      <h3
+                        className="text-sm font-medium flex items-center gap-2"
+                        style={{ color: "var(--color-text-muted)" }}
+                      >
+                        <span
+                          className="px-2 py-0.5 rounded-full text-xs"
+                          style={{
+                            backgroundColor: "var(--color-accent-light)",
+                            color: "var(--color-accent-dark)",
+                          }}
+                        >
+                          공용
+                        </span>
+                        기본 도전과제
+                      </h3>
+                      {userChallenges
+                        .filter((c) => c.is_global)
+                        .map((challenge) => (
+                          <div
+                            key={challenge.id}
+                            className="flex items-center gap-4 p-4 rounded-lg border"
+                            style={{
+                              borderColor: "var(--color-border-light)",
+                              backgroundColor: "var(--color-bg-secondary)",
+                            }}
+                          >
+                            {/* 배지 이미지 */}
+                            <div className="flex-shrink-0">
+                              {challenge.badge?.image_path ? (
+                                <img
+                                  src={challenge.badge.image_path}
+                                  alt={challenge.name}
+                                  className="w-12 h-12 object-cover rounded-full border-2"
+                                  style={{ borderColor: "var(--color-accent-light)" }}
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src =
+                                      "/placeholder_badge.png";
+                                  }}
+                                />
+                              ) : (
+                                <div
+                                  className="w-12 h-12 rounded-full flex items-center justify-center"
+                                  style={{
+                                    backgroundColor: "var(--color-accent-light)",
+                                  }}
+                                >
+                                  <LuTarget
+                                    size={24}
+                                    style={{ color: "var(--color-accent)" }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* 도전과제 정보 */}
+                            <div className="flex-1 min-w-0">
+                              <h4
+                                className="font-medium truncate"
+                                style={{ color: "var(--color-text-primary)" }}
+                              >
+                                {challenge.name}
+                              </h4>
+                              <p
+                                className="text-sm truncate"
+                                style={{ color: "var(--color-text-muted)" }}
+                              >
+                                {challenge.description}
+                              </p>
+                              <div className="flex gap-2 mt-1">
+                                <span
+                                  className="text-xs px-2 py-0.5 rounded-full"
+                                  style={{
+                                    backgroundColor: "var(--color-accent-light)",
+                                    color: "var(--color-accent-dark)",
+                                  }}
+                                >
+                                  {challenge.condition_type === "DAILY_COMPLETIONS"
+                                    ? "영웅"
+                                    : "달성"}{" "}
+                                  {challenge.required_count}회
+                                </span>
+                              </div>
+                            </div>
+                            {/* 공용 도전과제는 삭제 버튼 없음 */}
+                          </div>
+                        ))}
+                    </div>
+                  )}
+
+                  {/* 내 도전과제 */}
+                  {userChallenges.filter((c) => !c.is_global).length > 0 && (
+                    <div className="space-y-4 mb-6">
+                      <h3
+                        className="text-sm font-medium"
+                        style={{ color: "var(--color-text-muted)" }}
+                      >
+                        내가 만든 도전과제
+                      </h3>
+                      {userChallenges
+                        .filter((c) => !c.is_global)
+                        .map((challenge) => (
+                          <div
+                            key={challenge.id}
+                            className="flex items-center gap-4 p-4 rounded-lg border"
+                            style={{
+                              borderColor: "var(--color-border-light)",
+                              backgroundColor: "var(--color-bg-secondary)",
+                            }}
+                          >
+                            {/* 배지 이미지 */}
+                            <div className="flex-shrink-0">
+                              {challenge.badge?.image_path ? (
+                                <img
+                                  src={challenge.badge.image_path}
+                                  alt={challenge.name}
+                                  className="w-12 h-12 object-cover rounded-full border-2"
+                                  style={{ borderColor: "var(--color-primary-light)" }}
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src =
+                                      "/placeholder_badge.png";
+                                  }}
+                                />
+                              ) : (
+                                <div
+                                  className="w-12 h-12 rounded-full flex items-center justify-center"
+                                  style={{
+                                    backgroundColor: "var(--color-primary-light)",
+                                  }}
+                                >
+                                  <LuTarget
+                                    size={24}
+                                    style={{ color: "var(--color-primary-medium)" }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* 도전과제 정보 */}
+                            <div className="flex-1 min-w-0">
+                              <h4
+                                className="font-medium truncate"
+                                style={{ color: "var(--color-text-primary)" }}
+                              >
+                                {challenge.name}
+                              </h4>
+                              <p
+                                className="text-sm truncate"
+                                style={{ color: "var(--color-text-muted)" }}
+                              >
+                                {challenge.description}
+                              </p>
+                              <div className="flex gap-2 mt-1">
+                                <span
+                                  className="text-xs px-2 py-0.5 rounded-full"
+                                  style={{
+                                    backgroundColor: "var(--color-primary-light)",
+                                    color: "var(--color-primary-dark)",
+                                  }}
+                                >
+                                  {challenge.condition_type === "DAILY_COMPLETIONS"
+                                    ? "영웅"
+                                    : "달성"}{" "}
+                                  {challenge.required_count}회
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* 삭제 버튼 (내 도전과제만) */}
+                            <button
+                              onClick={() =>
+                                handleDeleteChallenge(challenge.id, challenge.badge_id)
+                              }
+                              disabled={deletingChallengeId === challenge.id}
+                              className="flex-shrink-0 p-2 rounded-lg transition-colors hover:bg-red-50"
+                              style={{ color: "var(--color-text-error)" }}
+                            >
+                              {deletingChallengeId === challenge.id ? (
+                                <span className="animate-spin rounded-full h-5 w-5 border-t-2 border-red-500 inline-block"></span>
+                              ) : (
+                                <LuTrash2 size={20} />
+                              )}
+                            </button>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+
+                  {/* 도전과제가 하나도 없을 때 */}
+                  {userChallenges.length === 0 && (
+                    <p
+                      className="text-center py-8"
+                      style={{ color: "var(--color-text-muted)" }}
+                    >
+                      등록된 도전과제가 없습니다.
+                    </p>
+                  )}
+                </>
               )}
 
               {/* 도전과제 추가 컴포넌트 */}

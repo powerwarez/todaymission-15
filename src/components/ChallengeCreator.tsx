@@ -16,8 +16,7 @@ interface ChallengeCreatorProps {
 
 type ConditionType =
   | "DAILY_COMPLETIONS"
-  | "WEEKLY_COMPLETIONS"
-  | "TOTAL_COMPLETIONS";
+  | "WEEKLY_COMPLETIONS";
 
 const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({
   onChallengeCreated,
@@ -28,7 +27,7 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [conditionType, setConditionType] =
-    useState<ConditionType>("TOTAL_COMPLETIONS");
+    useState<ConditionType>("DAILY_COMPLETIONS");
   const [requiredCount, setRequiredCount] =
     useState<number>(10);
   const [imageFile, setImageFile] = useState<File | null>(
@@ -85,7 +84,7 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({
   const resetForm = () => {
     setName("");
     setDescription("");
-    setConditionType("TOTAL_COMPLETIONS");
+    setConditionType("DAILY_COMPLETIONS");
     setRequiredCount(10);
     setImageFile(null);
     setImagePreview(null);
@@ -215,11 +214,9 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({
   const getConditionDescription = (type: ConditionType) => {
     switch (type) {
       case "DAILY_COMPLETIONS":
-        return "완료한 일일 미션 수를 기준으로 달성 여부를 확인합니다.";
+        return "오늘의 영웅 배지 획득 횟수를 기준으로 달성 여부를 확인합니다.";
       case "WEEKLY_COMPLETIONS":
-        return "완료한 주간 미션 수를 기준으로 달성 여부를 확인합니다.";
-      case "TOTAL_COMPLETIONS":
-        return "완료한 전체 미션 수를 기준으로 달성 여부를 확인합니다.";
+        return "주간 미션 달성 배지 획득 횟수를 기준으로 달성 여부를 확인합니다.";
       default:
         return "";
     }
@@ -455,16 +452,12 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({
             {(
               [
                 {
-                  value: "TOTAL_COMPLETIONS",
-                  label: "총 미션 완료",
-                },
-                {
                   value: "DAILY_COMPLETIONS",
-                  label: "일일 미션 완료",
+                  label: "오늘의 영웅 획득",
                 },
                 {
                   value: "WEEKLY_COMPLETIONS",
-                  label: "주간 미션 완료",
+                  label: "주간 달성 획득",
                 },
               ] as const
             ).map((option) => (
