@@ -76,79 +76,52 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    // 타임아웃 설정 (10초)
-    const SESSION_TIMEOUT = 10000;
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let isMounted = true;
     
     const getSession = async () => {
-      // 타임아웃 설정 - 10초 후에도 로딩 중이면 강제로 로딩 해제
-      timeoutId = setTimeout(() => {
-        console.warn('[AuthContext] Session loading timeout. Clearing session and forcing loading to false.');
-        setSession(null);
-        setUser(null);
-        setLoading(false);
-        // 손상된 세션 데이터 정리
-        try {
-          localStorage.removeItem('sb-' + import.meta.env.VITE_SUPABASE_URL?.split('//')[1]?.split('.')[0] + '-auth-token');
-        } catch (e) {
-          console.error('[AuthContext] Failed to clear local storage:', e);
-        }
-      }, SESSION_TIMEOUT);
-
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        // 타임아웃 클리어
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-          timeoutId = null;
-        }
+        if (!isMounted) return;
         
         if (error) {
           console.error('Error getting session:', error);
-          // 세션 에러 시 로그아웃 처리
-          if (error.message?.includes('session') || error.message?.includes('token')) {
-            console.warn('[AuthContext] Session error detected, signing out...');
-            await supabase.auth.signOut();
-          }
         }
+        
         setSession(session);
         setUser(session?.user ?? null);
         
-        // 세션이 있으면 user_info 확인/생성
+        // 세션이 있으면 user_info 확인/생성 (타임아웃 없이 진행)
         if (session?.user) {
-          await ensureUserInfoExists(session.user.id);
+          // user_info 확인은 백그라운드에서 진행 (로딩 상태에 영향 없음)
+          ensureUserInfoExists(session.user.id).catch(err => {
+            console.error('[AuthContext] ensureUserInfoExists failed:', err);
+          });
         }
       } catch (err) {
         console.error('Failed to get session:', err);
-        // 타임아웃 클리어
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-          timeoutId = null;
-        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     getSession();
-    
-    // 클린업 함수에서 타임아웃 클리어
-    const cleanupTimeout = () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
 
     try {
       const { data: authListener } = supabase.auth.onAuthStateChange(
         async (event: AuthChangeEvent, session: Session | null) => {
+          if (!isMounted) return;
+          
           setSession(session);
           setUser(session?.user ?? null);
           
           // SIGNED_IN 이벤트 시 user_info 확인/생성 (신규 가입 포함)
           if (event === 'SIGNED_IN' && session?.user) {
-            await ensureUserInfoExists(session.user.id);
+            ensureUserInfoExists(session.user.id).catch(err => {
+              console.error('[AuthContext] ensureUserInfoExists failed:', err);
+            });
           }
           
           setLoading(false);
@@ -156,7 +129,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       );
 
       return () => {
-        cleanupTimeout();
+        isMounted = false;
         if (authListener?.subscription) {
           authListener.subscription.unsubscribe();
         }
@@ -165,7 +138,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Error setting up auth listener:', err);
       setLoading(false);
       return () => {
-        cleanupTimeout();
+        isMounted = false;
       };
     }
   }, [ensureUserInfoExists]);
