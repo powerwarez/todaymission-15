@@ -399,7 +399,10 @@ const TodayMissionPage: React.FC = () => {
     } else {
       // 과거 날짜: 스냅샷에서 미션 목록 가져오기
       // 스냅샷이 있고 미션이 있으면 사용
-      if (dailySnapshot?.missions_snapshot && dailySnapshot.missions_snapshot.length > 0) {
+      if (
+        dailySnapshot?.missions_snapshot &&
+        dailySnapshot.missions_snapshot.length > 0
+      ) {
         return dailySnapshot.missions_snapshot;
       }
       // 스냅샷이 없거나 미션이 비어있으면 폴백 미션 사용 (같은 주 또는 현재 미션)
@@ -473,31 +476,29 @@ const TodayMissionPage: React.FC = () => {
         onComplete={handleConfettiComplete}
       />
 
-      <div className="flex justify-between items-center mb-2">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
         <h1
-          className="text-3xl font-bold"
+          className="text-2xl sm:text-3xl font-bold"
           style={{ color: "var(--color-text-primary)" }}>
           {childName || "우리 아이의 방울방울 미션 챌린지"}
         </h1>
-        <div
-          className="text-right relative"
-          ref={datePickerRef}>
+        <div className="relative" ref={datePickerRef}>
           {/* 날짜 표시 영역 - 클릭하면 달력 표시 */}
           <div
-            className="cursor-pointer hover:opacity-80 transition-opacity flex items-center justify-end gap-2"
+            className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
             onClick={() =>
               setShowDatePicker(!showDatePicker)
             }>
             <LuCalendar
-              className="inline-block"
+              className="inline-block flex-shrink-0"
               style={{
                 color: "var(--color-primary-medium)",
               }}
               size={20}
             />
-            <div>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <p
-                className="text-lg font-semibold"
+                className="text-base sm:text-lg font-semibold whitespace-nowrap"
                 style={{
                   color: "var(--color-text-secondary)",
                 }}>
@@ -513,7 +514,7 @@ const TodayMissionPage: React.FC = () => {
               </p>
               {/* 요일 표시 */}
               <p
-                className="text-md"
+                className="text-sm sm:text-md whitespace-nowrap"
                 style={{
                   color: "var(--color-text-muted)",
                 }}>
@@ -687,39 +688,37 @@ const TodayMissionPage: React.FC = () => {
 
       {/* 주간 보상 목표 표시 */}
       <div
-        className="mb-6 flex items-center p-3 rounded-lg cursor-pointer"
+        className="mb-6 p-3 rounded-lg cursor-pointer"
         style={{ backgroundColor: "var(--color-bg-hover)" }}
         onClick={openRewardModal}>
-        <div className="flex-1">
-          <div className="flex items-center">
-            <LuGift
-              className="mr-2"
-              size={28}
-              style={{
-                color: "var(--color-primary-medium)",
-              }}
-            />
-            <p
-              className="text-2xl font-semibold"
-              style={{
-                color: "var(--color-text-primary)",
-              }}>
-              이번주 보상
-            </p>
-          </div>
-          <div
-            className="inline-flex items-center rounded-lg p-2 mt-2"
+        <div className="flex items-center mb-2">
+          <LuGift
+            className="mr-2 flex-shrink-0"
+            size={24}
             style={{
-              backgroundColor: "var(--color-primary-light)",
+              color: "var(--color-primary-medium)",
+            }}
+          />
+          <p
+            className="text-lg sm:text-2xl font-semibold"
+            style={{
+              color: "var(--color-text-primary)",
             }}>
-            <p
-              className="text-2xl"
-              style={{
-                color: "var(--color-text-secondary)",
-              }}>
-              {weeklyRewardGoal}
-            </p>
-          </div>
+            이번주 보상
+          </p>
+        </div>
+        <div
+          className="inline-flex items-center rounded-lg p-2"
+          style={{
+            backgroundColor: "var(--color-primary-light)",
+          }}>
+          <p
+            className="text-base sm:text-2xl break-words"
+            style={{
+              color: "var(--color-text-secondary)",
+            }}>
+            {weeklyRewardGoal}
+          </p>
         </div>
       </div>
 

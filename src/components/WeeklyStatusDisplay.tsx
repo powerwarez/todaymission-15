@@ -18,7 +18,7 @@ const WeeklyStatusDisplay: React.FC<WeeklyStatusDisplayProps> = ({
   const getStatusIndicatorStyle = (status: WeekdayStatus): string => {
     const baseStyle =
       "rounded-full shadow-md transition-colors duration-200 flex items-center justify-center font-extrabold";
-    const sizeStyle = "h-12 w-12";
+    const sizeStyle = "h-10 w-10 sm:h-12 sm:w-12";
 
     let bgColor = "";
     let textColor = "text-gray-700";
@@ -63,7 +63,7 @@ const WeeklyStatusDisplay: React.FC<WeeklyStatusDisplayProps> = ({
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center space-y-4 p-4 bg-white rounded-lg min-h-[280px] justify-center">
+      <div className="flex flex-col items-center p-4 bg-white rounded-lg shadow-md justify-center">
         <div className="text-center text-sm text-gray-400 animate-pulse">
           주간 현황 로딩 중...
         </div>
@@ -73,38 +73,41 @@ const WeeklyStatusDisplay: React.FC<WeeklyStatusDisplayProps> = ({
 
   if (error) {
     return (
-      <div className="flex flex-col items-center space-y-4 p-4 bg-white rounded-lg min-h-[280px] justify-center">
+      <div className="flex flex-col items-center p-4 bg-white rounded-lg shadow-md justify-center">
         <div className="text-center text-sm text-red-500">오류: {error}</div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center space-y-3 p-6 bg-white rounded-lg min-w-[80px]">
-      <h3 className="text-lg font-semibold text-sky-700 mb-2">주간 미션</h3>
-      {weekStatus.map((status, index) => (
-        <div key={status.dayIndex} className="flex flex-col items-center">
-          <div
-            className={getStatusIndicatorStyle(status)}
-            title={
-              status.totalMissions > 0
-                ? `${status.completedMissions}/${status.totalMissions} 미션 완료 (${status.date})`
-                : `미션 없음 (${status.date})`
-            }
-          >
-            <span
-              className={`text-2xl leading-none ${
-                status.isToday ? "animate-pulse" : ""
-              }`}
+    <div className="flex flex-col items-center p-4 sm:p-6 bg-white rounded-lg shadow-md">
+      <h3 className="text-base sm:text-lg font-semibold text-sky-700 mb-3">주간 미션</h3>
+      {/* 모바일: 가로 배치, 데스크탑: 세로 배치 */}
+      <div className="flex flex-row md:flex-col items-center gap-2 sm:gap-3">
+        {weekStatus.map((status, index) => (
+          <div key={status.dayIndex} className="flex flex-col items-center">
+            <div
+              className={getStatusIndicatorStyle(status)}
+              title={
+                status.totalMissions > 0
+                  ? `${status.completedMissions}/${status.totalMissions} 미션 완료 (${status.date})`
+                  : `미션 없음 (${status.date})`
+              }
             >
-              {dayNames[index]}
-            </span>
+              <span
+                className={`text-lg sm:text-2xl leading-none ${
+                  status.isToday ? "animate-pulse" : ""
+                }`}
+              >
+                {dayNames[index]}
+              </span>
+            </div>
+            {status.isToday && (
+              <span className="text-xs text-sky-600 mt-1 font-bold">오늘</span>
+            )}
           </div>
-          {status.isToday && (
-            <span className="text-xs text-sky-600 mt-1 font-bold">오늘</span>
-          )}
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 };
