@@ -16,6 +16,10 @@ const LoginPage: React.FC = () => {
         options: {
           // 필요시 리다이렉트 URL 지정
           // redirectTo: window.location.origin,
+          queryParams: {
+            // 매번 계정 선택 화면 표시 (다른 계정으로 로그인 가능)
+            prompt: 'login',
+          },
         },
       });
       if (signInError) throw signInError;

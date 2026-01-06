@@ -76,11 +76,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    // 타임아웃 설정 (10초)
+    const SESSION_TIMEOUT = 10000;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    
     const getSession = async () => {
+      // 타임아웃 설정 - 10초 후에도 로딩 중이면 강제로 로딩 해제
+      timeoutId = setTimeout(() => {
+        console.warn('[AuthContext] Session loading timeout. Clearing session and forcing loading to false.');
+        setSession(null);
+        setUser(null);
+        setLoading(false);
+        // 손상된 세션 데이터 정리
+        try {
+          localStorage.removeItem('sb-' + import.meta.env.VITE_SUPABASE_URL?.split('//')[1]?.split('.')[0] + '-auth-token');
+        } catch (e) {
+          console.error('[AuthContext] Failed to clear local storage:', e);
+        }
+      }, SESSION_TIMEOUT);
+
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
+        
+        // 타임아웃 클리어
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        
         if (error) {
           console.error('Error getting session:', error);
+          // 세션 에러 시 로그아웃 처리
+          if (error.message?.includes('session') || error.message?.includes('token')) {
+            console.warn('[AuthContext] Session error detected, signing out...');
+            await supabase.auth.signOut();
+          }
         }
         setSession(session);
         setUser(session?.user ?? null);
@@ -91,12 +121,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       } catch (err) {
         console.error('Failed to get session:', err);
+        // 타임아웃 클리어
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
       } finally {
         setLoading(false);
       }
     };
 
     getSession();
+    
+    // 클린업 함수에서 타임아웃 클리어
+    const cleanupTimeout = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
 
     try {
       const { data: authListener } = supabase.auth.onAuthStateChange(
@@ -114,6 +156,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       );
 
       return () => {
+        cleanupTimeout();
         if (authListener?.subscription) {
           authListener.subscription.unsubscribe();
         }
@@ -121,16 +164,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (err) {
       console.error('Error setting up auth listener:', err);
       setLoading(false);
-      return () => {};
+      return () => {
+        cleanupTimeout();
+      };
     }
   }, [ensureUserInfoExists]);
 
   const logout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
+      // Supabase 세션 종료
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
       if (error) {
         console.error('Error logging out:', error);
       }
+      
+      // 로컬 스토리지에서 Supabase 관련 데이터 모두 삭제
+      try {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        console.log('[AuthContext] Cleared Supabase session data from localStorage');
+      } catch (e) {
+        console.error('[AuthContext] Failed to clear localStorage:', e);
+      }
+      
+      // 상태 초기화
+      setSession(null);
+      setUser(null);
     } catch (err) {
       console.error('Failed to sign out:', err);
     }
