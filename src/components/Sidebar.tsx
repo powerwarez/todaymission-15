@@ -69,9 +69,6 @@ const Sidebar: React.FC = () => {
       />
     ) : null;
 
-  // 사이드바가 보이는지 여부 결정
-  const shouldShowSidebar = isMobile ? isMobileOpen : true;
-
   // 사이드바 너비 결정
   const sidebarWidth = isMobile ? "w-64" : isMinimized ? "w-16" : "w-64";
 
