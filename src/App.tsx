@@ -2,6 +2,7 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
+import { SidebarProvider } from "./contexts/SidebarContext";
 import { useNotificationState } from "./hooks/useNotificationState";
 import { useTheme } from "./hooks/useTheme";
 import MainLayout from "./layouts/MainLayout";
@@ -129,9 +130,11 @@ const App: React.FC = () => {
     <AuthProvider>
       {/* Provider에는 show 함수만 포함된 객체를 value로 전달 */}
       <NotificationProvider value={{ showBadgeNotification }}>
-        <ThemeInitializer>
-          <AppContent />
-        </ThemeInitializer>
+        <SidebarProvider>
+          <ThemeInitializer>
+            <AppContent />
+          </ThemeInitializer>
+        </SidebarProvider>
         {/* Toast 알림을 위한 Toaster 컴포넌트 */}
         <Toaster
           position="bottom-right"
