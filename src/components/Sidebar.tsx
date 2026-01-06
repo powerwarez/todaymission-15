@@ -64,7 +64,7 @@ const Sidebar: React.FC = () => {
   const MobileOverlay = () =>
     isMobile && isMobileOpen ? (
       <div
-        className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+        className="fixed inset-0 bg-gray-500 bg-opacity-30 z-30 md:hidden"
         onClick={closeMobileSidebar}
       />
     ) : null;
