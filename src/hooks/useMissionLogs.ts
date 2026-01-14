@@ -468,21 +468,8 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
 
     // --- DB 작업 시작 ---
     try {
-      // 로그 존재 여부 확인
-      const { error: checkError, count: existingLogCount } = await supabase
-        .from("mission_logs")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("mission_id", missionId)
-        .eq("completed_at", todayKSTString);
-
-      if (checkError) throw checkError;
-      if (existingLogCount && existingLogCount > 0) {
-        console.log("[useMissionLogs] Log already exists.");
-        isAddingLogRef.current = false;
-        setIsAddingLog(false);
-        return null;
-      }
+      // 로그 존재 여부 사전 체크 제거 - INSERT 시도 후 실패 시 처리로 변경
+      // (삭제 후 재완료 시 캐시/타이밍 문제 방지)
 
       // 4. 해당 날짜의 스냅샷 확인 및 생성 (과거 날짜에서 미션 완료 시)
       const { data: existingSnapshot, error: snapshotCheckError } = await supabase
@@ -558,8 +545,11 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
         }
       }
 
-      // 5. 로그 삽입
-      const { data: insertedLog, error: insertError } = await supabase
+      // 5. 로그 삽입 (INSERT 시도 후 실패하면 기존 로그 조회)
+      let insertedLog = null;
+      let isExistingLog = false;
+      
+      const { data: newLog, error: insertError } = await supabase
         .from("mission_logs")
         .insert({
           user_id: user.id,
@@ -569,24 +559,70 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
         .select()
         .single();
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.log("[addLog] 로그 삽입 오류:", insertError.code, insertError.message);
+        
+        // 어떤 오류든 기존 로그가 있는지 조회 시도
+        const { data: existingLog } = await supabase
+          .from("mission_logs")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("mission_id", missionId)
+          .eq("completed_at", todayKSTString)
+          .maybeSingle();
+        
+        if (existingLog) {
+          console.log("[addLog] 기존 로그 발견, 사용:", existingLog.id);
+          insertedLog = existingLog;
+          isExistingLog = true;
+          // 기존 로그이므로 배지 처리 스킵
+          newlyEarnedBadgeIds.length = 0;
+        } else {
+          // 로그가 없는데 삽입도 실패한 경우 - 재시도
+          console.log("[addLog] 기존 로그 없음, 삽입 재시도...");
+          const { data: retryLog, error: retryError } = await supabase
+            .from("mission_logs")
+            .insert({
+              user_id: user.id,
+              mission_id: missionId,
+              completed_at: todayKSTString,
+            })
+            .select()
+            .single();
+          
+          if (retryError) {
+            console.error("[addLog] 재시도 실패:", retryError);
+            throw retryError;
+          }
+          insertedLog = retryLog;
+          console.log("[addLog] 재시도 성공:", insertedLog?.id);
+        }
+      } else {
+        insertedLog = newLog;
+        console.log("[addLog] 새 로그 삽입 성공:", insertedLog?.id);
+      }
+
       if (!insertedLog) {
         isAddingLogRef.current = false;
         setIsAddingLog(false);
         return null;
       }
 
-      // 6. 스냅샷 카운트 증가 RPC 호출 (성공 여부 중요하지 않음)
-      const { error: incrementError } = await supabase.rpc(
-        "increment_completed_count",
-        {
-          snapshot_user_id: user.id,
-          snapshot_date: todayKSTString,
+      // 6. 스냅샷 카운트 증가 RPC 호출 (기존 로그가 아닌 경우만)
+      if (!isExistingLog) {
+        const { error: incrementError } = await supabase.rpc(
+          "increment_completed_count",
+          {
+            snapshot_user_id: user.id,
+            snapshot_date: todayKSTString,
+          }
+        );
+        if (incrementError) {
+          // 에러 로깅만 하고 진행
+          console.error("Error incrementing snapshot count:", incrementError);
         }
-      );
-      if (incrementError) {
-        // 에러 로깅만 하고 진행
-        console.error("Error incrementing snapshot count:", incrementError);
+      } else {
+        console.log("[addLog] 기존 로그이므로 스냅샷 카운트 증가 스킵");
       }
 
       // 획득한 배지를 DB에 직접 저장 (badge_type을 명시적으로 "mission"으로 설정)
