@@ -106,7 +106,7 @@ export const useDailySnapshot = (formattedDate: string) => {
         
         if (missionsError) throw missionsError;
         
-        setSnapshot(data);
+      setSnapshot(data);
         setFallbackMissions(currentMissions || []);
         setTotalMissionsCount(currentMissions?.length || 0);
         console.log(`[useDailySnapshot] 현재 미션 목록에서 미션 수: ${currentMissions?.length || 0}`);

@@ -154,11 +154,11 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
         } else {
           // 스냅샷이 없으면 현재 미션 테이블에서 가져옴
           const { count: currentMissionsCount, error: missionsError } = await supabase
-            .from("missions")
-            .select("id", { count: "exact", head: true })
-            .eq("user_id", user.id);
+        .from("missions")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
 
-          if (missionsError) throw missionsError;
+      if (missionsError) throw missionsError;
           missionsCount = currentMissionsCount ?? 0;
           console.log(`[useMissionLogs] totalMissionsToday from missions table: ${missionsCount}`);
         }
@@ -342,34 +342,77 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
   const addLog = async (missionId: string) => {
     if (!user || !formattedDate) return null;
 
-    // 상태 로드 확인 (totalMissionsToday는 null일 수 있음)
-    if (totalMissionsToday === null) {
-      console.warn("[addLog] totalMissionsToday state not loaded yet.");
-      return null;
+    const todayKSTString = formattedDate;
+
+    // 1. 해당 날짜의 스냅샷에서 실제 total_missions_count 조회 (상태값 대신 직접 조회)
+    let actualTotalMissions = totalMissionsToday;
+    let actualCompletedMissions = completedTodayCount;
+    
+    const { data: snapshotData, error: snapshotQueryError } = await supabase
+      .from("daily_mission_snapshots")
+      .select("total_missions_count, completed_missions_count")
+      .eq("user_id", user.id)
+      .eq("date", todayKSTString)
+      .maybeSingle();
+    
+    if (!snapshotQueryError && snapshotData) {
+      actualTotalMissions = snapshotData.total_missions_count;
+      actualCompletedMissions = snapshotData.completed_missions_count;
+      console.log(`[addLog] 스냅샷에서 조회: 총 ${actualTotalMissions}, 완료 ${actualCompletedMissions}`);
+    } else if (totalMissionsToday === null || totalMissionsToday <= 0) {
+      // 스냅샷도 없고 상태값도 없으면 진행 불가
+      console.warn("[addLog] 스냅샷과 상태값 모두 없음, totalMissionsToday:", totalMissionsToday);
+      // totalMissionsForDate가 있으면 그 값 사용
+      if (totalMissionsForDate && totalMissionsForDate > 0) {
+        actualTotalMissions = totalMissionsForDate;
+        console.log(`[addLog] totalMissionsForDate 사용: ${actualTotalMissions}`);
+      } else {
+        console.warn("[addLog] 총 미션 수를 확인할 수 없음");
+        return null;
+      }
     }
 
-    // 1. 현재 상태 스냅샷 (badge 체크 로직 이동을 위해 필요)
-    const currentCompletedToday = completedTodayCount;
+    // 2. 해당 날짜에 이미 오늘의 영웅 배지를 획득했는지 DB에서 직접 체크
+    const { data: existingDailyHeroBadge, error: badgeCheckError } = await supabase
+      .from("earned_badges")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("badge_id", "daily_hero")
+      .gte("earned_at", todayKSTString + "T00:00:00")
+      .lt("earned_at", todayKSTString + "T23:59:59.999")
+      .limit(1);
+    
+    const alreadyHasDailyHeroToday = !badgeCheckError && existingDailyHeroBadge && existingDailyHeroBadge.length > 0;
+    if (alreadyHasDailyHeroToday) {
+      console.log(`[addLog] 해당 날짜(${todayKSTString})에 이미 오늘의 영웅 배지 있음`);
+    }
 
-    // 2. 다음 상태 예측
+    // 3. 현재 완료 수와 다음 완료 수 계산
+    const currentCompletedToday = actualCompletedMissions;
     const newCompletedToday = currentCompletedToday + 1;
 
-    // 3. 배지 획득 조건 한 번에 검사
-    const newlyEarnedBadgeIds: string[] = []; // 이번에 획득한 배지 IDs
-    const badgesToUpdateInSet = new Set<string>(); // 상태 업데이트 시 previouslyEarnedBadgeIds에 추가할 배지들
+    console.log(`[addLog] 배지 체크: 총 미션=${actualTotalMissions}, 현재 완료=${currentCompletedToday}, 다음 완료=${newCompletedToday}`);
+
+    // 4. 배지 획득 조건 검사
+    const newlyEarnedBadgeIds: string[] = [];
+    const badgesToUpdateInSet = new Set<string>();
 
     // 오늘의 영웅 배지 체크 (오늘 할당량 모두 완료)
     const dailyHeroBadgeId = "daily_hero";
     let willEarnDailyHero = false;
+    
+    // 해당 날짜에 아직 오늘의 영웅 배지가 없고, 모든 미션이 완료되는 경우에만 획득
     if (
-      totalMissionsToday > 0 &&
-      newCompletedToday >= totalMissionsToday &&
-      currentCompletedToday < totalMissionsToday
+      !alreadyHasDailyHeroToday &&
+      actualTotalMissions && actualTotalMissions > 0 &&
+      newCompletedToday >= actualTotalMissions &&
+      currentCompletedToday < actualTotalMissions
     ) {
       console.log("🎉 Predicted badge earn: 오늘의 영웅");
-      // 오늘의 영웅은 반복 획득 가능하므로 previouslyEarnedBadgeIds에 추가하지 않음
       newlyEarnedBadgeIds.push(dailyHeroBadgeId);
       willEarnDailyHero = true;
+    } else if (actualTotalMissions && newCompletedToday < actualTotalMissions) {
+      console.log(`[addLog] 오늘의 영웅 조건 미충족: ${newCompletedToday}/${actualTotalMissions}`);
     }
 
     // 도전과제 체크를 위한 예측 값 계산
@@ -411,8 +454,6 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
 
     // --- DB 작업 시작 ---
     try {
-      const todayKSTString = formattedDate;
-
       // 로그 존재 여부 확인
       const { error: checkError, count: existingLogCount } = await supabase
         .from("mission_logs")
