@@ -103,6 +103,7 @@ const TodayMissionPage: React.FC = () => {
     addLog,
     deleteLog,
     fetchLogs,
+    isAddingLog, // 로그 추가 중 상태 (중복 클릭 방지용)
   } = useMissionLogs(selectedDate, totalMissionsForDate);
   const {
     weekStatus,
@@ -317,7 +318,11 @@ const TodayMissionPage: React.FC = () => {
   const handleToggleComplete = async (mission: Mission) => {
     if (!user) return;
     try {
-      if (missionsLoading || logsLoading) return;
+      // 로딩 중이거나 로그 추가 중이면 중복 실행 방지
+      if (missionsLoading || logsLoading || isAddingLog) {
+        console.log("중복 클릭 방지: 이미 작업 중입니다.");
+        return;
+      }
 
       const missionToUpdate = missionsWithStatus.find(
         (m) => m.id === mission.id

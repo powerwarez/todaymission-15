@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../contexts/AuthContext";
 import { useNotification } from "../contexts/NotificationContext";
@@ -57,6 +57,10 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
   const [, setWeeklyCompletedCount] = useState<number>(0);
   // 오늘의 영웅 배지 획득 횟수 (전체)
   const [dailyHeroCount, setDailyHeroCount] = useState<number>(0);
+  // addLog 중복 실행 방지 플래그 (ref 사용)
+  const isAddingLogRef = useRef(false);
+  // addLog 실행 중 상태 (UI 표시용)
+  const [isAddingLog, setIsAddingLog] = useState(false);
   // 주간 미션 달성 배지 획득 횟수 (전체)
   const [weeklyStreakCount, setWeeklyStreakCount] = useState<number>(0);
 
@@ -342,6 +346,14 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
   const addLog = async (missionId: string) => {
     if (!user || !formattedDate) return null;
 
+    // 중복 실행 방지
+    if (isAddingLogRef.current) {
+      console.log("[addLog] 이미 실행 중입니다. 중복 호출 무시.");
+      return null;
+    }
+    isAddingLogRef.current = true;
+    setIsAddingLog(true);
+
     const todayKSTString = formattedDate;
 
     // 1. 해당 날짜의 스냅샷에서 실제 total_missions_count 조회 (상태값 대신 직접 조회)
@@ -368,6 +380,8 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
         console.log(`[addLog] totalMissionsForDate 사용: ${actualTotalMissions}`);
       } else {
         console.warn("[addLog] 총 미션 수를 확인할 수 없음");
+        isAddingLogRef.current = false;
+        setIsAddingLog(false);
         return null;
       }
     }
@@ -465,6 +479,8 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
       if (checkError) throw checkError;
       if (existingLogCount && existingLogCount > 0) {
         console.log("[useMissionLogs] Log already exists.");
+        isAddingLogRef.current = false;
+        setIsAddingLog(false);
         return null;
       }
 
@@ -554,7 +570,11 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
         .single();
 
       if (insertError) throw insertError;
-      if (!insertedLog) return null;
+      if (!insertedLog) {
+        isAddingLogRef.current = false;
+        setIsAddingLog(false);
+        return null;
+      }
 
       // 6. 스냅샷 카운트 증가 RPC 호출 (성공 여부 중요하지 않음)
       const { error: incrementError } = await supabase.rpc(
@@ -723,10 +743,14 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
 
       playSound("/sound/high_rune.flac");
 
+      isAddingLogRef.current = false;
+      setIsAddingLog(false);
       return insertedLog;
     } catch (err: unknown) {
       console.error("Error adding mission log:", err);
       setError("미션 기록 추가 중 오류가 발생했습니다.");
+      isAddingLogRef.current = false;
+      setIsAddingLog(false);
       return null;
     }
   };
@@ -783,5 +807,5 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
     }
   };
 
-  return { logs, loading, error, fetchLogs, addLog, deleteLog };
+  return { logs, loading, error, fetchLogs, addLog, deleteLog, isAddingLog };
 };
