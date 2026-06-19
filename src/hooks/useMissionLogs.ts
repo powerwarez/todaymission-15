@@ -11,15 +11,34 @@ const playSound = (soundFile: string) => {
   audio.play().catch((e) => console.error("Error playing sound:", e));
 };
 
+const REPEATABLE_CONDITION_TYPES = ["DAILY_COMPLETIONS_REPEATABLE"] as const;
+const ONE_TIME_CONDITION_TYPES = ["DAILY_COMPLETIONS", "WEEKLY_COMPLETIONS"] as const;
+const VALID_CHALLENGE_CONDITION_TYPES = [
+  ...ONE_TIME_CONDITION_TYPES,
+  ...REPEATABLE_CONDITION_TYPES,
+] as const;
+
+type ChallengeConditionType = (typeof VALID_CHALLENGE_CONDITION_TYPES)[number];
+
 // 도전과제 타입 (공용 + 사용자 정의)
 interface UserChallenge {
   id: string;
   name: string;
   badge_id: string;
-  condition_type: "DAILY_COMPLETIONS" | "WEEKLY_COMPLETIONS";
+  condition_type: ChallengeConditionType;
   required_count: number;
   is_global?: boolean;
 }
+
+const isRepeatableChallenge = (conditionType: string) =>
+  REPEATABLE_CONDITION_TYPES.includes(
+    conditionType as (typeof REPEATABLE_CONDITION_TYPES)[number]
+  );
+
+const getRepeatableTargetCount = (
+  dailyHeroCount: number,
+  requiredCount: number
+) => Math.floor(dailyHeroCount / requiredCount);
 
 // 파라미터: formattedDate - 선택된 날짜, totalMissionsForDate - 해당 날짜의 총 미션 수 (optional)
 export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: number) => {
@@ -51,6 +70,9 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
   const [previouslyEarnedBadgeIds, setPreviouslyEarnedBadgeIds] = useState<
     Set<string>
   >(new Set());
+  // 반복 달성 배지별 획득 횟수
+  const [repeatableBadgeEarnedCounts, setRepeatableBadgeEarnedCounts] =
+    useState<Record<string, number>>({});
   // 사용자 정의 도전과제 목록
   const [userChallenges, setUserChallenges] = useState<UserChallenge[]>([]);
   // 주간 완료 횟수 (이번 주) - 더 이상 사용하지 않음 (호환성 유지)
@@ -200,7 +222,7 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
       } else {
         // condition_type이 유효한 것만 필터링
         const validChallenges = (allChallengesData || []).filter(
-          (c) => ["DAILY_COMPLETIONS", "WEEKLY_COMPLETIONS"].includes(c.condition_type)
+          (c) => VALID_CHALLENGE_CONDITION_TYPES.includes(c.condition_type)
         );
         setUserChallenges(validChallenges);
         console.log("[useMissionLogs] All challenges loaded (global + user):", validChallenges);
@@ -218,8 +240,13 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
           .in("badge_id", allBadgeIdsToCheck);
 
       if (earnedBadgesError) throw earnedBadgesError;
-      const earnedSet = new Set(earnedBadgesData?.map((b) => b.badge_id) || []);
+      const earnedCounts: Record<string, number> = {};
+      earnedBadgesData?.forEach((badge) => {
+        earnedCounts[badge.badge_id] = (earnedCounts[badge.badge_id] || 0) + 1;
+      });
+      const earnedSet = new Set(Object.keys(earnedCounts));
       setPreviouslyEarnedBadgeIds(earnedSet);
+      setRepeatableBadgeEarnedCounts(earnedCounts);
       console.log(
         "[useMissionLogs] Initial previouslyEarnedBadgeIds:",
         earnedSet
@@ -279,12 +306,21 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
       const currentDailyHeroCount = dailyHeroCountResult ?? 0;
       const currentWeeklyStreakCount = weeklyStreakCountResult ?? 0;
       const validChallengesForCheck = (allChallengesData || []).filter(
-        (c) => ["DAILY_COMPLETIONS", "WEEKLY_COMPLETIONS"].includes(c.condition_type)
+        (c) => VALID_CHALLENGE_CONDITION_TYPES.includes(c.condition_type)
       );
 
       // 조건을 충족하지만 아직 획득하지 않은 도전과제 찾기
       const missedChallenges = validChallengesForCheck.filter((challenge) => {
-        // 이미 획득한 배지는 스킵
+        if (challenge.condition_type === "DAILY_COMPLETIONS_REPEATABLE") {
+          const targetCount = getRepeatableTargetCount(
+            currentDailyHeroCount,
+            challenge.required_count
+          );
+          const currentEarnedCount = earnedCounts[challenge.badge_id] || 0;
+          return targetCount > currentEarnedCount;
+        }
+
+        // 이미 획득한 배지는 스킵 (1회성)
         if (earnedSet.has(challenge.badge_id)) {
           return false;
         }
@@ -324,8 +360,12 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
             showBadgeNotification(challenge.badge_id);
           }
 
-          // earnedSet 업데이트
-          missedChallenges.forEach((c) => earnedSet.add(c.badge_id));
+          // earnedSet / earnedCounts 업데이트
+          missedChallenges.forEach((c) => {
+            earnedSet.add(c.badge_id);
+            earnedCounts[c.badge_id] = (earnedCounts[c.badge_id] || 0) + 1;
+          });
+          setRepeatableBadgeEarnedCounts({ ...earnedCounts });
         }
       }
       // --- 누락된 도전과제 자동 달성 체크 끝 ---
@@ -437,21 +477,36 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
 
     // 사용자 정의 및 공용 도전과제 체크
     for (const challenge of userChallenges) {
-      // 이미 획득한 배지는 스킵
-      if (previouslyEarnedBadgeIds.has(challenge.badge_id)) {
-        continue;
-      }
-
       let shouldEarn = false;
 
       switch (challenge.condition_type) {
+        case "DAILY_COMPLETIONS_REPEATABLE": {
+          const targetCount = getRepeatableTargetCount(
+            newDailyHeroCount,
+            challenge.required_count
+          );
+          const currentEarnedCount =
+            repeatableBadgeEarnedCounts[challenge.badge_id] || 0;
+          if (targetCount > currentEarnedCount) {
+            shouldEarn = true;
+          }
+          break;
+        }
         case "DAILY_COMPLETIONS":
+          // 이미 획득한 배지는 스킵
+          if (previouslyEarnedBadgeIds.has(challenge.badge_id)) {
+            continue;
+          }
           // 오늘의 영웅 배지 획득 횟수 체크
           if (newDailyHeroCount >= challenge.required_count) {
             shouldEarn = true;
           }
           break;
         case "WEEKLY_COMPLETIONS":
+          // 이미 획득한 배지는 스킵
+          if (previouslyEarnedBadgeIds.has(challenge.badge_id)) {
+            continue;
+          }
           // 주간 미션 달성 배지 획득 횟수 체크
           if (newWeeklyStreakCount >= challenge.required_count) {
             shouldEarn = true;
@@ -462,7 +517,11 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
       if (shouldEarn) {
         console.log(`🎉 Predicted badge earn: ${challenge.name} (도전과제)`);
         newlyEarnedBadgeIds.push(challenge.badge_id);
-        badgesToUpdateInSet.add(challenge.badge_id);
+        if (isRepeatableChallenge(challenge.condition_type)) {
+          // 반복 배지는 Set에 추가하지 않음 (횟수로 관리)
+        } else {
+          badgesToUpdateInSet.add(challenge.badge_id);
+        }
       }
     }
 
@@ -751,6 +810,7 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
             daily_hero: "오늘의 영웅",
             first_mission_completed: "첫 도전",
             mission_150_completed: "꾸준한 도전자",
+            every_mission_100: "100층집 단골손님",
           };
           console.log(
             `🔔 Queueing: ${badgeId} (${badgeNames[badgeId] || badgeId})`
@@ -768,12 +828,29 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
       if (willEarnDailyHero) {
         setDailyHeroCount((prevCount) => prevCount + 1);
       }
-      // 이전에 획득한 배지 Set 업데이트 (필요한 경우)
+      // 이전에 획득한 배지 Set 업데이트 (1회성 도전과제)
       if (badgesToUpdateInSet.size > 0) {
         setPreviouslyEarnedBadgeIds((prevSet) => {
           const newSet = new Set(prevSet);
           badgesToUpdateInSet.forEach((id) => newSet.add(id));
           return newSet;
+        });
+      }
+      // 반복 달성 배지 횟수 업데이트
+      const earnedRepeatableBadgeIds = newlyEarnedBadgeIds.filter((badgeId) =>
+        userChallenges.some(
+          (c) =>
+            c.badge_id === badgeId &&
+            isRepeatableChallenge(c.condition_type)
+        )
+      );
+      if (earnedRepeatableBadgeIds.length > 0) {
+        setRepeatableBadgeEarnedCounts((prevCounts) => {
+          const nextCounts = { ...prevCounts };
+          earnedRepeatableBadgeIds.forEach((badgeId) => {
+            nextCounts[badgeId] = (nextCounts[badgeId] || 0) + 1;
+          });
+          return nextCounts;
         });
       }
 

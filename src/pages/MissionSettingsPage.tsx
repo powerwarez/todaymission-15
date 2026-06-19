@@ -464,10 +464,14 @@ const MissionSettingsPage: React.FC = () => {
                                     color: "var(--color-accent-dark)",
                                   }}
                                 >
-                                  {challenge.condition_type === "DAILY_COMPLETIONS"
+                                  {challenge.condition_type === "DAILY_COMPLETIONS" ||
+                                  challenge.condition_type ===
+                                    "DAILY_COMPLETIONS_REPEATABLE"
                                     ? "영웅"
                                     : "달성"}{" "}
                                   {challenge.required_count}회
+                                  {challenge.condition_type ===
+                                    "DAILY_COMPLETIONS_REPEATABLE" && " (반복)"}
                                 </span>
                               </div>
                             </div>
