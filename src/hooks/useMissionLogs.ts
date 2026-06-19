@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { subDays } from "date-fns";
+import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../contexts/AuthContext";
 import { useNotification } from "../contexts/NotificationContext";
@@ -39,6 +41,64 @@ const getRepeatableTargetCount = (
   dailyHeroCount: number,
   requiredCount: number
 ) => Math.floor(dailyHeroCount / requiredCount);
+
+const KST_TIMEZONE = "Asia/Seoul";
+
+/** 소급 배지 insert 시 KST 날짜 중복(unique index)을 피하기 위해 날짜 분산 */
+const getBackfillEarnedAt = (daysAgo: number): string => {
+  const kstNow = toZonedTime(new Date(), KST_TIMEZONE);
+  const targetDate = subDays(kstNow, daysAgo);
+  return formatInTimeZone(targetDate, KST_TIMEZONE, "yyyy-MM-dd'T'12:00:00XXX");
+};
+
+interface MissedBadgeInsert {
+  user_id: string;
+  badge_id: string;
+  badge_type: string;
+  earned_at: string;
+  challengeName: string;
+}
+
+const buildMissedBadgeInserts = (
+  userId: string,
+  missedChallenges: UserChallenge[],
+  earnedCounts: Record<string, number>,
+  currentDailyHeroCount: number
+): MissedBadgeInsert[] => {
+  const inserts: MissedBadgeInsert[] = [];
+
+  for (const challenge of missedChallenges) {
+    if (challenge.condition_type === "DAILY_COMPLETIONS_REPEATABLE") {
+      const targetCount = getRepeatableTargetCount(
+        currentDailyHeroCount,
+        challenge.required_count
+      );
+      const currentEarnedCount = earnedCounts[challenge.badge_id] || 0;
+      const pendingCount = targetCount - currentEarnedCount;
+
+      for (let i = 0; i < pendingCount; i++) {
+        const daysAgo = pendingCount - 1 - i;
+        inserts.push({
+          user_id: userId,
+          badge_id: challenge.badge_id,
+          badge_type: "mission",
+          earned_at: getBackfillEarnedAt(daysAgo),
+          challengeName: challenge.name,
+        });
+      }
+    } else {
+      inserts.push({
+        user_id: userId,
+        badge_id: challenge.badge_id,
+        badge_type: "mission",
+        earned_at: new Date().toISOString(),
+        challengeName: challenge.name,
+      });
+    }
+  }
+
+  return inserts;
+};
 
 // 파라미터: formattedDate - 선택된 날짜, totalMissionsForDate - 해당 날짜의 총 미션 수 (optional)
 export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: number) => {
@@ -338,32 +398,37 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
       if (missedChallenges.length > 0) {
         console.log(`[useMissionLogs] 누락된 도전과제 발견:`, missedChallenges.map(c => c.name));
 
-        const badgesToInsert = missedChallenges.map((challenge) => ({
-          user_id: user.id,
-          badge_id: challenge.badge_id,
-          badge_type: "mission",
-          earned_at: new Date().toISOString(),
-        }));
+        const badgesToInsert = buildMissedBadgeInserts(
+          user.id,
+          missedChallenges,
+          earnedCounts,
+          currentDailyHeroCount
+        );
 
         const { error: insertError } = await supabase
           .from("earned_badges")
-          .insert(badgesToInsert);
+          .insert(
+            badgesToInsert.map(({ challengeName: _name, ...badge }) => badge)
+          );
 
         if (insertError) {
           console.error("[useMissionLogs] 누락된 배지 자동 부여 오류:", insertError);
         } else {
-          console.log(`[useMissionLogs] 누락된 배지 ${missedChallenges.length}개 자동 부여 완료`);
-          
+          console.log(
+            `[useMissionLogs] 누락된 배지 ${badgesToInsert.length}개 자동 부여 완료`
+          );
+
           // 알림 표시
-          for (const challenge of missedChallenges) {
-            console.log(`🔔 자동 부여된 배지: ${challenge.name}`);
-            showBadgeNotification(challenge.badge_id);
+          for (const badge of badgesToInsert) {
+            console.log(`🔔 자동 부여된 배지: ${badge.challengeName}`);
+            showBadgeNotification(badge.badge_id);
           }
 
           // earnedSet / earnedCounts 업데이트
-          missedChallenges.forEach((c) => {
-            earnedSet.add(c.badge_id);
-            earnedCounts[c.badge_id] = (earnedCounts[c.badge_id] || 0) + 1;
+          badgesToInsert.forEach((badge) => {
+            earnedSet.add(badge.badge_id);
+            earnedCounts[badge.badge_id] =
+              (earnedCounts[badge.badge_id] || 0) + 1;
           });
           setRepeatableBadgeEarnedCounts({ ...earnedCounts });
         }
