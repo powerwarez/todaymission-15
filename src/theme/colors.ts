@@ -5,6 +5,8 @@ export interface ColorTheme {
   name: string;
   displayName: string;
   description: string;
+  /** 테마 선택 카드에 표시할 팔레트 (미지정 시 primary 계열 4색) */
+  previewColors?: string[];
   colors: {
     primary: {
       light: string;
@@ -263,6 +265,45 @@ export const themes: Record<string, ColorTheme> = {
         warning: "#fbbf24",
         error: "#f87171",
         info: "#60a5fa",
+      },
+    },
+  },
+
+  // 5색 파스텔 팔레트 (96C2B1 · C0CEA6 · E3B89C · D99196 · D37986)
+  flowerGarden: {
+    name: "flowerGarden",
+    displayName: "들꽃 정원",
+    description: "민트, 세이지, 살구, 장미가 어우러진 파스텔 팔레트",
+    previewColors: ["#96c2b1", "#c0cea6", "#e3b89c", "#d99196", "#d37986"],
+    colors: {
+      primary: {
+        light: "#e8f3ef",
+        DEFAULT: "#96c2b1",
+        medium: "#c0cea6",
+        dark: "#4a6b58",
+      },
+      secondary: "#e3b89c",
+      accent: "#d37986",
+      background: {
+        main: "#faf7f4",
+        card: "#ffffff",
+        hover: "#f0ebe3",
+      },
+      text: {
+        primary: "#3d4a3a",
+        secondary: "#5c6b52",
+        muted: "#8a7568",
+      },
+      border: {
+        light: "#d9e8dc",
+        DEFAULT: "#96c2b1",
+        focus: "#d37986",
+      },
+      status: {
+        success: "#96c2b1",
+        warning: "#e3b89c",
+        error: "#d37986",
+        info: "#d99196",
       },
     },
   },

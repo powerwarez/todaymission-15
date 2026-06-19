@@ -84,22 +84,18 @@ const ThemeManager: React.FC = () => {
           >
             {/* 테마 미리보기 색상 팔레트 */}
             <div className="flex space-x-2 mb-3">
-              <div
-                className="w-6 h-6 rounded-full"
-                style={{ backgroundColor: theme.colors.primary.light }}
-              />
-              <div
-                className="w-6 h-6 rounded-full"
-                style={{ backgroundColor: theme.colors.primary.DEFAULT }}
-              />
-              <div
-                className="w-6 h-6 rounded-full"
-                style={{ backgroundColor: theme.colors.primary.medium }}
-              />
-              <div
-                className="w-6 h-6 rounded-full"
-                style={{ backgroundColor: theme.colors.primary.dark }}
-              />
+              {(theme.previewColors ?? [
+                theme.colors.primary.light,
+                theme.colors.primary.DEFAULT,
+                theme.colors.primary.medium,
+                theme.colors.primary.dark,
+              ]).map((color) => (
+                <div
+                  key={color}
+                  className="w-6 h-6 rounded-full"
+                  style={{ backgroundColor: color }}
+                />
+              ))}
             </div>
 
             {/* 테마 정보 */}
