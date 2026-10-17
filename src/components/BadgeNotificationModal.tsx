@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, CSSProperties } from 'react'; // CSSProperties 추가
 import { Badge } from '../types'; // Badge 타입
+import { getBadgeImageUrl } from '../lib/badgeImage';
 import { LuX, LuBadgeCheck } from 'react-icons/lu';
 
 interface BadgeNotificationModalProps {
@@ -94,20 +95,6 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({
       }
     };
   }, [badge.id, initiateClose]);
-
-  // 이미지 URL 생성 함수 (변경 없음)
-  const getBadgeImageUrl = (imagePath: string | undefined): string => {
-    if (!imagePath) return '/placeholder_badge.png';
-    if (imagePath.startsWith('http')) {
-      const cleanedUrl = imagePath.replace(/([^:]\/)\/+/g, "$1");
-      return cleanedUrl;
-    }
-    console.warn("Image path is not a full URL, constructing one (fallback):", imagePath)
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const bucketName = 'badges';
-    const cleanRelativePath = imagePath.replace(/^\/+|\/+$/g, '');
-    return `${supabaseUrl}/storage/v1/object/public/${bucketName}/${cleanRelativePath}`;
-  };
 
   return (
     // internalVisible 상태에 따라 opacity 제어

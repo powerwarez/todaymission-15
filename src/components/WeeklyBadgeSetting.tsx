@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { Badge } from "../types";
+import { getBadgeImageUrl } from "../lib/badgeImage";
 import {
   LuPlus,
   LuTrash,
@@ -287,18 +288,6 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
       console.error("배지 선택 처리 중 오류:", err);
       toast.error("배지 선택 중 오류가 발생했습니다.");
     }
-  };
-
-  // 이미지 URL 생성 함수
-  const getBadgeImageUrl = (imagePath: string): string => {
-    if (!imagePath) return "/placeholder_badge.png";
-    if (imagePath.startsWith("http")) {
-      return imagePath;
-    }
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const bucketName = "badges";
-    const cleanRelativePath = imagePath.replace(/^\/+|\/+$/g, "");
-    return `${supabaseUrl}/storage/v1/object/public/${bucketName}/${cleanRelativePath}`;
   };
 
   // 설정 저장하기

@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../contexts/AuthContext";
 import { useNotification } from "../contexts/NotificationContext";
 import { MissionLog } from "../types";
+import { calcBestHeroStreak, toKstDateString } from "../lib/heroStreak";
 
 // 오디오 재생 함수
 const playSound = (soundFile: string) => {
@@ -14,7 +15,12 @@ const playSound = (soundFile: string) => {
 };
 
 const REPEATABLE_CONDITION_TYPES = ["DAILY_COMPLETIONS_REPEATABLE"] as const;
-const ONE_TIME_CONDITION_TYPES = ["DAILY_COMPLETIONS", "WEEKLY_COMPLETIONS"] as const;
+const ONE_TIME_CONDITION_TYPES = [
+  "DAILY_COMPLETIONS", // 오늘의 영웅 누적 횟수
+  "WEEKLY_COMPLETIONS", // 주간 미션 달성 누적 횟수
+  "MISSION_STREAK", // 오늘의 영웅 연속 달성 일수 (주말은 쉬어도 이어짐)
+  "TOTAL_COMPLETIONS", // 완료한 미션 누적 개수
+] as const;
 const VALID_CHALLENGE_CONDITION_TYPES = [
   ...ONE_TIME_CONDITION_TYPES,
   ...REPEATABLE_CONDITION_TYPES,
@@ -110,10 +116,12 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
 
   // 오늘 완료된 로그 수 상태 추가 (예측용)
   const [completedTodayCount, setCompletedTodayCount] = useState(0);
-  // 전체 완료 로그 수 상태 추가 (예측용) - setter만 사용
-  const [, setTotalCompletedCount] = useState<number | null>(
+  // 전체 완료 로그 수 상태 (누적 미션 개수 도전과제 판정용)
+  const [totalCompletedCount, setTotalCompletedCount] = useState<number | null>(
     null
   );
+  // 오늘의 영웅을 달성한 날짜 목록 (KST, yyyy-MM-dd) - 연속 달성 도전과제 판정용
+  const [heroDates, setHeroDates] = useState<string[]>([]);
   // 선택된 날짜의 총 미션 수 상태 (파라미터로 받은 값 또는 DB에서 조회한 값)
   const [totalMissionsToday, setTotalMissionsToday] = useState<number | null>(
     null
@@ -348,6 +356,24 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
         console.log(`[useMissionLogs] Daily hero badge count: ${dailyHeroCountResult}`);
       }
 
+      // 오늘의 영웅 달성 날짜 목록 (연속 달성 계산용)
+      const { data: heroRows, error: heroRowsError } = await supabase
+        .from("earned_badges")
+        .select("earned_at")
+        .eq("user_id", user.id)
+        .eq("badge_id", "daily_hero");
+
+      let currentHeroDates: string[] = [];
+      if (heroRowsError) {
+        console.error("오늘의 영웅 달성 날짜 로드 오류:", heroRowsError);
+      } else {
+        currentHeroDates = (heroRows ?? []).map((row) =>
+          toKstDateString(row.earned_at)
+        );
+        setHeroDates(currentHeroDates);
+      }
+      const currentBestHeroStreak = calcBestHeroStreak(currentHeroDates);
+
       // 주간 미션 달성 배지 획득 횟수 (전체) - weekly_streak_1과 custom_ 주간 배지 모두 포함
       const { count: weeklyStreakCountResult, error: weeklyStreakError } = await supabase
         .from("earned_badges")
@@ -390,6 +416,10 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
           return currentDailyHeroCount >= challenge.required_count;
         } else if (challenge.condition_type === "WEEKLY_COMPLETIONS") {
           return currentWeeklyStreakCount >= challenge.required_count;
+        } else if (challenge.condition_type === "MISSION_STREAK") {
+          return currentBestHeroStreak >= challenge.required_count;
+        } else if (challenge.condition_type === "TOTAL_COMPLETIONS") {
+          return (totalCount ?? 0) >= challenge.required_count;
         }
         return false;
       });
@@ -539,6 +569,13 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
     const newDailyHeroCount = willEarnDailyHero ? dailyHeroCount + 1 : dailyHeroCount;
     // 주간 미션 달성은 미션 완료 시 바로 체크되지 않음 (별도 플로우)
     const newWeeklyStreakCount = weeklyStreakCount;
+    // 오늘의 영웅을 새로 획득하면 오늘(KST)이 달성일에 추가되어 연속 일수가 늘어날 수 있음
+    const todayKstDate = toKstDateString(new Date());
+    const newBestHeroStreak = willEarnDailyHero
+      ? calcBestHeroStreak([...heroDates, todayKstDate])
+      : calcBestHeroStreak(heroDates);
+    // 이번 미션 완료로 누적 완료 개수가 1 증가
+    const newTotalCompletedCount = (totalCompletedCount ?? 0) + 1;
 
     // 사용자 정의 및 공용 도전과제 체크
     for (const challenge of userChallenges) {
@@ -574,6 +611,22 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
           }
           // 주간 미션 달성 배지 획득 횟수 체크
           if (newWeeklyStreakCount >= challenge.required_count) {
+            shouldEarn = true;
+          }
+          break;
+        case "MISSION_STREAK":
+          if (previouslyEarnedBadgeIds.has(challenge.badge_id)) {
+            continue;
+          }
+          if (newBestHeroStreak >= challenge.required_count) {
+            shouldEarn = true;
+          }
+          break;
+        case "TOTAL_COMPLETIONS":
+          if (previouslyEarnedBadgeIds.has(challenge.badge_id)) {
+            continue;
+          }
+          if (newTotalCompletedCount >= challenge.required_count) {
             shouldEarn = true;
           }
           break;
@@ -892,6 +945,9 @@ export const useMissionLogs = (formattedDate: string, totalMissionsForDate?: num
       // 오늘의 영웅 배지를 획득했다면 카운트 증가
       if (willEarnDailyHero) {
         setDailyHeroCount((prevCount) => prevCount + 1);
+        setHeroDates((prevDates) =>
+          prevDates.includes(todayKstDate) ? prevDates : [...prevDates, todayKstDate]
+        );
       }
       // 이전에 획득한 배지 Set 업데이트 (1회성 도전과제)
       if (badgesToUpdateInSet.size > 0) {

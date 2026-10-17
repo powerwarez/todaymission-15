@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { Badge } from "../types";
+import { getBadgeImageUrl } from "../lib/badgeImage";
 import {
   Confetti,
   ConfettiOptions,
@@ -270,18 +271,6 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
       fetchBadges();
     }
   }, [showModal, user, alreadyEarned, weeklyRewardGoal]);
-
-  // 이미지 URL 생성 함수
-  const getBadgeImageUrl = (imagePath: string): string => {
-    if (!imagePath) return "/placeholder_badge.png";
-    if (imagePath.startsWith("http")) {
-      return imagePath.replace(/([^:]\/)\/+/g, "$1");
-    }
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const bucketName = "badges";
-    const cleanRelativePath = imagePath.replace(/^\/+|\/+$/g, "");
-    return `${supabaseUrl}/storage/v1/object/public/${bucketName}/${cleanRelativePath}`;
-  };
 
   // 배지 선택 처리 (UI에서 선택만 함)
   const handleBadgeClick = (badgeId: string) => {

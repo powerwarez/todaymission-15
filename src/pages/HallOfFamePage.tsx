@@ -28,6 +28,7 @@ import { formatInTimeZone, toZonedTime, format } from "date-fns-tz";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
 import { supabase } from "../lib/supabaseClient";
+import { getBadgeImageUrl } from "../lib/badgeImage";
 import { BadgeSelectionModal } from "../components/BadgeSelectionModal";
 
 // 시간대 설정 (AuthContext에서 사용하는 값으로 대체)
@@ -195,18 +196,6 @@ const HallOfFamePage: React.FC = () => {
     );
   };
   // --- 끝: 월별 달력 관련 로직 --- //
-
-  // 배지 이미지 URL 생성 함수
-  const getBadgeImageUrl = (imagePath: string): string => {
-    if (!imagePath) return "/placeholder_badge.png";
-    if (imagePath.startsWith("http")) {
-      return imagePath.replace(/([^:]\/)\/+/g, "$1");
-    }
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const bucketName = "badges";
-    const cleanRelativePath = imagePath.replace(/^\/+|\/+$/g, "");
-    return `${supabaseUrl}/storage/v1/object/public/${bucketName}/${cleanRelativePath}`;
-  };
 
   // 보상 표시 관련 상태 추가
   const [selectedBadgeReward, setSelectedBadgeReward] = useState<string | null>(

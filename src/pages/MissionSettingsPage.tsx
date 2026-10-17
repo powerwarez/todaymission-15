@@ -468,9 +468,21 @@ const ChallengeRow: React.FC<ChallengeRowProps> = ({
   deleting = false,
   onDelete,
 }) => {
-  const isHero =
-    challenge.condition_type === "DAILY_COMPLETIONS" ||
-    challenge.condition_type === "DAILY_COMPLETIONS_REPEATABLE";
+  const goalLabel = (() => {
+    const n = challenge.required_count;
+    switch (challenge.condition_type) {
+      case "DAILY_COMPLETIONS":
+        return `영웅 ${n}회`;
+      case "DAILY_COMPLETIONS_REPEATABLE":
+        return `영웅 ${n}회 (반복)`;
+      case "MISSION_STREAK":
+        return `연속 ${n}일`;
+      case "TOTAL_COMPLETIONS":
+        return `미션 ${n}개`;
+      default:
+        return `달성 ${n}회`;
+    }
+  })();
 
   return (
     <li className="ui-card-soft flex items-center gap-4">
@@ -504,11 +516,7 @@ const ChallengeRow: React.FC<ChallengeRowProps> = ({
         <h4 className="text-base truncate">{challenge.name}</h4>
         <p className="text-sm ui-text-sub truncate">{challenge.description}</p>
         <div className="mt-1">
-          <Chip>
-            {isHero ? "영웅" : "달성"} {challenge.required_count}회
-            {challenge.condition_type === "DAILY_COMPLETIONS_REPEATABLE" &&
-              " (반복)"}
-          </Chip>
+          <Chip>{goalLabel}</Chip>
         </div>
       </div>
 
