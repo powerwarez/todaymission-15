@@ -2,12 +2,16 @@ import React, { useState } from "react";
 import { useMissions } from "../hooks/useMissions";
 import { Mission } from "../types";
 import { LuCirclePlus, LuTrash2, LuSave, LuPencil } from "react-icons/lu";
+import toast from "react-hot-toast";
+import ConfirmModal from "../components/ConfirmModal";
 
 const ChallengeSettingsPage: React.FC = () => {
   const { missions, loading, error, addMission, updateMission, deleteMission } =
     useMissions();
   const [newMissionContent, setNewMissionContent] = useState("");
   const [editingMission, setEditingMission] = useState<Mission | null>(null);
+  const [missionToDelete, setMissionToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleAddMission = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,11 +39,17 @@ const ChallengeSettingsPage: React.FC = () => {
     // Handle error case if needed
   };
 
-  const handleDeleteMission = async (id: string) => {
-    if (window.confirm("정말로 이 미션을 삭제하시겠습니까?")) {
-      await deleteMission(id);
-      // Handle error case if needed
+  const handleConfirmDelete = async () => {
+    if (!missionToDelete || isDeleting) return;
+    setIsDeleting(true);
+    const ok = await deleteMission(missionToDelete);
+    setIsDeleting(false);
+    if (ok) {
+      toast.success("미션이 삭제되었습니다.");
+    } else {
+      toast.error("미션 삭제에 실패했습니다. 다시 시도해주세요.");
     }
+    setMissionToDelete(null);
   };
 
   // Basic drag-and-drop reordering logic (can be enhanced with libraries)
@@ -92,6 +102,13 @@ const ChallengeSettingsPage: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <ConfirmModal
+        isOpen={missionToDelete !== null}
+        message="정말로 이 미션을 삭제하시겠습니까?"
+        loading={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setMissionToDelete(null)}
+      />
       <h1
         className="text-3xl font-bold mb-6"
         style={{ color: "var(--color-text-primary)" }}
@@ -192,7 +209,7 @@ const ChallengeSettingsPage: React.FC = () => {
                   </button>
                 )}
                 <button
-                  onClick={() => handleDeleteMission(mission.id)}
+                  onClick={() => setMissionToDelete(mission.id)}
                   className="disabled:opacity-50"
                   style={{ color: "var(--color-text-error)" }}
                   onMouseEnter={(e) => {

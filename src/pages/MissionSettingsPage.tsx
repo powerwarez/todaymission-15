@@ -15,6 +15,7 @@ import {
 import WeeklyBadgeSetting from "../components/WeeklyBadgeSetting";
 import AccountSettings from "../components/AccountSettings";
 import PinAuthModal from "../components/PinAuthModal";
+import ConfirmModal from "../components/ConfirmModal";
 import ThemeManager from "../components/ThemeManager";
 import ChallengeCreator from "../components/ChallengeCreator";
 import { useNavigate } from "react-router-dom";
@@ -41,9 +42,17 @@ interface UserChallenge {
 const MissionSettingsPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { missions, loading, error, addMission, deleteMission, updateMission } =
-    useMissions();
+  const {
+    missions,
+    loading,
+    error,
+    addMission,
+    deleteMission,
+    updateMission,
+    reorderMissions,
+  } = useMissions();
   const [newMissionContent, setNewMissionContent] = useState("");
+  const [isReordering, setIsReordering] = useState(false);
 
   // PIN 인증 관련 상태
   const [showPinAuth, setShowPinAuth] = useState<boolean>(true);
@@ -53,6 +62,10 @@ const MissionSettingsPage: React.FC = () => {
   const [userChallenges, setUserChallenges] = useState<UserChallenge[]>([]);
   const [challengesLoading, setChallengesLoading] = useState(false);
   const [deletingChallengeId, setDeletingChallengeId] = useState<string | null>(null);
+  const [challengeToDelete, setChallengeToDelete] = useState<{
+    id: string;
+    badgeId: string;
+  } | null>(null);
 
   // 도전과제 로드 함수 (공용 + 사용자 정의)
   const loadUserChallenges = useCallback(async () => {
@@ -107,9 +120,6 @@ const MissionSettingsPage: React.FC = () => {
   const handleDeleteChallenge = async (challengeId: string, badgeId: string) => {
     if (!user || deletingChallengeId) return;
 
-    const confirmed = window.confirm("이 도전과제를 삭제하시겠습니까?");
-    if (!confirmed) return;
-
     setDeletingChallengeId(challengeId);
     try {
       // 1. 도전과제 삭제
@@ -151,6 +161,7 @@ const MissionSettingsPage: React.FC = () => {
       toast.error("도전과제 삭제에 실패했습니다.");
     } finally {
       setDeletingChallengeId(null);
+      setChallengeToDelete(null);
     }
   };
 
@@ -184,37 +195,46 @@ const MissionSettingsPage: React.FC = () => {
     e.preventDefault();
     if (newMissionContent.trim() === "") return;
 
+    // 삭제 후에도 order가 중복되지 않도록 현재 최대값 + 1 사용
+    const nextOrder =
+      missions.length > 0 ? Math.max(...missions.map((m) => m.order)) + 1 : 0;
+
     await addMission({
       content: newMissionContent.trim(),
-      order: missions.length,
+      order: nextOrder,
     });
 
     setNewMissionContent("");
   };
 
-  // 미션 순서 위로 이동
-  const handleMoveUp = async (mission: Mission) => {
+  // 미션 순서 이동 (direction: -1 위로, 1 아래로)
+  // 두 항목의 order 값을 교환하지 않고, 이동 후 전체 순서를 0..n-1 로 다시 부여한다.
+  const moveMission = async (mission: Mission, direction: -1 | 1) => {
+    if (isReordering) return; // 연타로 인한 중복 요청 방지
+
     const index = missions.findIndex((m) => m.id === mission.id);
-    if (index <= 0) return; // 이미 첫 번째 항목이면 이동 불가
+    const targetIndex = index + direction;
+    if (index === -1 || targetIndex < 0 || targetIndex >= missions.length) {
+      return;
+    }
 
-    const prevMission = missions[index - 1];
+    const orderedIds = missions.map((m) => m.id);
+    [orderedIds[index], orderedIds[targetIndex]] = [
+      orderedIds[targetIndex],
+      orderedIds[index],
+    ];
 
-    // 순서 교환
-    await updateMission(mission.id, { order: prevMission.order });
-    await updateMission(prevMission.id, { order: mission.order });
+    setIsReordering(true);
+    const ok = await reorderMissions(orderedIds);
+    setIsReordering(false);
+
+    if (!ok) {
+      toast.error("순서 변경에 실패했습니다. 다시 시도해주세요.");
+    }
   };
 
-  // 미션 순서 아래로 이동
-  const handleMoveDown = async (mission: Mission) => {
-    const index = missions.findIndex((m) => m.id === mission.id);
-    if (index >= missions.length - 1) return; // 이미 마지막 항목이면 이동 불가
-
-    const nextMission = missions[index + 1];
-
-    // 순서 교환
-    await updateMission(mission.id, { order: nextMission.order });
-    await updateMission(nextMission.id, { order: mission.order });
-  };
+  const handleMoveUp = (mission: Mission) => moveMission(mission, -1);
+  const handleMoveDown = (mission: Mission) => moveMission(mission, 1);
 
   if (!user) {
     return (
@@ -231,6 +251,17 @@ const MissionSettingsPage: React.FC = () => {
       {showPinAuth && !pinVerified && (
         <PinAuthModal onSuccess={handlePinSuccess} onCancel={handlePinCancel} />
       )}
+
+      <ConfirmModal
+        isOpen={challengeToDelete !== null}
+        message="이 도전과제를 삭제하시겠습니까?"
+        loading={deletingChallengeId !== null}
+        onConfirm={() =>
+          challengeToDelete &&
+          handleDeleteChallenge(challengeToDelete.id, challengeToDelete.badgeId)
+        }
+        onCancel={() => setChallengeToDelete(null)}
+      />
 
       {(!showPinAuth || pinVerified) && (
         <div className="max-w-4xl mx-auto p-4">
@@ -290,27 +321,29 @@ const MissionSettingsPage: React.FC = () => {
                       <div className="flex flex-col justify-center">
                         <button
                           onClick={() => handleMoveUp(mission)}
-                          disabled={index === 0}
-                          className={`p-1 text-gray-500 ${
-                            index === 0
+                          disabled={index === 0 || isReordering}
+                          className={`min-w-[44px] min-h-[28px] flex items-center justify-center text-gray-500 touch-manipulation ${
+                            index === 0 || isReordering
                               ? "opacity-30 cursor-not-allowed"
                               : "hover:text-gray-700"
                           }`}
                           title="위로 이동"
+                          aria-label="위로 이동"
                         >
-                          <LuArrowUp size={16} />
+                          <LuArrowUp size={20} />
                         </button>
                         <button
                           onClick={() => handleMoveDown(mission)}
-                          disabled={index === missions.length - 1}
-                          className={`p-1 text-gray-500 ${
-                            index === missions.length - 1
+                          disabled={index === missions.length - 1 || isReordering}
+                          className={`min-w-[44px] min-h-[28px] flex items-center justify-center text-gray-500 touch-manipulation ${
+                            index === missions.length - 1 || isReordering
                               ? "opacity-30 cursor-not-allowed"
                               : "hover:text-gray-700"
                           }`}
                           title="아래로 이동"
+                          aria-label="아래로 이동"
                         >
-                          <LuArrowDown size={16} />
+                          <LuArrowDown size={20} />
                         </button>
                       </div>
                       <MissionSettingItem
@@ -562,10 +595,14 @@ const MissionSettingsPage: React.FC = () => {
                             {/* 삭제 버튼 (내 도전과제만) */}
                             <button
                               onClick={() =>
-                                handleDeleteChallenge(challenge.id, challenge.badge_id)
+                                setChallengeToDelete({
+                                  id: challenge.id,
+                                  badgeId: challenge.badge_id,
+                                })
                               }
                               disabled={deletingChallengeId === challenge.id}
-                              className="flex-shrink-0 p-2 rounded-lg transition-colors hover:bg-red-50"
+                              className="flex-shrink-0 p-3 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-colors hover:bg-red-50 touch-manipulation"
+                              aria-label="도전과제 삭제"
                               style={{ color: "var(--color-text-error)" }}
                             >
                               {deletingChallengeId === challenge.id ? (

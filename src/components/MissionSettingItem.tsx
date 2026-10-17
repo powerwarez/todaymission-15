@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { Mission } from "../types";
 import { LuPencil, LuTrash, LuCheck, LuX } from "react-icons/lu";
+import toast from "react-hot-toast";
+import ConfirmModal from "./ConfirmModal";
 
 interface MissionSettingItemProps {
   mission: Mission;
-  onDelete: (id: string) => Promise<void>;
+  onDelete: (id: string) => Promise<boolean>;
   onUpdate: (
     id: string,
     updates: { content?: string; order?: number }
@@ -18,6 +20,8 @@ const MissionSettingItem: React.FC<MissionSettingItemProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(mission.content);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -35,14 +39,28 @@ const MissionSettingItem: React.FC<MissionSettingItemProps> = ({
     setIsEditing(false);
   };
 
-  const handleDelete = async () => {
-    if (window.confirm("이 미션을 삭제하시겠습니까?")) {
-      await onDelete(mission.id);
+  const handleConfirmDelete = async () => {
+    if (isDeleting) return;
+    setIsDeleting(true);
+    const ok = await onDelete(mission.id);
+    setIsDeleting(false);
+    if (ok) {
+      toast.success("미션이 삭제되었습니다.");
+    } else {
+      toast.error("미션 삭제에 실패했습니다. 다시 시도해주세요.");
     }
+    setShowDeleteConfirm(false);
   };
 
   return (
-    <div className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg shadow-sm bg-white hover:shadow-md transition">
+    <div className="flex-1 flex items-center gap-2 p-3 border border-gray-200 rounded-lg shadow-sm bg-white hover:shadow-md transition">
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        message="이 미션을 삭제하시겠습니까?"
+        loading={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
       {isEditing ? (
         <>
           <input
@@ -106,7 +124,7 @@ const MissionSettingItem: React.FC<MissionSettingItemProps> = ({
           </div>
           <button
             onClick={handleEdit}
-            className="p-2"
+            className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation"
             style={{ color: "var(--color-primary-medium)" }}
             onMouseEnter={(e) => {
               e.currentTarget.style.color = "var(--color-primary-dark)";
@@ -119,8 +137,8 @@ const MissionSettingItem: React.FC<MissionSettingItemProps> = ({
             <LuPencil />
           </button>
           <button
-            onClick={handleDelete}
-            className="p-2"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation"
             style={{ color: "var(--color-text-error)" }}
             onMouseEnter={(e) => {
               e.currentTarget.style.color = "var(--color-text-error-dark)";
