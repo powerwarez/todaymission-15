@@ -114,50 +114,49 @@ const BadgeNotificationModal: React.FC<BadgeNotificationModalProps> = ({
     // 외부에서 주입된 스타일 적용
     <div
       style={style} // 적용
-      className={`fixed bottom-5 right-5 z-[9999] w-full max-w-sm transition-opacity duration-300 ease-in-out ${
+      className={`fixed bottom-5 right-5 z-[9999] w-full max-w-sm px-4 sm:px-0 transition-opacity duration-300 ease-in-out ${
         internalVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}
+      role="status"
+      aria-live="polite"
     >
-       {/* 내용은 항상 배지가 있을 때만 렌더링 */}
-       <div className="bg-white rounded-lg shadow-xl border border-pink-200 overflow-hidden">
-         <div className="p-4">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <img
-                  className="h-12 w-12 object-contain mr-3"
-                  src={getBadgeImageUrl(badge.image_path)}
-                  alt={badge.name}
-                  style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }} // 육각형 클립 적용
-                  onError={(e) => {
-                      console.error("Image load error for:", getBadgeImageUrl(badge.image_path));
-                      (e.target as HTMLImageElement).src = '/placeholder_badge.png';
-                  }}
-                />
-              </div>
-              <div className="ml-3 w-0 flex-1">
-                <p className="text-sm font-semibold text-pink-700 flex items-center">
-                  <LuBadgeCheck className="mr-1 text-green-500" />
-                  {badge.badge_type === "weekly" ? "주간 미션 달성!" : "도전과제 달성!"}
-                </p>
-                <p className="mt-1 text-lg font-bold text-gray-800">{badge.name}</p>
-                {badge.description && (
-                  <p className="mt-1 text-sm text-gray-600">{badge.description}</p>
-                )}
-              </div>
-              <div className="ml-4 flex-shrink-0 flex">
-                <button
-                  onClick={initiateClose} // X 버튼 클릭 시 닫기 시작
-                  className="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500"
-                >
-                  <span className="sr-only">Close</span>
-                  <LuX className="h-5 w-5" aria-hidden="true" />
-                </button>
-              </div>
-            </div>
-         </div>
-       </div>
+      {/* 내용은 항상 배지가 있을 때만 렌더링 */}
+      <div className="ui-card" style={{ padding: '1rem' }}>
+        <div className="flex items-center gap-3">
+          <div className="flex-shrink-0">
+            <img
+              className="h-14 w-14 object-contain"
+              src={getBadgeImageUrl(badge.image_path)}
+              alt={badge.name}
+              style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }} // 육각형 클립 적용
+              onError={(e) => {
+                console.error("Image load error for:", getBadgeImageUrl(badge.image_path));
+                (e.target as HTMLImageElement).src = '/placeholder_badge.png';
+              }}
+            />
+          </div>
+          <div className="w-0 flex-1">
+            <p className="text-sm font-extrabold flex items-center gap-1" style={{ color: 'var(--color-success-dark)' }}>
+              <LuBadgeCheck />
+              {badge.badge_type === "weekly" ? "주간 미션 달성!" : "도전과제 달성!"}
+            </p>
+            <p className="mt-1 text-lg font-extrabold">{badge.name}</p>
+            {badge.description && (
+              <p className="mt-1 text-sm ui-text-sub font-medium">{badge.description}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={initiateClose} // X 버튼 클릭 시 닫기 시작
+            className="ui-btn ui-btn-ghost ui-btn-icon ui-btn-sm flex-shrink-0"
+            aria-label="닫기"
+          >
+            <LuX className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
 
-export default BadgeNotificationModal; 
+export default BadgeNotificationModal;

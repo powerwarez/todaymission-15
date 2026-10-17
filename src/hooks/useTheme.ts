@@ -114,6 +114,10 @@ export const useTheme = () => {
       theme.colors.primary.medium
     );
     root.style.setProperty("--color-primary-dark", theme.colors.primary.dark);
+    root.style.setProperty(
+      "--color-primary-default",
+      theme.colors.primary.DEFAULT
+    );
 
     // 배경 색상
     root.style.setProperty("--color-bg-primary", theme.colors.background.main);
@@ -131,6 +135,7 @@ export const useTheme = () => {
     root.style.setProperty("--color-text-muted", theme.colors.text.muted);
 
     // 테두리 색상
+    root.style.setProperty("--color-border-light", theme.colors.border.light);
     root.style.setProperty(
       "--color-border-default",
       theme.colors.border.DEFAULT

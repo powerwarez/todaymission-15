@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { Provider } from "@supabase/supabase-js";
 import { FaComment } from "react-icons/fa"; // 카카오 아이콘 예시 (원하는 아이콘으로 변경 가능)
+import { LuStar } from "react-icons/lu";
+import Card from "../components/ui/Card";
+import Button from "../components/ui/Button";
 
 const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -47,38 +50,48 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div
-      className="flex items-center justify-center h-screen"
-      style={{ backgroundColor: "var(--color-bg-main)" }}
-    >
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-xs text-center">
-        <h1
-          className="text-3xl font-bold mb-8"
-          style={{ color: "var(--color-text-primary)" }}
+    <div className="flex items-center justify-center min-h-screen p-4">
+      <Card className="w-full max-w-sm text-center">
+        <div
+          className="mx-auto mb-4 inline-flex items-center justify-center"
+          style={{
+            width: 64,
+            height: 64,
+            backgroundColor: "var(--ui-accent)",
+            color: "var(--ui-on-accent)",
+            border: "var(--ui-bw) solid var(--ui-ink)",
+            borderRadius: "var(--ui-radius-lg)",
+            boxShadow: "var(--ui-shadow)",
+          }}
+          aria-hidden="true"
         >
-          오늘 미션!
-        </h1>
+          <LuStar size={32} />
+        </div>
+        <h1 className="ui-page-title mb-2">오늘 미션!</h1>
+        <p className="ui-text-sub font-medium mb-8">
+          매일 미션을 완료하고 배지를 모아보세요.
+        </p>
 
         {error && (
-          <p
-            style={{ color: "var(--color-text-error)" }}
-            className="text-sm mb-4"
-          >
+          <p role="alert" className="ui-error-text mb-4">
             {error}
           </p>
         )}
 
-        <button
+        {/* 카카오 브랜드 색상은 유지 */}
+        <Button
+          size="lg"
+          block
           onClick={() => handleLogin("kakao")}
-          disabled={loading}
-          className="w-full bg-[#FEE500] text-[#3C1E1E] font-semibold py-3 px-4 rounded-lg flex items-center justify-center hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+          loading={loading}
+          style={{ backgroundColor: "#FEE500", color: "#3C1E1E" }}
         >
-          <FaComment className="mr-2" />
+          {!loading && <FaComment />}
           {loading ? "로그인 중..." : "카카오 로그인"}
-        </button>
+        </Button>
 
         {/* 다른 로그인 옵션 추가 가능 */}
-      </div>
+      </Card>
     </div>
   );
 };

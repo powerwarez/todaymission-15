@@ -15,25 +15,21 @@ import ConfettiEffect from "../components/ConfettiEffect";
 import { Mission } from "../types"; // Mission 타입만 가져오기
 import { toZonedTime, format } from "date-fns-tz"; // date-fns-tz import
 import {
-  LuX,
   LuCheck,
   LuGift,
   LuCalendar,
   LuChevronLeft,
   LuChevronRight,
+  LuPencil,
 } from "react-icons/lu";
 import { toast } from "react-hot-toast";
-// import { FaCheckCircle } from "react-icons/fa"; // 버튼 제거로 불필요
-// import { LuCircle } from 'react-icons/lu'; // 버튼 제거로 불필요
-
-// 완료 시 적용할 테마 기반 색상 배열
-const getCompletedMissionStyle = () => {
-  return {
-    backgroundColor: "var(--color-primary-light)",
-    borderLeftColor: "var(--color-primary-medium)",
-    color: "var(--color-text-primary)",
-  };
-};
+import PageHeader from "../components/ui/PageHeader";
+import Button from "../components/ui/Button";
+import Card from "../components/ui/Card";
+import Chip from "../components/ui/Chip";
+import Modal from "../components/ui/Modal";
+import ProgressBar from "../components/ui/ProgressBar";
+import Spinner from "../components/ui/Spinner";
 
 const TodayMissionPage: React.FC = () => {
   const { user, timeZone } = useAuth(); // 사용자 정보 가져오기
@@ -265,7 +261,8 @@ const TodayMissionPage: React.FC = () => {
 
   // 날짜 선택기 외부 클릭 시 닫기
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    // pointerdown: 마우스/터치(태블릿) 모두 처리
+    const handleClickOutside = (event: PointerEvent) => {
       if (
         datePickerRef.current &&
         !datePickerRef.current.contains(
@@ -278,14 +275,14 @@ const TodayMissionPage: React.FC = () => {
 
     if (showDatePicker) {
       document.addEventListener(
-        "mousedown",
+        "pointerdown",
         handleClickOutside
       );
     }
 
     return () => {
       document.removeEventListener(
-        "mousedown",
+        "pointerdown",
         handleClickOutside
       );
     };
@@ -473,394 +470,257 @@ const TodayMissionPage: React.FC = () => {
     setShowRewardModal(true);
   };
 
+  // 날짜를 하루 앞/뒤로 이동 (delta: -1 이전, 1 다음)
+  const shiftSelectedDate = (delta: -1 | 1) => {
+    const base = new Date(selectedDate + "T00:00:00Z");
+    base.setUTCDate(base.getUTCDate() + delta);
+    const newDateStr = format(toZonedTime(base, "UTC"), "yyyy-MM-dd", {
+      timeZone: "UTC",
+    });
+    if (delta === 1 && newDateStr > formattedTodayKST) return;
+    setSelectedDate(newDateStr);
+  };
+
+  const completedCount = missionsWithStatus.filter(
+    (m) => m.is_completed_today
+  ).length;
+  const totalCount = missionsWithStatus.length;
+
+  const selectedDateObj = toZonedTime(
+    new Date(selectedDate + "T00:00:00Z"),
+    timeZone
+  );
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="px-1 sm:px-2 py-2">
       <ConfettiEffect
         run={showConfetti}
         recycle={false}
         onComplete={handleConfettiComplete}
       />
 
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
-        <h1
-          className="text-2xl sm:text-3xl font-bold"
-          style={{ color: "var(--color-text-primary)" }}>
-          {childName || "우리 아이의 방울방울 미션 챌린지"}
-        </h1>
-        <div className="relative" ref={datePickerRef}>
-          {/* 날짜 표시 영역 - 클릭하면 달력 표시 */}
-          <div
-            className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
-            onClick={() =>
-              setShowDatePicker(!showDatePicker)
-            }>
-            <LuCalendar
-              className="inline-block flex-shrink-0"
-              style={{
-                color: "var(--color-primary-medium)",
-              }}
-              size={20}
-            />
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <p
-                className="text-base sm:text-lg font-semibold whitespace-nowrap"
-                style={{
-                  color: "var(--color-text-secondary)",
-                }}>
-                {/* 선택된 날짜 표시 */}
-                {format(
-                  toZonedTime(
-                    new Date(selectedDate + "T00:00:00Z"),
-                    timeZone
-                  ),
-                  "yyyy년 M월 d일",
-                  { timeZone }
-                )}
-              </p>
-              {/* 요일 표시 */}
-              <p
-                className="text-sm sm:text-md whitespace-nowrap"
-                style={{
-                  color: "var(--color-text-muted)",
-                }}>
-                {getWeekdayString(
-                  toZonedTime(
-                    new Date(selectedDate + "T00:00:00Z"),
-                    timeZone
-                  )
-                )}
-                요일
-                {!isToday && (
-                  <span
-                    className="ml-2 px-2 py-0.5 text-xs rounded-full"
-                    style={{
-                      backgroundColor:
-                        "var(--color-bg-warning)",
-                      color: "var(--color-text-warning)",
-                    }}>
-                    과거 날짜
-                  </span>
-                )}
-              </p>
-            </div>
-          </div>
+      <PageHeader
+        title={childName || "우리 아이의 방울방울 미션 챌린지"}
+        actions={
+          <div className="relative" ref={datePickerRef}>
+            {/* 날짜 표시 영역 - 누르면 달력 표시 */}
+            <Button
+              onClick={() => setShowDatePicker(!showDatePicker)}
+              aria-expanded={showDatePicker}
+              aria-haspopup="dialog"
+              className="text-left"
+            >
+              <LuCalendar size={20} className="flex-none" />
+              <span className="flex flex-wrap items-center gap-x-2">
+                <span>
+                  {format(selectedDateObj, "yyyy년 M월 d일", { timeZone })}
+                </span>
+                <span className="font-semibold ui-text-sub">
+                  {getWeekdayString(selectedDateObj)}요일
+                </span>
+                {!isToday && <Chip tone="warning">과거 날짜</Chip>}
+              </span>
+            </Button>
 
-          {/* 날짜 선택 팝업 */}
-          {showDatePicker && (
-            <div
-              className="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-lg p-4 z-50 border"
-              style={{
-                borderColor: "var(--color-border-default)",
-              }}>
-              <div className="flex items-center justify-between mb-3">
-                <h3
-                  className="font-semibold"
-                  style={{
-                    color: "var(--color-text-primary)",
-                  }}>
-                  날짜 선택
-                </h3>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedDate(formattedTodayKST);
+            {/* 날짜 선택 팝업 */}
+            {showDatePicker && (
+              <div
+                className="ui-card absolute right-0 top-full mt-3 z-50 w-72"
+                role="dialog"
+                aria-label="날짜 선택"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg">날짜 선택</h3>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedDate(formattedTodayKST);
+                      setShowDatePicker(false);
+                    }}
+                  >
+                    오늘
+                  </Button>
+                </div>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  max={formattedTodayKST}
+                  onChange={(e) => {
+                    setSelectedDate(e.target.value);
                     setShowDatePicker(false);
                   }}
-                  className="px-3 py-1 text-sm rounded-lg transition-colors text-white"
-                  style={{
-                    backgroundColor:
-                      "var(--color-primary-medium)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                      "var(--color-primary-dark)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                      "var(--color-primary-medium)";
-                  }}>
-                  오늘
-                </button>
+                  className="w-full"
+                  aria-label="날짜 직접 선택"
+                />
+                {/* 빠른 날짜 이동 버튼 */}
+                <div className="flex gap-2 mt-3">
+                  <Button
+                    variant="soft"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => shiftSelectedDate(-1)}
+                  >
+                    <LuChevronLeft size={16} />
+                    이전
+                  </Button>
+                  <Button
+                    variant="soft"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => shiftSelectedDate(1)}
+                    disabled={selectedDate >= formattedTodayKST}
+                  >
+                    다음
+                    <LuChevronRight size={16} />
+                  </Button>
+                </div>
               </div>
-              <input
-                type="date"
-                value={selectedDate}
-                max={formattedTodayKST}
-                onChange={(e) => {
-                  setSelectedDate(e.target.value);
-                  setShowDatePicker(false);
-                }}
-                className="w-full px-3 py-2 rounded-lg"
-                style={{
-                  border:
-                    "1px solid var(--color-border-default)",
-                  outline: "none",
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor =
-                    "var(--color-border-focus)";
-                  e.target.style.boxShadow =
-                    "0 0 0 2px var(--color-border-focus)";
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor =
-                    "var(--color-border-default)";
-                  e.target.style.boxShadow = "none";
-                }}
-              />
-              {/* 빠른 날짜 이동 버튼 */}
-              <div className="flex justify-between mt-3 gap-2">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const prevDate = new Date(
-                      selectedDate + "T00:00:00Z"
-                    );
-                    prevDate.setUTCDate(
-                      prevDate.getUTCDate() - 1
-                    );
-                    const newDateStr = format(
-                      toZonedTime(prevDate, "UTC"),
-                      "yyyy-MM-dd",
-                      { timeZone: "UTC" }
-                    );
-                    setSelectedDate(newDateStr);
-                  }}
-                  className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-sm rounded-lg transition-colors"
-                  style={{
-                    backgroundColor:
-                      "var(--color-bg-hover)",
-                    color: "var(--color-text-secondary)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                      "var(--color-primary-light)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                      "var(--color-bg-hover)";
-                  }}>
-                  <LuChevronLeft size={16} />
-                  이전
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (selectedDate < formattedTodayKST) {
-                      const nextDate = new Date(
-                        selectedDate + "T00:00:00Z"
-                      );
-                      nextDate.setUTCDate(
-                        nextDate.getUTCDate() + 1
-                      );
-                      const newDateStr = format(
-                        toZonedTime(nextDate, "UTC"),
-                        "yyyy-MM-dd",
-                        { timeZone: "UTC" }
-                      );
-                      if (newDateStr <= formattedTodayKST) {
-                        setSelectedDate(newDateStr);
-                      }
-                    }
-                  }}
-                  disabled={
-                    selectedDate >= formattedTodayKST
-                  }
-                  className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-sm rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{
-                    backgroundColor:
-                      "var(--color-bg-hover)",
-                    color: "var(--color-text-secondary)",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (selectedDate < formattedTodayKST) {
-                      e.currentTarget.style.backgroundColor =
-                        "var(--color-primary-light)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                      "var(--color-bg-hover)";
-                  }}>
-                  다음
-                  <LuChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+            )}
+          </div>
+        }
+      />
 
-      {/* 주간 보상 목표 표시 */}
-      <div
-        className="mb-6 p-3 rounded-lg cursor-pointer"
-        style={{ backgroundColor: "var(--color-bg-hover)" }}
-        onClick={openRewardModal}>
-        <div className="flex items-center mb-2">
-          <LuGift
-            className="mr-2 flex-shrink-0"
-            size={24}
-            style={{
-              color: "var(--color-primary-medium)",
-            }}
-          />
-          <p
-            className="text-lg sm:text-2xl font-semibold"
-            style={{
-              color: "var(--color-text-primary)",
-            }}>
-            이번주 보상
-          </p>
-        </div>
-        <div
-          className="inline-flex items-center rounded-lg p-2"
+      {/* 주간 보상 목표 표시 (누르면 수정) */}
+      <button
+        type="button"
+        onClick={openRewardModal}
+        className="ui-card w-full text-left flex items-center gap-4 mb-6 cursor-pointer"
+        aria-label="이번주 보상 수정"
+      >
+        <span
+          className="inline-flex items-center justify-center flex-none"
           style={{
-            backgroundColor: "var(--color-primary-light)",
-          }}>
-          <p
-            className="text-base sm:text-2xl break-words"
-            style={{
-              color: "var(--color-text-secondary)",
-            }}>
+            width: 52,
+            height: 52,
+            backgroundColor: "var(--ui-accent)",
+            color: "var(--ui-on-accent)",
+            border: "var(--ui-bw) solid var(--ui-ink)",
+            borderRadius: "var(--ui-radius-md)",
+          }}
+          aria-hidden="true"
+        >
+          <LuGift size={26} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block ui-text-sub text-sm font-bold">이번주 보상</span>
+          <span className="block text-lg sm:text-2xl font-extrabold break-words">
             {weeklyRewardGoal}
-          </p>
-        </div>
-      </div>
+          </span>
+        </span>
+        <LuPencil size={20} className="flex-none ui-text-sub" aria-hidden="true" />
+      </button>
 
       {/* 주간 보상 편집 모달 */}
-      {showRewardModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black bg-opacity-50"
-            onClick={() => setShowRewardModal(false)}></div>
-          <div className="relative bg-white rounded-lg p-6 max-w-md w-full m-4">
-            <button
-              onClick={() => setShowRewardModal(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
-              <LuX size={20} />
-            </button>
+      <Modal
+        isOpen={showRewardModal}
+        onClose={() => setShowRewardModal(false)}
+        ariaLabel="주간 보상 설정"
+      >
+        <div className="text-center">
+          <h2 className="text-xl mb-2">주간 보상 설정</h2>
+          <p className="ui-text-sub font-medium mb-4">
+            이번 주 미션을 모두 달성했을 때 받고 싶은 보상을 입력하세요.
+          </p>
 
-            <div className="text-center">
-              <h2
-                className="text-xl font-bold mb-4"
-                style={{
-                  color: "var(--color-text-primary)",
-                }}>
-                주간 보상 설정
-              </h2>
-              <p className="text-sm text-gray-600 mb-4">
-                이번 주 미션을 모두 달성했을 때 받고 싶은
-                보상을 입력하세요.
-              </p>
+          <textarea
+            value={editingReward}
+            onChange={(e) => setEditingReward(e.target.value)}
+            className="w-full mb-4"
+            rows={3}
+            placeholder="예: 김밥 싸서 먹기, 맛있는 디저트 먹기, 새 책 사기"
+            aria-label="주간 보상"
+          />
 
-              <textarea
-                value={editingReward}
-                onChange={(e) =>
-                  setEditingReward(e.target.value)
-                }
-                className="w-full p-3 border border-gray-300 rounded-lg mb-4"
-                style={{
-                  outline: "none",
-                  borderColor: "var(--color-border-light)",
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor =
-                    "var(--color-border-focus)";
-                  e.target.style.boxShadow = `0 0 0 2px var(--color-border-focus)`;
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor =
-                    "var(--color-border-light)";
-                  e.target.style.boxShadow = "none";
-                }}
-                rows={3}
-                placeholder="예: 김밥 싸서 먹기, 맛있는 디저트 먹기, 새 책 사기"
-              />
-
-              <button
-                onClick={saveWeeklyRewardGoal}
-                disabled={savingReward}
-                className="px-6 py-2 rounded-lg transition-colors flex items-center justify-center w-full text-white"
-                style={{
-                  backgroundColor:
-                    "var(--color-primary-medium)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor =
-                    "var(--color-primary-dark)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor =
-                    "var(--color-primary-medium)";
-                }}>
-                {savingReward ? (
-                  <span className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2"></span>
-                ) : (
-                  <LuCheck className="mr-2" />
-                )}
-                저장하기
-              </button>
-            </div>
-          </div>
+          <Button
+            variant="primary"
+            block
+            onClick={saveWeeklyRewardGoal}
+            loading={savingReward}
+          >
+            {!savingReward && <LuCheck size={20} />}
+            저장하기
+          </Button>
         </div>
-      )}
+      </Modal>
 
-      {isLoading && <p>데이터 로딩 중...</p>}
+      {isLoading && <Spinner label="데이터 로딩 중..." />}
       {error && (
-        <p style={{ color: "var(--color-text-error)" }}>
-          오류: {error}
+        <p role="alert" className="ui-error-text mb-4">
+          {error}
         </p>
       )}
 
       {!isLoading && !error && (
-        <div className="flex flex-col md:flex-row gap-6">
-          <div className="flex-1 space-y-4">
-            {missionsWithStatus.length === 0 && (
-              <p className="text-center text-gray-500 bg-white p-6 rounded-lg shadow">
-                {isToday
-                  ? '아직 설정된 미션이 없어요! "도전과제 설정"에서 오늘의 미션을 만들어 보세요.'
-                  : "이 날짜에는 등록된 미션이 없어요. 미션 설정에서 새로운 미션을 추가해보세요."}
-              </p>
-            )}
-            {missionsWithStatus.map((mission) => {
-              const missionStyle =
-                mission.is_completed_today
-                  ? "border-l-4"
-                  : "bg-white";
-              const hoverStyle = mission.is_completed_today
-                ? ""
-                : "hover:bg-gray-50";
-              const textStyle = mission.is_completed_today
-                ? "line-through"
-                : "text-gray-800";
-
-              const completedStyle =
-                mission.is_completed_today
-                  ? getCompletedMissionStyle()
-                  : {};
-
-              return (
-                <div
-                  key={mission.id}
-                  onClick={() =>
-                    handleToggleComplete(mission)
-                  } // div 전체 클릭 핸들러
-                  className={`flex items-center p-4 rounded-lg shadow transition-all duration-300 ease-in-out cursor-pointer ${missionStyle} ${hoverStyle}`}
-                  style={completedStyle}>
-                  <div className="flex-grow mr-4">
-                    <p
-                      className={`text-lg font-medium ${textStyle}`}
-                      style={{
-                        color: mission.is_completed_today
-                          ? "var(--color-text-primary)"
-                          : "var(--color-text-secondary)",
-                      }}>
-                      {mission.content}
-                    </p>
-                  </div>
+        <div className="flex flex-col md:flex-row gap-6 items-start">
+          <div className="flex-1 w-full min-w-0">
+            {/* 진행 상황 */}
+            {totalCount > 0 && (
+              <div className="mb-5">
+                <div className="flex items-center justify-between mb-2 font-extrabold">
+                  <span>{isToday ? "오늘의 미션" : "이날의 미션"}</span>
+                  <span aria-live="polite">
+                    {completedCount} / {totalCount} 완료
+                  </span>
                 </div>
-              );
-            })}
+                <ProgressBar
+                  value={completedCount / totalCount}
+                  label="미션 진행률"
+                />
+              </div>
+            )}
+
+            {missionsWithStatus.length === 0 && (
+              <Card className="text-center font-semibold ui-text-sub">
+                {isToday
+                  ? '아직 설정된 미션이 없어요! "오늘의 미션 설정"에서 오늘의 미션을 만들어 보세요.'
+                  : "이 날짜에는 등록된 미션이 없어요. 미션 설정에서 새로운 미션을 추가해보세요."}
+              </Card>
+            )}
+
+            <ul className="space-y-4">
+              {missionsWithStatus.map((mission) => {
+                const done = mission.is_completed_today;
+                return (
+                  <li key={mission.id}>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleComplete(mission)}
+                      aria-pressed={done}
+                      className="ui-card w-full flex items-center gap-4 text-left cursor-pointer transition-transform active:translate-y-[3px]"
+                      style={{
+                        padding: "1rem 1.1rem",
+                        backgroundColor: done
+                          ? "var(--ui-accent-soft)"
+                          : "var(--ui-surface)",
+                        boxShadow: done ? "var(--ui-shadow-pressed)" : undefined,
+                        transform: done ? "translateY(3px)" : undefined,
+                      }}
+                    >
+                      <span
+                        className="ui-check"
+                        data-checked={done}
+                        style={{ width: 40, height: 40 }}
+                        aria-hidden="true"
+                      >
+                        {done && <LuCheck size={24} strokeWidth={3.5} />}
+                      </span>
+                      <span
+                        className={`flex-1 min-w-0 break-words text-lg sm:text-xl font-extrabold ${
+                          done ? "line-through" : ""
+                        }`}
+                        style={{
+                          color: done ? "var(--ui-text-sub)" : "var(--ui-text)",
+                          textDecorationThickness: "3px",
+                        }}
+                      >
+                        {mission.content}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
 
           <div className="w-full md:w-auto">

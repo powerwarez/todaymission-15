@@ -4,6 +4,10 @@ import { Mission } from "../types";
 import { LuCirclePlus, LuTrash2, LuSave, LuPencil } from "react-icons/lu";
 import toast from "react-hot-toast";
 import ConfirmModal from "../components/ConfirmModal";
+import PageHeader from "../components/ui/PageHeader";
+import Card from "../components/ui/Card";
+import Button from "../components/ui/Button";
+import Spinner from "../components/ui/Spinner";
 
 const ChallengeSettingsPage: React.FC = () => {
   const { missions, loading, error, addMission, updateMission, deleteMission } =
@@ -101,7 +105,7 @@ const ChallengeSettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="px-1 sm:px-2 py-2">
       <ConfirmModal
         isOpen={missionToDelete !== null}
         message="정말로 이 미션을 삭제하시겠습니까?"
@@ -109,24 +113,18 @@ const ChallengeSettingsPage: React.FC = () => {
         onConfirm={handleConfirmDelete}
         onCancel={() => setMissionToDelete(null)}
       />
-      <h1
-        className="text-3xl font-bold mb-6"
-        style={{ color: "var(--color-text-primary)" }}
-      >
-        오늘의 미션 설정
-      </h1>
+      <PageHeader title="오늘의 미션 설정" />
 
-      {loading && <p>로딩 중...</p>}
-      {error && <p style={{ color: "var(--color-text-error)" }}>{error}</p>}
+      {loading && <Spinner label="로딩 중..." />}
+      {error && (
+        <p role="alert" className="ui-error-text mb-4">
+          {error}
+        </p>
+      )}
 
-      <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2
-          className="text-xl font-semibold mb-4"
-          style={{ color: "var(--color-text-primary)" }}
-        >
-          오늘의 미션 목록 관리
-        </h2>
-        <p className="text-sm text-gray-500 mb-4">
+      <Card className="mb-8">
+        <h2 className="ui-section-title mb-2">오늘의 미션 목록 관리</h2>
+        <p className="text-sm ui-text-sub font-medium mb-4">
           미션을 드래그하여 순서를 변경할 수 있습니다. 최대 10개, 최소 3개까지
           설정 가능합니다.
         </p>
@@ -139,17 +137,8 @@ const ChallengeSettingsPage: React.FC = () => {
               onDragStart={(e) => handleDragStart(e, mission)}
               onDrop={(e) => handleDrop(e, mission)}
               onDragOver={handleDragOver}
-              className="flex items-center justify-between p-3 rounded-md cursor-grab transition-colors"
-              style={{
-                backgroundColor: "var(--color-bg-hover)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor =
-                  "var(--color-primary-light)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "var(--color-bg-hover)";
-              }}
+              className="ui-card-soft flex items-center justify-between gap-2 cursor-grab"
+              style={{ padding: "0.5rem 0.5rem 0.5rem 1rem" }}
             >
               {editingMission?.id === mission.id ? (
                 <input
@@ -166,128 +155,85 @@ const ChallengeSettingsPage: React.FC = () => {
                     e.key === "Enter" && handleUpdateMission(mission)
                   } // Save on Enter
                   autoFocus
-                  className="flex-grow p-1 border  rounded mr-2"
-                  style={{
-                    borderColor: "var(--color-border-default)",
-                  }}
+                  aria-label="미션 이름"
+                  className="flex-1 min-w-0"
                 />
               ) : (
-                <span
-                  className="flex-grow cursor-pointer"
+                <button
+                  type="button"
+                  className="flex-1 min-w-0 text-left font-bold cursor-pointer break-words"
                   onClick={() => setEditingMission({ ...mission })} // Enter editing mode on click
                 >
                   {mission.content}
-                </span>
+                </button>
               )}
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-1">
                 {editingMission?.id === mission.id ? (
-                  <button
+                  <Button
+                    variant="primary"
+                    iconOnly
                     onClick={() => handleUpdateMission(mission)}
-                    style={{ color: "var(--color-success)" }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = "var(--color-success-dark)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = "var(--color-success)";
-                    }}
+                    aria-label="저장"
                   >
-                    <LuSave size={18} />
-                  </button>
+                    <LuSave size={20} />
+                  </Button>
                 ) : (
-                  <button
+                  <Button
+                    variant="ghost"
+                    iconOnly
                     onClick={() => setEditingMission({ ...mission })}
-                    style={{ color: "var(--color-primary-medium)" }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = "var(--color-primary-dark)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color =
-                        "var(--color-primary-medium)";
-                    }}
+                    aria-label="미션 수정"
                   >
-                    <LuPencil size={18} />
-                  </button>
+                    <LuPencil size={20} />
+                  </Button>
                 )}
-                <button
+                <Button
+                  variant="ghost"
+                  iconOnly
                   onClick={() => setMissionToDelete(mission.id)}
-                  className="disabled:opacity-50"
-                  style={{ color: "var(--color-text-error)" }}
-                  onMouseEnter={(e) => {
-                    if (!e.currentTarget.disabled) {
-                      e.currentTarget.style.color =
-                        "var(--color-text-error-dark)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = "var(--color-text-error)";
-                  }}
+                  style={{ color: "var(--color-error-dark)" }}
                   disabled={missions.length <= 3} // Cannot delete if 3 or fewer missions
                   title={
                     missions.length <= 3
                       ? "최소 3개의 미션이 필요합니다."
                       : "미션 삭제"
                   }
+                  aria-label="미션 삭제"
                 >
-                  <LuTrash2 size={18} />
-                </button>
+                  <LuTrash2 size={20} />
+                </Button>
               </div>
             </li>
           ))}
         </ul>
 
         {missions.length < 10 && (
-          <form
-            onSubmit={handleAddMission}
-            className="flex items-center space-x-2"
-          >
+          <form onSubmit={handleAddMission} className="flex items-center gap-2">
             <input
               type="text"
               value={newMissionContent}
               onChange={(e) => setNewMissionContent(e.target.value)}
               placeholder="새 미션 내용 입력 (예: 이 닦기)"
-              className="flex-grow p-2 rounded-md"
-              style={{
-                border: "1px solid var(--color-border-default)",
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = "var(--color-border-focus)";
-                e.target.style.boxShadow = `0 0 0 2px var(--color-border-focus)`;
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = "var(--color-border-default)";
-                e.target.style.boxShadow = "none";
-              }}
+              aria-label="새 미션 이름"
+              className="flex-1 min-w-0"
               maxLength={100} // Example max length
             />
-            <button
+            <Button
               type="submit"
-              className="text-white p-2 rounded-md flex items-center transition-colors disabled:opacity-50"
-              style={{
-                backgroundColor: "var(--color-primary-medium)",
-              }}
-              onMouseEnter={(e) => {
-                if (!e.currentTarget.disabled) {
-                  e.currentTarget.style.backgroundColor =
-                    "var(--color-primary-dark)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor =
-                  "var(--color-primary-medium)";
-              }}
+              variant="primary"
               disabled={!newMissionContent.trim() || loading}
             >
-              <LuCirclePlus size={18} className="mr-1" />
+              <LuCirclePlus size={20} />
               추가
-            </button>
+            </Button>
           </form>
         )}
         {missions.length >= 10 && (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm ui-text-sub font-medium">
             미션은 최대 10개까지 추가할 수 있습니다.
           </p>
         )}
-      </div>
+      </Card>
     </div>
   );
 };

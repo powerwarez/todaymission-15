@@ -3,6 +3,7 @@ import { Mission } from "../types";
 import { LuPencil, LuTrash, LuCheck, LuX } from "react-icons/lu";
 import toast from "react-hot-toast";
 import ConfirmModal from "./ConfirmModal";
+import Button from "./ui/Button";
 
 interface MissionSettingItemProps {
   mission: Mission;
@@ -53,7 +54,10 @@ const MissionSettingItem: React.FC<MissionSettingItemProps> = ({
   };
 
   return (
-    <div className="flex-1 flex items-center gap-2 p-3 border border-gray-200 rounded-lg shadow-sm bg-white hover:shadow-md transition">
+    <div
+      className="ui-card-soft flex-1 min-w-0 flex items-center gap-2"
+      style={{ padding: "0.5rem 0.5rem 0.5rem 1rem", backgroundColor: "var(--ui-surface)" }}
+    >
       <ConfirmModal
         isOpen={showDeleteConfirm}
         message="이 미션을 삭제하시겠습니까?"
@@ -67,89 +71,57 @@ const MissionSettingItem: React.FC<MissionSettingItemProps> = ({
             type="text"
             value={editedContent}
             onChange={(e) => setEditedContent(e.target.value)}
-            className="flex-1 p-2 border rounded"
-            style={{
-              borderColor: "var(--color-border-default)",
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSave();
+              if (e.key === "Escape") handleCancel();
             }}
-            onFocus={(e) => {
-              e.target.style.borderColor = "var(--color-border-focus)";
-              e.target.style.boxShadow = `0 0 0 2px var(--color-border-focus)`;
-            }}
-            onBlur={(e) => {
-              e.target.style.borderColor = "var(--color-border-default)";
-              e.target.style.boxShadow = "none";
-            }}
+            className="flex-1 min-w-0"
             maxLength={100}
+            aria-label="미션 이름"
             autoFocus
           />
-          <button
+          <Button
+            variant="primary"
+            iconOnly
             onClick={handleSave}
-            className="p-2 text-white rounded"
-            style={{
-              backgroundColor: "var(--color-success)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor =
-                "var(--color-success-dark)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "var(--color-success)";
-            }}
+            aria-label="저장"
             title="저장"
           >
-            <LuCheck />
-          </button>
-          <button
+            <LuCheck size={20} />
+          </Button>
+          <Button
+            iconOnly
             onClick={handleCancel}
-            className="p-2 text-white rounded"
-            style={{
-              backgroundColor: "var(--color-text-muted)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor =
-                "var(--color-text-secondary)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "var(--color-text-muted)";
-            }}
+            aria-label="취소"
             title="취소"
           >
-            <LuX />
-          </button>
+            <LuX size={20} />
+          </Button>
         </>
       ) : (
         <>
-          <div className="flex-1 overflow-hidden">
-            <p className="truncate">{mission.content}</p>
+          <div className="flex-1 min-w-0">
+            <p className="truncate font-bold text-lg">{mission.content}</p>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            iconOnly
             onClick={handleEdit}
-            className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation"
-            style={{ color: "var(--color-primary-medium)" }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "var(--color-primary-dark)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = "var(--color-primary-medium)";
-            }}
+            aria-label="미션 수정"
             title="수정"
           >
-            <LuPencil />
-          </button>
-          <button
+            <LuPencil size={20} />
+          </Button>
+          <Button
+            variant="ghost"
+            iconOnly
             onClick={() => setShowDeleteConfirm(true)}
-            className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation"
-            style={{ color: "var(--color-text-error)" }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "var(--color-text-error-dark)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = "var(--color-text-error)";
-            }}
+            aria-label="미션 삭제"
             title="삭제"
+            style={{ color: "var(--color-error-dark)" }}
           >
-            <LuTrash />
-          </button>
+            <LuTrash size={20} />
+          </Button>
         </>
       )}
     </div>

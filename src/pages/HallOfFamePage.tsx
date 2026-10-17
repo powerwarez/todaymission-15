@@ -13,9 +13,15 @@ import {
   LuChevronRight,
   LuAward,
   LuGift,
-  LuX,
+  LuPlus,
   LuTrophy,
 } from "react-icons/lu";
+import PageHeader from "../components/ui/PageHeader";
+import Card from "../components/ui/Card";
+import Button from "../components/ui/Button";
+import Chip from "../components/ui/Chip";
+import Modal from "../components/ui/Modal";
+import Spinner from "../components/ui/Spinner";
 import { Mission, EarnedBadge } from "../types"; // Mission 타입만 필요할 수 있음
 // date-fns-tz import 추가, format 추가
 import { formatInTimeZone, toZonedTime, format } from "date-fns-tz";
@@ -615,40 +621,38 @@ const HallOfFamePage: React.FC = () => {
     timeZone,
   ]);
 
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <h1
-        className="text-3xl font-bold mb-8 flex items-center"
-        style={{
-          background: `linear-gradient(to right, var(--color-primary-medium), var(--color-accent))`,
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          backgroundClip: "text",
-        }}
-      >
-        <LuTrophy className="mr-3" style={{ color: "var(--color-accent)" }} />
-        명예의 전당
-      </h1>
+  const badgeTabs: Array<{ key: "weekly" | "mission" | "all"; label: string }> = [
+    { key: "weekly", label: "주간 도전 배지" },
+    { key: "mission", label: "미션 배지" },
+    { key: "all", label: "전체 배지" },
+  ];
 
-      {isLoading && <p>데이터를 불러오는 중...</p>}
+  return (
+    <div className="px-1 sm:px-2 py-2">
+      <PageHeader
+        title="명예의 전당"
+        description="지금까지 해낸 미션과 모은 배지를 한눈에 확인해요."
+        icon={<LuTrophy size={24} />}
+      />
+
+      {isLoading && <Spinner label="데이터를 불러오는 중..." />}
       {error && (
-        <p style={{ color: "var(--color-text-error)" }}>오류: {error}</p>
+        <p role="alert" className="ui-error-text mb-4">
+          오류: {error}
+        </p>
       )}
 
       {!isLoading && !error && (
         <div className="space-y-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* 날짜별 기록 조회 섹션 */}
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h2
-                className="text-xl font-semibold mb-4 flex items-center"
-                style={{ color: "var(--color-text-primary)" }}
-              >
-                <LuCalendarDays className="mr-2" /> 날짜별 기록 조회
+            <Card>
+              <h2 className="ui-section-title mb-4">
+                <LuCalendarDays /> 날짜별 기록 조회
               </h2>
-              <div className="flex items-center space-x-4 mb-6">
-                <label htmlFor="record-date" className="text-gray-700">
-                  날짜 선택:
+              <div className="flex flex-wrap items-center gap-3 mb-6">
+                <label htmlFor="record-date" className="font-bold ui-text-sub">
+                  날짜 선택
                 </label>
                 <input
                   type="date"
@@ -660,84 +664,52 @@ const HallOfFamePage: React.FC = () => {
                     { timeZone }
                   )}
                   onChange={handleDateChange}
-                  className="rounded px-3 py-2"
-                  style={{
-                    border: "1px solid var(--color-border-default)",
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = "var(--color-border-focus)";
-                    e.target.style.boxShadow = `0 0 0 2px var(--color-border-focus)`;
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = "var(--color-border-default)";
-                    e.target.style.boxShadow = "none";
-                  }}
                   // max도 KST 기준 yyyy-MM-dd
                   max={format(todayKSTObj, "yyyy-MM-dd", { timeZone })}
                 />
               </div>
 
-              <h3 className="text-lg font-medium text-gray-800 mb-4">
+              <h3 className="text-lg mb-4">
                 {/* 표시는 KST 기준으로 */}
-                {formatInTimeZone(
-                  selectedDate,
-                  timeZone,
-                  "yyyy년 M월 d일"
-                )}{" "}
+                {formatInTimeZone(selectedDate, timeZone, "yyyy년 M월 d일")}{" "}
                 미션 기록
               </h3>
               {!dailySnapshot && !dailySnapshotLoading && (
-                <p className="text-center text-gray-500">
+                <p className="text-center ui-text-sub font-semibold">
                   선택된 날짜에는 오늘의 미션 기록이 없어요.
                 </p>
               )}
               {dailySnapshot &&
                 displayedMissionsForSelectedDate.length === 0 && (
-                  <p className="text-center text-gray-500">
+                  <p className="text-center ui-text-sub font-semibold">
                     이 날짜에 등록된 오늘의 미션이 없어요.
                   </p>
                 )}
               {dailySnapshot && displayedMissionsForSelectedDate.length > 0 && (
-                <ul className="space-y-3 pr-2">
-                  {" "}
-                  {/* max-h-60 overflow-y-auto 제거 */}
+                <ul className="space-y-3">
                   {displayedMissionsForSelectedDate.map(
                     (mission: Mission & { isCompleted: boolean }) => (
                       <li
                         key={mission.id}
-                        className={`flex items-center justify-between p-3 rounded-lg transition-colors duration-200 text-sm ${
-                          mission.isCompleted
-                            ? "border-l-4"
-                            : "bg-gray-100 border-l-4 border-gray-400"
-                        }`}
-                        style={
-                          mission.isCompleted
-                            ? {
-                                backgroundColor: "var(--color-primary-light)",
-                                borderLeftColor: "var(--color-primary-medium)",
-                              }
-                            : {}
-                        }
+                        className="ui-card-soft flex items-center justify-between gap-2"
+                        style={{
+                          padding: "0.75rem 1rem",
+                          backgroundColor: mission.isCompleted
+                            ? "var(--ui-accent-soft)"
+                            : "var(--ui-surface)",
+                        }}
                       >
                         <span
-                          className={`flex-1 ${
-                            mission.isCompleted
-                              ? "line-through"
-                              : "text-gray-800"
+                          className={`flex-1 min-w-0 break-words font-bold ${
+                            mission.isCompleted ? "line-through ui-text-sub" : ""
                           }`}
-                          style={{
-                            color: mission.isCompleted
-                              ? "var(--color-text-primary)"
-                              : undefined,
-                          }}
                         >
                           {mission.content}
                         </span>
                         {mission.isCompleted && (
-                          <LuBadgeCheck
-                            className="text-lg ml-2"
-                            style={{ color: "var(--color-success)" }}
-                          />
+                          <span className="ui-check" data-checked="true" style={{ width: 28, height: 28 }}>
+                            <LuBadgeCheck size={16} aria-label="완료" />
+                          </span>
                         )}
                       </li>
                     )
@@ -747,54 +719,37 @@ const HallOfFamePage: React.FC = () => {
               {dailySnapshot &&
                 displayedMissionsForSelectedDate.length > 0 &&
                 missionLogsForSelectedDate.length === 0 && (
-                  <p className="mt-4 text-center text-gray-500">
+                  <p className="mt-4 text-center ui-text-sub font-semibold">
                     이 날짜에는 완료된 미션이 없어요.
                   </p>
                 )}
-            </div>
+            </Card>
 
             {/* 월별 달력 섹션 */}
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="flex justify-between items-center mb-4">
-                <h2
-                  className="text-xl font-semibold flex items-center"
-                  style={{ color: "var(--color-text-primary)" }}
-                >
-                  월간 달성 현황
-                </h2>
-                <div className="flex items-center space-x-2">
-                  <button
+            <Card>
+              <div className="flex justify-between items-center mb-4 gap-2">
+                <h2 className="ui-section-title">월간 달성 현황</h2>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    iconOnly
                     onClick={handlePreviousMonth}
-                    className="p-2 rounded transition-colors"
-                    style={{ color: "var(--color-primary-medium)" }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        "var(--color-bg-hover)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "transparent";
-                    }}
+                    aria-label="이전 달"
                   >
-                    <LuChevronLeft size={20} />
-                  </button>
-                  <span className="text-lg font-medium text-gray-700">
+                    <LuChevronLeft size={22} />
+                  </Button>
+                  <span className="text-base sm:text-lg font-extrabold whitespace-nowrap">
                     {/* 표시도 KST 기준으로 */}
                     {formatInTimeZone(currentMonthDate, timeZone, "yyyy년 M월")}
                   </span>
-                  <button
+                  <Button
+                    variant="ghost"
+                    iconOnly
                     onClick={handleNextMonth}
-                    className="p-2 rounded transition-colors"
-                    style={{ color: "var(--color-primary-medium)" }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        "var(--color-bg-hover)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "transparent";
-                    }}
+                    aria-label="다음 달"
                   >
-                    <LuChevronRight size={20} />
-                  </button>
+                    <LuChevronRight size={22} />
+                  </Button>
                 </div>
               </div>
               <MonthlyCalendar
@@ -802,86 +757,48 @@ const HallOfFamePage: React.FC = () => {
                 month={currentMonthDate.getUTCMonth() + 1}
                 snapshots={monthlySnapshots}
               />
-            </div>
+            </Card>
           </div>
 
           {/* 획득한 배지 섹션 */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2
-              className="text-xl font-semibold mb-4 flex items-center"
-              style={{ color: "var(--color-text-primary)" }}
-            >
-              <LuAward className="mr-2" /> 획득한 배지
+          <Card>
+            <h2 className="ui-section-title mb-4">
+              <LuAward /> 획득한 배지
             </h2>
 
-            {/* 배지 탭 순서 변경 */}
-            <div className="flex border-b mb-6">
-              <button
-                className={`px-4 py-2 font-medium ${
-                  badgeTab === "weekly" ? "border-b-2" : "hover:text-gray-700"
-                }`}
-                style={{
-                  color:
-                    badgeTab === "weekly"
-                      ? "var(--color-primary-medium)"
-                      : "var(--color-text-muted)",
-                  borderBottomColor:
-                    badgeTab === "weekly"
-                      ? "var(--color-primary-medium)"
-                      : "transparent",
-                }}
-                onClick={() => setBadgeTab("weekly")}
-              >
-                주간 도전 배지
-              </button>
-              <button
-                className={`px-4 py-2 font-medium ${
-                  badgeTab === "mission" ? "border-b-2" : "hover:text-gray-700"
-                }`}
-                style={{
-                  color:
-                    badgeTab === "mission"
-                      ? "var(--color-primary-medium)"
-                      : "var(--color-text-muted)",
-                  borderBottomColor:
-                    badgeTab === "mission"
-                      ? "var(--color-primary-medium)"
-                      : "transparent",
-                }}
-                onClick={() => setBadgeTab("mission")}
-              >
-                미션 배지
-              </button>
-              <button
-                className={`px-4 py-2 font-medium ${
-                  badgeTab === "all" ? "border-b-2" : "hover:text-gray-700"
-                }`}
-                style={{
-                  color:
-                    badgeTab === "all"
-                      ? "var(--color-primary-medium)"
-                      : "var(--color-text-muted)",
-                  borderBottomColor:
-                    badgeTab === "all"
-                      ? "var(--color-primary-medium)"
-                      : "transparent",
-                }}
-                onClick={() => setBadgeTab("all")}
-              >
-                전체 배지
-              </button>
+            {/* 배지 탭 */}
+            <div className="flex flex-wrap gap-2 mb-6" role="tablist" aria-label="배지 종류">
+              {badgeTabs.map((tab) => {
+                const active = badgeTab === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setBadgeTab(tab.key)}
+                    className="min-h-[44px] px-4 font-extrabold cursor-pointer"
+                    style={{
+                      border: "var(--ui-bw-thin) solid var(--ui-ink)",
+                      borderRadius: "999px",
+                      backgroundColor: active
+                        ? "var(--ui-accent)"
+                        : "var(--ui-surface)",
+                      color: active ? "var(--ui-on-accent)" : "var(--ui-text)",
+                      boxShadow: active ? "var(--ui-shadow-sm)" : "none",
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
 
             {badgesLoading ? (
-              <div className="flex justify-center py-8">
-                <div
-                  className="animate-spin rounded-full h-12 w-12 border-b-2"
-                  style={{ borderColor: "var(--color-primary-medium)" }}
-                ></div>
-              </div>
+              <Spinner />
             ) : displayedBadges.length === 0 &&
               (badgeTab !== "weekly" || pendingWeeklyBadges.length === 0) ? (
-              <p className="text-center text-gray-500 py-8">
+              <p className="text-center ui-text-sub font-semibold py-8">
                 {badgeTab === "all" &&
                   "아직 획득한 배지가 없습니다. 미션을 완료하여 배지를 획득해보세요!"}
                 {badgeTab === "mission" &&
@@ -890,7 +807,7 @@ const HallOfFamePage: React.FC = () => {
                   "아직 획득한 주간 도전 배지가 없습니다. 주간 미션을 완료하여 배지를 획득해보세요!"}
               </p>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {/* 주간 탭에서 미선택 배지 카드 표시 */}
                 {badgeTab === "weekly" &&
                   pendingWeeklyBadges.map((pendingBadge) => {
@@ -900,92 +817,60 @@ const HallOfFamePage: React.FC = () => {
                       "yyyy.MM.dd"
                     );
 
-                    console.log(
-                      "[DEBUG] 렌더링 - 미선택 배지 카드:",
-                      pendingBadge.id,
-                      formattedDate
-                    );
-
                     return (
-                      <div
-                        key={`pending-${pendingBadge.id}`}
-                        className="flex flex-col items-center p-4 rounded-lg transition-colors cursor-pointer border-2 border-dashed relative"
-                        style={{
-                          backgroundColor: "var(--color-bg-warning)",
-                          borderColor: "var(--color-border-warning)",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor =
-                            "var(--color-bg-warning-hover)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor =
-                            "var(--color-bg-warning)";
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation(); // 이벤트 버블링 방지
-                          e.preventDefault(); // 기본 이벤트 방지
-                          console.log(
-                            "[DEBUG] 미선택 배지 카드 클릭됨 - 배지 모달 표시"
-                          );
-                          setShowRewardModal(false); // 보상 모달이 열려있으면 닫기
-                          handleOpenBadgeSelectionModal(
-                            pendingBadge.formatted_date || formattedDate
-                          );
-                        }}
-                      >
-                        <div
-                          className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-white shadow-md z-10"
+                      <li key={`pending-${pendingBadge.id}`}>
+                        <button
+                          type="button"
+                          className="relative w-full h-full flex flex-col items-center p-4 cursor-pointer"
                           style={{
-                            backgroundColor: "var(--color-primary-medium)",
+                            backgroundColor: "var(--color-warning-light)",
+                            border: "var(--ui-bw) dashed var(--color-warning-dark)",
+                            borderRadius: "var(--ui-radius-md)",
+                            color: "var(--color-warning-dark)",
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation(); // 이벤트 버블링 방지
+                            e.preventDefault(); // 기본 이벤트 방지
+                            setShowRewardModal(false); // 보상 모달이 열려있으면 닫기
+                            handleOpenBadgeSelectionModal(
+                              pendingBadge.formatted_date || formattedDate
+                            );
                           }}
                         >
-                          <LuGift size={14} />
-                        </div>
-
-                        <div
-                          className="w-20 h-20 mb-2 flex items-center justify-center rounded-full 
-                        p-1 bg-white shadow-md overflow-hidden border-4"
-                          style={{ borderColor: "var(--color-border-warning)" }}
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-12 w-12"
-                            style={{ color: "var(--color-text-warning)" }}
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
+                          <span
+                            className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center"
+                            style={{
+                              backgroundColor: "var(--ui-accent)",
+                              color: "var(--ui-on-accent)",
+                              border: "var(--ui-bw-thin) solid var(--ui-ink)",
+                            }}
+                            aria-hidden="true"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                            />
-                          </svg>
-                        </div>
-                        <h3 className="text-sm font-semibold text-gray-800 text-center">
-                          아직 배지를 선택하지 않았어요
-                        </h3>
-                        <p className="text-xs text-gray-500 mt-1 text-center">
-                          {formattedDate} 달성
-                        </p>
-                        <p
-                          className="text-xs mt-1 text-center"
-                          style={{ color: "var(--color-text-warning)" }}
-                        >
-                          클릭하여 배지 선택하기
-                        </p>
-                        <span
-                          className="mt-2 px-2 py-0.5 text-xs rounded-full bg-opacity-20 text-center font-medium"
-                          style={{
-                            backgroundColor: "var(--color-primary-light)",
-                            color: "var(--color-primary-dark)",
-                          }}
-                        >
-                          주간 도전
-                        </span>
-                      </div>
+                            <LuGift size={14} />
+                          </span>
+
+                          <span
+                            className="w-20 h-20 mb-2 flex items-center justify-center rounded-full"
+                            style={{
+                              backgroundColor: "var(--ui-surface)",
+                              border: "var(--ui-bw) dashed var(--color-warning-dark)",
+                            }}
+                            aria-hidden="true"
+                          >
+                            <LuPlus size={36} />
+                          </span>
+                          <span className="text-sm font-extrabold text-center">
+                            아직 배지를 선택하지 않았어요
+                          </span>
+                          <span className="text-xs mt-1 text-center font-medium">
+                            {formattedDate} 달성
+                          </span>
+                          <span className="text-xs mt-1 text-center font-bold">
+                            눌러서 배지 선택하기
+                          </span>
+                          <Chip className="mt-2">주간 도전</Chip>
+                        </button>
+                      </li>
                     );
                   })}
 
@@ -999,183 +884,125 @@ const HallOfFamePage: React.FC = () => {
                     earnedBadge.weekly_reward_goal;
 
                   return (
-                    <div
-                      key={earnedBadge.id}
-                      className="flex flex-col items-center p-4 bg-gray-50 rounded-lg hover:bg-pink-50 transition-colors cursor-pointer relative"
-                      onClick={() => toggleRewardDisplay(earnedBadge)}
-                    >
-                      {/* 보상 정보가 있고 아직 사용하지 않은 경우에만 알림 배지 표시 */}
-                      {hasReward && !earnedBadge.reward_used && (
-                        <div
-                          className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-white shadow-md z-10"
-                          style={{
-                            backgroundColor: "var(--color-primary-medium)",
-                          }}
-                        >
-                          <LuGift size={14} />
-                        </div>
-                      )}
-
-                      <div
-                        className="w-20 h-20 mb-2 flex items-center justify-center 
-                        border-4 border-gradient-to-r from-pink-300 to-indigo-300 rounded-full 
-                        p-1 bg-white shadow-md overflow-hidden"
-                      >
-                        <img
-                          src={getBadgeImageUrl(badge.image_path)}
-                          alt={badge.name}
-                          className="max-w-full max-h-full object-contain rounded-full"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src =
-                              "/placeholder_badge.png";
-                          }}
-                        />
-                      </div>
-                      <h3 className="text-sm font-semibold text-gray-800 text-center">
-                        {badge.name}
-                      </h3>
-                      <p className="text-xs text-gray-500 mt-1 text-center">
-                        {formatInTimeZone(earnedDate, timeZone, "yyyy.MM.dd")}{" "}
-                        획득
-                      </p>
-                      {badge.description && (
-                        <p className="text-xs text-gray-600 mt-1 text-center">
-                          {badge.description}
-                        </p>
-                      )}
-                      <span
-                        className={`mt-2 px-2 py-0.5 text-xs rounded-full bg-opacity-20 text-center font-medium`}
+                    <li key={earnedBadge.id}>
+                      <button
+                        type="button"
+                        onClick={() => toggleRewardDisplay(earnedBadge)}
+                        className="relative w-full h-full flex flex-col items-center p-4 cursor-pointer"
                         style={{
-                          backgroundColor:
-                            earnedBadge.badge?.badge_type === "weekly"
-                              ? "var(--color-primary-light)"
-                              : "var(--color-secondary-light)",
-                          color:
-                            earnedBadge.badge?.badge_type === "weekly"
-                              ? "var(--color-primary-dark)"
-                              : "var(--color-secondary-dark)",
+                          backgroundColor: "var(--ui-surface)",
+                          border: "var(--ui-bw-thin) solid var(--ui-ink)",
+                          borderRadius: "var(--ui-radius-md)",
+                          color: "var(--ui-text)",
                         }}
                       >
-                        {earnedBadge.badge?.badge_type === "weekly"
-                          ? "주간 도전"
-                          : "미션 완료"}
-                      </span>
-                    </div>
+                        {/* 보상 정보가 있고 아직 사용하지 않은 경우에만 알림 배지 표시 */}
+                        {hasReward && !earnedBadge.reward_used && (
+                          <span
+                            className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center"
+                            style={{
+                              backgroundColor: "var(--ui-accent)",
+                              color: "var(--ui-on-accent)",
+                              border: "var(--ui-bw-thin) solid var(--ui-ink)",
+                            }}
+                            aria-label="사용하지 않은 보상 있음"
+                          >
+                            <LuGift size={14} />
+                          </span>
+                        )}
+
+                        <span
+                          className="w-20 h-20 mb-2 flex items-center justify-center rounded-full p-1 overflow-hidden"
+                          style={{
+                            backgroundColor: "var(--ui-surface)",
+                            border: "var(--ui-bw) solid var(--ui-ink)",
+                          }}
+                        >
+                          <img
+                            src={getBadgeImageUrl(badge.image_path)}
+                            alt={badge.name}
+                            className="max-w-full max-h-full object-contain rounded-full"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src =
+                                "/placeholder_badge.png";
+                            }}
+                          />
+                        </span>
+                        <span className="text-sm font-extrabold text-center">
+                          {badge.name}
+                        </span>
+                        <span className="text-xs mt-1 text-center ui-text-sub font-medium">
+                          {formatInTimeZone(earnedDate, timeZone, "yyyy.MM.dd")}{" "}
+                          획득
+                        </span>
+                        {badge.description && (
+                          <span className="text-xs mt-1 text-center ui-text-sub">
+                            {badge.description}
+                          </span>
+                        )}
+                        <Chip className="mt-2">
+                          {earnedBadge.badge?.badge_type === "weekly"
+                            ? "주간 도전"
+                            : "미션 완료"}
+                        </Chip>
+                      </button>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             )}
-          </div>
+          </Card>
         </div>
       )}
 
       {/* 보상 모달 */}
-      {showRewardModal && selectedBadgeReward && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black bg-opacity-50"
-            onClick={() => setShowRewardModal(false)}
-          ></div>
-          <div className="relative bg-white rounded-lg p-6 max-w-md w-full m-4 shadow-xl">
-            <button
-              onClick={() => setShowRewardModal(false)}
-              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-            >
-              <LuX size={20} />
-            </button>
-
-            <div className="text-center">
-              <div className="flex items-center justify-center mb-4">
-                <LuGift
-                  className="mr-2"
-                  style={{ color: "var(--color-text-warning)" }}
-                  size={24}
-                />
-                <h2
-                  className="text-xl font-bold"
-                  style={{ color: "var(--color-text-warning)" }}
-                >
-                  주간 미션 보상
-                </h2>
-              </div>
-
-              <div
-                className="p-4 rounded-lg border mb-4"
-                style={{
-                  backgroundColor: "var(--color-bg-warning)",
-                  borderColor: "var(--color-border-warning)",
-                }}
-              >
-                <p style={{ color: "var(--color-text-warning-dark)" }}>
-                  {selectedBadgeReward}
-                </p>
-              </div>
-
-              <div className="flex items-center justify-center mb-4">
-                <span
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    rewardUsed ? "bg-gray-100 text-gray-600" : ""
-                  }`}
-                  style={
-                    !rewardUsed
-                      ? {
-                          backgroundColor: "var(--color-success-light)",
-                          color: "var(--color-success-dark)",
-                        }
-                      : {}
-                  }
-                >
-                  {rewardUsed ? "보상 사용 완료" : "보상 미사용"}
-                </span>
-              </div>
-
-              <button
-                onClick={toggleRewardUsed}
-                disabled={updatingReward}
-                className={`w-full px-4 py-2 rounded-lg transition-colors flex items-center justify-center text-white`}
-                style={{
-                  backgroundColor: rewardUsed
-                    ? "var(--color-secondary-medium)"
-                    : "var(--color-primary-medium)",
-                }}
-                onMouseEnter={(e) => {
-                  if (!e.currentTarget.disabled) {
-                    e.currentTarget.style.backgroundColor = rewardUsed
-                      ? "var(--color-secondary-dark)"
-                      : "var(--color-primary-dark)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = rewardUsed
-                    ? "var(--color-secondary-medium)"
-                    : "var(--color-primary-medium)";
-                }}
-              >
-                {updatingReward ? (
-                  <span className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2"></span>
-                ) : (
-                  <span
-                    className={`mr-2 ${
-                      rewardUsed ? "text-white" : "text-white"
-                    }`}
-                  >
-                    {rewardUsed ? "다시 받을래요" : "사용했어요"}
-                  </span>
-                )}
-              </button>
-
-              <p className="mt-4 text-sm text-gray-600">
-                주간 미션을 모두 완료했을 때 받은 보상입니다.
-              </p>
-              <p className="mt-4 text-sm text-gray-600">
-                {rewardUsed
-                  ? " 보상을 이미 사용했습니다."
-                  : " 보상을 아직 사용하지 않았습니다."}
-              </p>
-            </div>
+      <Modal
+        isOpen={showRewardModal && !!selectedBadgeReward}
+        onClose={() => setShowRewardModal(false)}
+        ariaLabel="주간 미션 보상"
+      >
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <LuGift size={26} />
+            <h2 className="text-xl">주간 미션 보상</h2>
           </div>
+
+          <div
+            className="ui-card-soft mb-4 font-bold"
+            style={{
+              backgroundColor: "var(--color-warning-light)",
+              color: "var(--color-warning-dark)",
+              borderColor: "var(--color-warning-dark)",
+            }}
+          >
+            {selectedBadgeReward}
+          </div>
+
+          <div className="flex items-center justify-center mb-4">
+            <Chip tone={rewardUsed ? "default" : "success"}>
+              {rewardUsed ? "보상 사용 완료" : "보상 미사용"}
+            </Chip>
+          </div>
+
+          <Button
+            variant={rewardUsed ? "secondary" : "primary"}
+            block
+            onClick={toggleRewardUsed}
+            loading={updatingReward}
+          >
+            {!updatingReward && (rewardUsed ? "다시 받을래요" : "사용했어요")}
+          </Button>
+
+          <p className="mt-4 text-sm ui-text-sub font-medium">
+            주간 미션을 모두 완료했을 때 받은 보상입니다.
+          </p>
+          <p className="mt-1 text-sm ui-text-sub font-medium">
+            {rewardUsed
+              ? "보상을 이미 사용했습니다."
+              : "보상을 아직 사용하지 않았습니다."}
+          </p>
         </div>
-      )}
+      </Modal>
 
       {/* 배지 선택 모달 */}
       {showBadgeSelectionModal && selectedWeek && !showRewardModal && (

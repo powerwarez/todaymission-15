@@ -6,11 +6,14 @@ import {
   LuTrash,
   LuSave,
   LuUpload,
-  LuX,
   LuCheck,
 } from "react-icons/lu";
 import { toast } from "react-hot-toast";
 import { v4 as uuidv4 } from "uuid";
+import Card from "./ui/Card";
+import Button from "./ui/Button";
+import Chip from "./ui/Chip";
+import Modal from "./ui/Modal";
 
 interface WeeklyBadgeSettingProps {
   userId: string;
@@ -601,39 +604,20 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <style>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fade-in-up {
-          animation: fadeInUp 0.3s ease-out forwards;
-        }
-      `}</style>
-
-      <h2 className="text-xl font-semibold text-gray-800 mb-4">
-        주간 미션 달성 배지 설정
-      </h2>
-      <p className="text-gray-600 mb-6">
+    <Card>
+      <h2 className="ui-section-title mb-2">주간 미션 달성 배지 설정</h2>
+      <p className="ui-text-sub font-medium mb-6">
         주간 미션을 모두 달성했을 때 선택할 수 있는 배지를 설정하세요 (최대
         5개). 사용자는 이 중 하나를 선택하여 획득하게 됩니다.
       </p>
 
       {error && (
         <div
-          className="px-4 py-3 rounded mb-4"
+          role="alert"
+          className="ui-card-soft mb-4 font-semibold"
           style={{
-            backgroundColor: "var(--color-bg-error)",
-            borderColor: "var(--color-border-error)",
-            color: "var(--color-text-error)",
-            border: "1px solid",
+            backgroundColor: "var(--color-error-light)",
+            color: "var(--color-error-dark)",
           }}
         >
           {error}
@@ -643,40 +627,34 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
       {/* 현재 선택된 배지 목록 */}
       <div className="mb-6">
         <div className="flex justify-between items-center mb-2">
-          <h3 className="font-medium text-gray-700">선택된 배지</h3>
-          <span className="text-sm text-gray-500">
+          <h3 className="text-base">선택된 배지</h3>
+          <Chip>
             {selectedBadges.length}/{MAX_WEEKLY_BADGES}개 선택됨
-          </span>
+          </Chip>
         </div>
 
-        <div className="bg-gray-50 p-4 rounded-lg mb-4">
+        <div className="ui-card-soft mb-4">
           {weeklyBadges.length === 0 ? (
-            <p className="text-center text-gray-500 py-4">
+            <p className="text-center ui-text-sub font-semibold py-4">
               선택된 배지가 없습니다. 아래에서 배지를 선택해주세요.
             </p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {weeklyBadges.map((badge) => (
-                <div key={badge.id} className="relative group">
+                <li key={badge.id} className="relative">
                   <div
-                    className="bg-white p-4 rounded-lg flex flex-col items-center transition-colors"
+                    className="p-4 flex flex-col items-center"
                     style={{
-                      backgroundColor: "var(--color-bg-card)",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        "var(--color-bg-hover)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        "var(--color-bg-card)";
+                      backgroundColor: "var(--ui-surface)",
+                      border: "var(--ui-bw-thin) solid var(--ui-ink)",
+                      borderRadius: "var(--ui-radius-md)",
                     }}
                   >
                     <div
-                      className="w-16 h-16 mb-2 flex items-center justify-center 
-                      border-4 rounded-full p-1 bg-white shadow-md overflow-hidden"
+                      className="w-16 h-16 mb-2 flex items-center justify-center rounded-full p-1 overflow-hidden"
                       style={{
-                        borderColor: "var(--color-primary-medium)",
+                        backgroundColor: "var(--ui-surface)",
+                        border: "var(--ui-bw) solid var(--ui-ink)",
                       }}
                     >
                       <img
@@ -689,120 +667,107 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
                         }}
                       />
                     </div>
-                    <h4 className="text-sm font-medium text-center truncate w-full">
+                    <h4 className="text-sm text-center truncate w-full">
                       {badge.name}
                     </h4>
                   </div>
-                  <button
+                  {/* 터치 기기에서도 보이도록 항상 표시 */}
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    iconOnly
                     onClick={() => handleBadgeSelect(badge)}
-                    className="absolute -top-2 -right-2 text-white rounded-full p-1 invisible group-hover:visible transition-all"
-                    style={{
-                      backgroundColor: "var(--color-text-error)",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        "var(--color-text-error-dark)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        "var(--color-text-error)";
-                    }}
+                    className="absolute -top-3 -right-3"
                     title="배지 제거"
+                    aria-label={`${badge.name} 배지 제거`}
                   >
                     <LuTrash size={16} />
-                  </button>
-                </div>
+                  </Button>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
       </div>
 
       {/* 내 커스텀 배지 목록 */}
       <div className="mb-6">
-        <h3 className="font-medium text-gray-700 mb-2">내 커스텀 배지</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {customBadges.map((badge) => (
-            <div key={badge.id} className="relative group">
-              <div
-                className={`bg-white p-4 rounded-lg flex flex-col items-center transition-colors border-2 ${
-                  selectedBadges.includes(badge.id) ? "" : "border-transparent"
-                }`}
-                style={{
-                  backgroundColor: selectedBadges.includes(badge.id)
-                    ? "var(--color-primary-light)"
-                    : "var(--color-bg-card)",
-                  borderColor: selectedBadges.includes(badge.id)
-                    ? "var(--color-border-focus)"
-                    : "transparent",
-                }}
-                onMouseEnter={(e) => {
-                  if (!selectedBadges.includes(badge.id)) {
-                    e.currentTarget.style.backgroundColor =
-                      "var(--color-bg-hover)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!selectedBadges.includes(badge.id)) {
-                    e.currentTarget.style.backgroundColor =
-                      "var(--color-bg-card)";
-                  }
-                }}
-                onClick={() => handleBadgeSelect(badge)}
-              >
-                <div
-                  className="w-16 h-16 mb-2 flex items-center justify-center 
-                  rounded-full p-1 bg-white shadow-md overflow-hidden"
+        <h3 className="text-base mb-2">내 커스텀 배지</h3>
+        <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {customBadges.map((badge) => {
+            const isSelected = selectedBadges.includes(badge.id);
+            return (
+              <li key={badge.id} className="relative">
+                <button
+                  type="button"
+                  onClick={() => handleBadgeSelect(badge)}
+                  aria-pressed={isSelected}
+                  className="w-full p-4 flex flex-col items-center cursor-pointer"
+                  style={{
+                    backgroundColor: isSelected
+                      ? "var(--ui-accent-soft)"
+                      : "var(--ui-surface)",
+                    border: `${
+                      isSelected ? "var(--ui-bw)" : "var(--ui-bw-thin)"
+                    } solid var(--ui-ink)`,
+                    borderRadius: "var(--ui-radius-md)",
+                    boxShadow: isSelected ? "var(--ui-shadow-sm)" : "none",
+                  }}
                 >
-                  <img
-                    src={getBadgeImageUrl(badge.image_path)}
-                    alt={badge.name}
-                    className="max-w-full max-h-full object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        "/placeholder_badge.png";
+                  <div
+                    className="w-16 h-16 mb-2 flex items-center justify-center rounded-full p-1 overflow-hidden"
+                    style={{
+                      backgroundColor: "var(--ui-surface)",
+                      border: "var(--ui-bw-thin) solid var(--ui-ink)",
                     }}
-                  />
-                </div>
-                <h4 className="text-sm font-medium text-center truncate w-full">
-                  {badge.name}
-                </h4>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteCustomBadge(badge.id);
-                }}
-                className="absolute -top-2 -right-2 text-white rounded-full p-1 shadow-sm transition-all"
-                style={{
-                  backgroundColor: "var(--color-text-error)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor =
-                    "var(--color-text-error-dark)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor =
-                    "var(--color-text-error)";
-                }}
-                title="배지 삭제"
-              >
-                <LuTrash size={16} />
-              </button>
-            </div>
-          ))}
+                  >
+                    <img
+                      src={getBadgeImageUrl(badge.image_path)}
+                      alt={badge.name}
+                      className="max-w-full max-h-full object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          "/placeholder_badge.png";
+                      }}
+                    />
+                  </div>
+                  <span className="text-sm font-bold text-center truncate w-full">
+                    {badge.name}
+                  </span>
+                </button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  iconOnly
+                  onClick={() => deleteCustomBadge(badge.id)}
+                  className="absolute -top-3 -right-3"
+                  title="배지 삭제"
+                  aria-label={`${badge.name} 배지 삭제`}
+                >
+                  <LuTrash size={16} />
+                </Button>
+              </li>
+            );
+          })}
 
           {/* 배지 추가 버튼 */}
-          <button
-            onClick={() => setShowUploadModal(true)}
-            className="bg-gray-100 hover:bg-gray-200 p-4 rounded-lg flex flex-col items-center justify-center h-full border-2 border-dashed border-gray-300 transition-colors"
-          >
-            <LuPlus size={24} className="text-gray-500 mb-2" />
-            <span className="text-sm text-gray-500">배지 추가</span>
-          </button>
-        </div>
+          <li>
+            <button
+              type="button"
+              onClick={() => setShowUploadModal(true)}
+              className="w-full h-full min-h-[120px] p-4 flex flex-col items-center justify-center cursor-pointer transition-colors hover:bg-[var(--ui-surface-soft)]"
+              style={{
+                border: "var(--ui-bw) dashed var(--ui-ink)",
+                borderRadius: "var(--ui-radius-md)",
+              }}
+            >
+              <LuPlus size={24} className="mb-2" />
+              <span className="text-sm font-bold">배지 추가</span>
+            </button>
+          </li>
+        </ul>
         {customBadges.length === 0 && (
-          <p className="text-center text-gray-500 mt-2">
+          <p className="text-center ui-text-sub font-medium mt-3">
             업로드한 커스텀 배지가 없습니다. 배지 추가 버튼을 눌러 새 배지를
             추가해보세요.
           </p>
@@ -811,189 +776,121 @@ const WeeklyBadgeSetting: React.FC<WeeklyBadgeSettingProps> = ({ userId }) => {
 
       {/* 설정 저장 버튼 */}
       <div className="flex justify-end mt-6">
-        <button
+        <Button
+          variant="primary"
           onClick={saveWeeklyBadgeSettings}
-          disabled={loading}
-          className="flex items-center px-4 py-2 text-white rounded-md shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{
-            backgroundColor: "var(--color-primary-medium)",
-          }}
-          onMouseEnter={(e) => {
-            if (!e.currentTarget.disabled) {
-              e.currentTarget.style.backgroundColor =
-                "var(--color-primary-dark)";
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor =
-              "var(--color-primary-medium)";
-          }}
+          loading={loading}
         >
-          {loading ? (
-            <div
-              className="animate-spin rounded-full h-8 w-8 border-b-2"
-              style={{ borderColor: "var(--color-primary-medium)" }}
-            ></div>
-          ) : (
-            <LuSave className="mr-2" size={18} />
-          )}
+          {!loading && <LuSave size={18} />}
           설정 저장
-        </button>
+        </Button>
       </div>
 
       {/* 배지 업로드 모달 */}
-      {showUploadModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black bg-opacity-50"
-            onClick={() => setShowUploadModal(false)}
-          ></div>
-          <div className="relative bg-white rounded-lg shadow-lg w-full max-w-md p-6">
-            <button
-              onClick={() => setShowUploadModal(false)}
-              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-            >
-              <LuX size={20} />
-            </button>
+      <Modal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        ariaLabel="나만의 배지 추가"
+      >
+        <h3 className="text-lg text-center mb-4 pr-6">나만의 배지 추가</h3>
+        <p className="ui-text-sub font-medium text-sm mb-4">
+          배지 이미지를 선택하여 업로드하세요. 업로드한 배지는 주간 미션 달성 시
+          선택 가능한 배지로 사용됩니다.
+        </p>
 
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-center mb-4">
-                나만의 배지 추가
-              </h3>
-              <p className="text-gray-600 text-sm mb-4">
-                배지 이미지를 선택하여 업로드하세요. 업로드한 배지는 주간 미션
-                달성 시 선택 가능한 배지로 사용됩니다.
-              </p>
-
-              {/* 파일 업로드 영역 */}
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-4">
-                {selectedFile ? (
-                  <div className="flex flex-col items-center">
-                    {previewUrl && (
-                      <div className="w-32 h-32 mb-4 rounded-full overflow-hidden bg-white shadow-md">
-                        <img
-                          src={previewUrl}
-                          alt="미리보기"
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                    )}
-                    <p className="text-sm text-gray-600 mb-2">
-                      {selectedFile.name}
-                    </p>
-                    <button
-                      onClick={handleCancelUpload}
-                      className="text-sm hover:underline"
-                      style={{ color: "var(--color-text-error)" }}
-                    >
-                      취소
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <LuUpload className="mx-auto h-12 w-12 text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-600 mb-2">
-                      이미지 파일을 드래그하거나 클릭하여 선택하세요
-                    </p>
-                    <p className="text-xs text-gray-500 mb-4">
-                      PNG, JPG, GIF (최대 5MB)
-                    </p>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      className="hidden"
-                      onChange={handleFileSelect}
-                      accept="image/*"
-                    />
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="text-white p-2 rounded-lg flex items-center"
-                      style={{
-                        backgroundColor: "var(--color-primary-medium)",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor =
-                          "var(--color-primary-dark)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor =
-                          "var(--color-primary-medium)";
-                      }}
-                    >
-                      파일 선택
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowUploadModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100"
-              >
-                취소
-              </button>
-              <button
-                onClick={saveCustomBadge}
-                disabled={!selectedFile || uploadLoading}
-                className="text-white p-2 rounded-lg flex items-center"
-                style={{
-                  backgroundColor: "var(--color-primary-medium)",
-                }}
-                onMouseEnter={(e) => {
-                  if (!e.currentTarget.disabled) {
-                    e.currentTarget.style.backgroundColor =
-                      "var(--color-primary-dark)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor =
-                    "var(--color-primary-medium)";
-                }}
-              >
-                {uploadLoading && (
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mr-2"></div>
-                )}
-                업로드
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 설정 저장 완료 모달 */}
-      {showSuccessModal && (
-        <div className="fixed bottom-5 right-5 z-50 max-w-sm">
-          <div
-            className="bg-white rounded-lg shadow-lg p-4 border animate-fade-in-up"
-            style={{ borderColor: "var(--color-success)" }}
-          >
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
+        {/* 파일 업로드 영역 */}
+        <div
+          className="p-6 text-center mb-4"
+          style={{
+            border: "var(--ui-bw) dashed var(--ui-ink)",
+            borderRadius: "var(--ui-radius-lg)",
+          }}
+        >
+          {selectedFile ? (
+            <div className="flex flex-col items-center">
+              {previewUrl && (
                 <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: "var(--color-success-light)" }}
+                  className="w-32 h-32 mb-4 rounded-full overflow-hidden"
+                  style={{
+                    backgroundColor: "var(--ui-surface)",
+                    border: "var(--ui-bw) solid var(--ui-ink)",
+                  }}
                 >
-                  <LuCheck
-                    size={24}
-                    style={{ color: "var(--color-success)" }}
+                  <img
+                    src={previewUrl}
+                    alt="미리보기"
+                    className="w-full h-full object-contain"
                   />
                 </div>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-base font-medium text-gray-800">
-                  설정이 저장되었습니다
-                </h3>
-                <p className="text-sm text-gray-600">
-                  주간 미션 달성 배지 설정이 성공적으로 저장되었습니다.
-                </p>
-              </div>
+              )}
+              <p className="text-sm ui-text-sub font-medium mb-2 break-all">
+                {selectedFile.name}
+              </p>
+              <Button size="sm" onClick={handleCancelUpload}>
+                취소
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center">
+              <LuUpload className="h-12 w-12 mb-2 ui-text-sub" />
+              <p className="text-sm ui-text-sub font-medium mb-1">
+                이미지 파일을 선택하세요
+              </p>
+              <p className="text-xs ui-text-sub mb-4">PNG, JPG, GIF (최대 5MB)</p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={handleFileSelect}
+                accept="image/*"
+              />
+              <Button
+                variant="primary"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                파일 선택
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-3">
+          <Button onClick={() => setShowUploadModal(false)}>취소</Button>
+          <Button
+            variant="primary"
+            onClick={saveCustomBadge}
+            disabled={!selectedFile}
+            loading={uploadLoading}
+          >
+            업로드
+          </Button>
+        </div>
+      </Modal>
+
+      {/* 설정 저장 완료 알림 */}
+      {showSuccessModal && (
+        <div className="fixed bottom-5 right-5 z-50 max-w-sm" role="status">
+          <div className="ui-card flex items-center gap-3 animate-fade-in-up">
+            <span
+              className="w-10 h-10 flex-none rounded-full flex items-center justify-center"
+              style={{
+                backgroundColor: "var(--color-success-light)",
+                border: "var(--ui-bw-thin) solid var(--color-success-dark)",
+                color: "var(--color-success-dark)",
+              }}
+            >
+              <LuCheck size={22} />
+            </span>
+            <div>
+              <h3 className="text-base">설정이 저장되었습니다</h3>
+              <p className="text-sm ui-text-sub font-medium">
+                주간 미션 달성 배지 설정이 성공적으로 저장되었습니다.
+              </p>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 };
 

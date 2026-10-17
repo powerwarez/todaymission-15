@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 // import { supabase } from '@/lib/supabaseClient'; // 경로 별칭 대신 상대 경로 사용
 import { supabase } from "../lib/supabaseClient";
-import { LuLoader, LuTriangle } from "react-icons/lu"; // 아이콘 이름 수정
+import { LuAward, LuTriangle } from "react-icons/lu"; // 아이콘 이름 수정
+import PageHeader from "../components/ui/PageHeader";
+import Spinner from "../components/ui/Spinner";
+import Chip from "../components/ui/Chip";
 
 // Badge 타입 정의 (Supabase 스키마 기반)
 interface Badge {
@@ -120,102 +123,92 @@ const BadgeSettingsPage: React.FC = () => {
   }, []); // 컴포넌트 마운트 시 1회 실행
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* 페이지 제목 */}
-      <h1
-        className="text-3xl font-bold mb-8 text-center"
-        style={{ color: "var(--color-text-primary)" }}
-      >
-        도전과제
-      </h1>
+    <div className="px-1 sm:px-2 py-2">
+      <PageHeader
+        title="달성한 도전과제"
+        description="미션을 완료하고 다양한 배지를 모아보세요."
+        icon={<LuAward size={24} />}
+      />
 
       {/* 로딩 상태 표시 */}
-      {loading && (
-        <div className="flex justify-center items-center py-10">
-          <LuLoader
-            className="animate-spin"
-            style={{ color: "var(--color-primary-medium)" }}
-            size={40}
-          />
-          <p className="ml-3 text-lg text-gray-600">데이터를 불러오는 중...</p>
-        </div>
-      )}
+      {loading && <Spinner label="데이터를 불러오는 중..." />}
 
       {/* 에러 상태 표시 */}
       {error && (
         <div
-          className="border px-4 py-3 rounded relative mb-6 max-w-2xl mx-auto"
+          className="ui-card-soft flex items-start gap-2 mb-6 max-w-2xl"
           role="alert"
           style={{
-            backgroundColor: "var(--color-bg-error)",
-            borderColor: "var(--color-border-error)",
-            color: "var(--color-text-error)",
+            backgroundColor: "var(--color-error-light)",
+            color: "var(--color-error-dark)",
           }}
         >
-          <LuTriangle className="inline mr-2" />
-          <span className="block sm:inline">오류가 발생했습니다: {error}</span>
+          <LuTriangle className="flex-none mt-1" />
+          <span className="font-semibold">오류가 발생했습니다: {error}</span>
         </div>
       )}
 
       {/* 데이터 로딩 완료 및 에러 없는 경우 */}
       {!loading && !error && (
         <div>
-          <h2
-            className="text-2xl font-semibold mb-6 text-center"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            달성 가능한 배지 목록
-          </h2>
+          <h2 className="ui-section-title mb-4">달성 가능한 배지 목록</h2>
           {badges.length > 0 ? (
-            <ul className="space-y-4 max-w-2xl mx-auto">
-              {badges.map((badge) => (
-                <li
-                  key={badge.id}
-                  className="flex items-center justify-between p-4 border rounded-lg bg-white shadow-sm hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center space-x-4">
-                    {/* 배지 이미지 표시 */}
-                    {badge.imageUrl ? (
-                      <img
-                        src={badge.imageUrl}
-                        alt={badge.name}
-                        className="w-14 h-14 object-contain bg-gray-100 rounded p-1"
-                      />
-                    ) : (
-                      <div className="w-14 h-14 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">
-                        No Img
+            <ul className="space-y-4 max-w-2xl">
+              {badges.map((badge) => {
+                const achieved = badge.count > 0;
+                return (
+                  <li
+                    key={badge.id}
+                    className="ui-card flex items-center justify-between gap-3"
+                    style={{ padding: "1rem" }}
+                  >
+                    <div className="flex items-center gap-4 min-w-0">
+                      {/* 배지 이미지 표시 */}
+                      {badge.imageUrl ? (
+                        <img
+                          src={badge.imageUrl}
+                          alt={badge.name}
+                          className="w-16 h-16 object-contain flex-none p-1"
+                          style={{
+                            backgroundColor: "var(--ui-surface-soft)",
+                            border: "var(--ui-bw-thin) solid var(--ui-ink)",
+                            borderRadius: "var(--ui-radius-md)",
+                            filter: achieved ? undefined : "grayscale(1)",
+                            opacity: achieved ? 1 : 0.6,
+                          }}
+                        />
+                      ) : (
+                        <div
+                          className="w-16 h-16 flex-none flex items-center justify-center text-xs ui-text-sub"
+                          style={{
+                            backgroundColor: "var(--ui-surface-soft)",
+                            border: "var(--ui-bw-thin) solid var(--ui-ink)",
+                            borderRadius: "var(--ui-radius-md)",
+                          }}
+                        >
+                          No Img
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <h3 className="text-lg break-words">{badge.name}</h3>
+                        <p className="text-sm ui-text-sub font-medium break-words">
+                          {badge.description || "설명 없음"}
+                        </p>
                       </div>
-                    )}
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800">
-                        {badge.name}
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        {badge.description || "설명 없음"}
-                      </p>
                     </div>
-                  </div>
-                  {/* 달성 횟수 표시 */}
-                  <div className="text-right">
-                    <span
-                      className={`text-lg font-bold ${
-                        badge.count > 0 ? "" : "text-gray-400"
-                      }`}
-                      style={{
-                        color:
-                          badge.count > 0
-                            ? "var(--color-primary-medium)"
-                            : undefined,
-                      }}
+                    {/* 달성 횟수 표시 */}
+                    <Chip
+                      tone={achieved ? "success" : "default"}
+                      className="flex-none"
                     >
-                      {badge.count > 0 ? `${badge.count}회 달성` : "미달성"}
-                    </span>
-                  </div>
-                </li>
-              ))}
+                      {achieved ? `${badge.count}회 달성` : "미달성"}
+                    </Chip>
+                  </li>
+                );
+              })}
             </ul>
           ) : (
-            <p className="text-gray-500 text-center py-4">
+            <p className="ui-text-sub font-semibold text-center py-4">
               표시할 배지가 없습니다.
             </p>
           )}

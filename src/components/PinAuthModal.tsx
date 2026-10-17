@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../contexts/AuthContext";
-import { LuX, LuLock, LuKey } from "react-icons/lu";
+import { LuLock, LuKey } from "react-icons/lu";
+import Modal from "./ui/Modal";
+import Button from "./ui/Button";
+import Spinner from "./ui/Spinner";
 
 interface PinAuthModalProps {
   onSuccess: () => void;
@@ -74,110 +77,61 @@ const PinAuthModal: React.FC<PinAuthModalProps> = ({ onSuccess, onCancel }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
-        <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-gray-800 flex items-center">
-            <LuLock className="mr-2" />
-            PIN 확인
-          </h2>
-          <button
-            onClick={onCancel}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <LuX size={20} />
-          </button>
-        </div>
+    <Modal
+      isOpen
+      onClose={onCancel}
+      maxWidthClass="max-w-md"
+      ariaLabel="PIN 확인"
+    >
+      <h2 className="ui-section-title mb-4 pr-10">
+        <LuLock />
+        PIN 확인
+      </h2>
 
-        <div className="p-6">
-          {loading ? (
-            <div className="flex justify-center py-4">
-              <div
-                className="animate-spin rounded-full h-8 w-8 border-b-2"
-                style={{ borderColor: "var(--color-primary-medium)" }}
-              ></div>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit}>
-              <p className="text-gray-600 mb-4">
-                {userInfo?.child_name || "아이"} 설정 페이지에 접근하기 위해
-                PIN을 입력해주세요.
-              </p>
+      {loading ? (
+        <Spinner />
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <p className="ui-text-sub font-medium mb-4">
+            {userInfo?.child_name || "아이"} 설정 페이지에 접근하기 위해 PIN을
+            입력해주세요.
+          </p>
 
-              <div className="mb-4">
-                <label
-                  htmlFor="pin"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  PIN 코드 (4자리)
-                </label>
-                <input
-                  type="password"
-                  id="pin"
-                  value={pin}
-                  onChange={handlePinChange}
-                  className="w-full px-4 py-3 text-center text-2xl tracking-widest border border-gray-300 rounded-md focus:outline-none"
-                  style={{
-                    borderColor: "var(--color-border-default)",
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = "var(--color-border-focus)";
-                    e.target.style.boxShadow = `0 0 0 2px var(--color-border-focus)`;
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = "var(--color-border-default)";
-                    e.target.style.boxShadow = "none";
-                  }}
-                  placeholder="****"
-                  maxLength={4}
-                  autoFocus
-                />
-              </div>
+          <div className="mb-4">
+            <label htmlFor="pin" className="ui-label">
+              PIN 코드 (4자리)
+            </label>
+            <input
+              type="password"
+              id="pin"
+              inputMode="numeric"
+              autoComplete="off"
+              value={pin}
+              onChange={handlePinChange}
+              className="w-full text-center text-2xl tracking-widest"
+              style={{ minHeight: 56 }}
+              placeholder="****"
+              maxLength={4}
+              autoFocus
+            />
+          </div>
 
-              {error && (
-                <div
-                  className="mb-4 p-2 rounded"
-                  style={{
-                    backgroundColor: "var(--color-bg-error)",
-                    color: "var(--color-text-error)",
-                  }}
-                >
-                  {error}
-                </div>
-              )}
-
-              <div className="flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={onCancel}
-                  className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100"
-                >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-white rounded flex items-center"
-                  style={{
-                    backgroundColor: "var(--color-primary-medium)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                      "var(--color-primary-dark)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                      "var(--color-primary-medium)";
-                  }}
-                >
-                  <LuKey className="mr-2" />
-                  확인
-                </button>
-              </div>
-            </form>
+          {error && (
+            <p role="alert" className="ui-error-text mb-4">
+              {error}
+            </p>
           )}
-        </div>
-      </div>
-    </div>
+
+          <div className="flex justify-end gap-3">
+            <Button onClick={onCancel}>취소</Button>
+            <Button type="submit" variant="primary">
+              <LuKey size={18} />
+              확인
+            </Button>
+          </div>
+        </form>
+      )}
+    </Modal>
   );
 };
 

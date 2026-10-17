@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
-import { LuX, LuStar } from "react-icons/lu";
+import { LuStar } from "react-icons/lu";
 import { BadgeSelectionModal } from "../BadgeSelectionModal";
+import Modal from "../ui/Modal";
+import Button from "../ui/Button";
+import Spinner from "../ui/Spinner";
 import toast from "react-hot-toast";
 
 interface WeeklyBadgeModalProps {
@@ -140,34 +143,18 @@ export const WeeklyBadgeModal: React.FC<WeeklyBadgeModalProps> = ({
   // 로딩 중이면 로딩 스피너만 보여줌
   if (loading) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center">
-        <div className="absolute inset-0 bg-black bg-opacity-50"></div>
-        <div className="relative bg-white rounded-lg p-6 max-w-md w-full m-4 flex justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500"></div>
-        </div>
-      </div>
+      <Modal isOpen onClose={onClose} showClose={false} dismissible={false}>
+        <Spinner />
+      </Modal>
     );
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="absolute inset-0 bg-black bg-opacity-50"
-        onClick={onClose}
-      ></div>
-      <div className="relative bg-white rounded-lg p-6 max-w-md w-full m-4">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-        >
-          <LuX size={20} />
-        </button>
-
+    <>
+      <Modal isOpen onClose={onClose} ariaLabel="주간 미션 달성">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-sky-600 mb-4">
-            주간 미션 달성!
-          </h2>
-          <p className="mb-4">
+          <h2 className="text-2xl mb-4">주간 미션 달성!</h2>
+          <p className="mb-4 font-medium">
             {weekStartDate} ~ {weekEndDate} 기간 동안
             <br />
             모든 오늘의 미션을 완료했습니다.
@@ -175,35 +162,47 @@ export const WeeklyBadgeModal: React.FC<WeeklyBadgeModalProps> = ({
 
           {/* 주간 목표 표시 */}
           {weeklyRewardGoal && (
-            <div className="bg-yellow-50 p-4 rounded-lg mb-6 border border-yellow-200">
-              <div className="flex items-center justify-center mb-2">
-                <LuStar className="text-yellow-500 mr-2" />
-                <h3 className="text-lg font-semibold text-yellow-700">
+            <div
+              className="ui-card-soft mb-6"
+              style={{
+                backgroundColor: "var(--color-warning-light)",
+                color: "var(--color-warning-dark)",
+                borderColor: "var(--color-warning-dark)",
+              }}
+            >
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <LuStar />
+                <h3 className="text-lg" style={{ color: "inherit" }}>
                   이번 주 보상
                 </h3>
               </div>
-              <p className="text-yellow-800">{weeklyRewardGoal}</p>
+              <p className="font-bold">{weeklyRewardGoal}</p>
             </div>
           )}
 
           {alreadyEarned ? (
-            <div className="bg-green-100 p-4 rounded-md mb-4">
-              <p className="text-green-700">
-                이미 이번 주에 배지를 획득하셨습니다!
-                <br />
-                명예의 전당에서 확인하세요.
-              </p>
+            <div
+              className="ui-card-soft mb-4 font-bold"
+              style={{
+                backgroundColor: "var(--color-success-light)",
+                color: "var(--color-success-dark)",
+              }}
+            >
+              이미 이번 주에 배지를 획득하셨습니다!
+              <br />
+              명예의 전당에서 확인하세요.
             </div>
           ) : (
-            <button
+            <Button
+              variant="primary"
+              size="lg"
               onClick={() => setShowBadgeSelection(true)}
-              className="bg-sky-600 text-white px-6 py-3 rounded-lg hover:bg-sky-700 transition-colors"
             >
               배지 선택하기
-            </button>
+            </Button>
           )}
         </div>
-      </div>
+      </Modal>
 
       {showBadgeSelection && !alreadyEarned && !loading && (
         <BadgeSelectionModal
@@ -213,6 +212,6 @@ export const WeeklyBadgeModal: React.FC<WeeklyBadgeModalProps> = ({
           weeklyRewardGoal={weeklyRewardGoal}
         />
       )}
-    </div>
+    </>
   );
 };

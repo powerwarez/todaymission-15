@@ -51,8 +51,11 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({
 
     if (!snapshot || snapshot.total_missions_count === 0) {
       return {
-        className: "bg-gray-100 text-gray-400",
-        style: {},
+        className: "",
+        style: {
+          backgroundColor: "var(--ui-surface)",
+          color: "color-mix(in srgb, var(--ui-text) 40%, transparent)",
+        },
       }; // 스냅샷 없거나 총 미션 0개 (흐리게)
     }
 
@@ -60,8 +63,11 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({
 
     if (completed_missions_count === 0) {
       return {
-        className: "bg-gray-200 text-gray-600",
-        style: {},
+        className: "",
+        style: {
+          backgroundColor: "var(--ui-surface-soft)",
+          color: "var(--ui-text)",
+        },
       }; // 완료 0개 (조금 더 진하게)
     }
 
@@ -93,19 +99,18 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({
     return (
       <div
         key={day}
-        className={`h-16 flex flex-col items-center justify-center rounded-md transition-colors duration-200 ${
-          dayStyle.className
-        } ${isToday ? "ring-2 ring-offset-1" : ""}`}
+        className={`h-16 flex flex-col items-center justify-center transition-colors duration-200 ${dayStyle.className}`}
         style={{
+          border: `${
+            isToday ? "var(--ui-bw)" : "var(--ui-bw-thin)"
+          } solid var(--ui-ink)`,
+          borderRadius: "var(--ui-radius-sm)",
           ...dayStyle.style,
-          ...(isToday
-            ? {
-                boxShadow: `0 0 0 2px var(--color-primary-medium)`,
-              }
-            : {}),
+          ...(isToday ? { boxShadow: "var(--ui-shadow-sm)" } : {}),
         }}
+        aria-current={isToday ? "date" : undefined}
       >
-        <span className="text-sm font-medium">{day}</span>
+        <span className="text-sm font-bold">{day}</span>
         {/* 스냅샷이 있고 총 미션 수가 0보다 클 때만 카운트 표시 */}
         {snapshot && totalCount !== undefined && totalCount > 0 && (
           <span className="text-xs mt-1">{`${completedCount}/${totalCount}`}</span>
@@ -143,7 +148,7 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({
 
   return (
     <div>
-      <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-gray-600 mb-2">
+      <div className="grid grid-cols-7 gap-1 text-center text-xs font-extrabold ui-text-sub mb-2">
         <div>일</div>
         <div>월</div>
         <div>화</div>
@@ -152,7 +157,7 @@ const MonthlyCalendar: React.FC<MonthlyCalendarProps> = ({
         <div>금</div>
         <div>토</div>
       </div>
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-1.5">
         {leadingEmptyDays.map((_, index) => (
           <div key={`empty-${index}`} className="h-16"></div>
         ))}

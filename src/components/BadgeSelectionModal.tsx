@@ -7,6 +7,8 @@ import {
   ConfettiRef,
 } from "../components/ui/confetti";
 import { LuX, LuStar } from "react-icons/lu";
+import Button from "./ui/Button";
+import Spinner from "./ui/Spinner";
 import { useAuth } from "../contexts/AuthContext";
 import "../styles/animations.css"; // 애니메이션용 CSS 파일
 
@@ -566,127 +568,137 @@ export const BadgeSelectionModal: React.FC<BadgeSelectionModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 ${
-        showModal ? "visible" : "invisible"
-      }`}
+      className="ui-modal-backdrop"
+      style={{ zIndex: 9999 }}
+      onClick={handleClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="배지 선택"
     >
       <div
-        className="absolute inset-0 bg-black bg-opacity-50"
-        onClick={handleClose}
-      ></div>
-      <div
-        className={`relative bg-white rounded-2xl w-full max-w-2xl mx-auto p-6 shadow-xl scale-in-center overflow-y-auto max-h-[90vh] ${
-          showModal ? "scale-in-center" : "scale-out-center"
-        }`}
+        className="ui-modal max-w-2xl mx-auto"
+        style={{ maxHeight: "90vh" }}
+        onClick={(e) => e.stopPropagation()}
       >
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
+          iconOnly
           onClick={handleClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+          className="absolute top-3 right-3"
+          aria-label="닫기"
         >
           <LuX size={20} />
-        </button>
+        </Button>
 
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-6 text-sky-600 flex items-center justify-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-8 w-8 text-yellow-500 mr-2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"
-              />
-            </svg>
+          <h2 className="text-2xl mb-6 flex items-center justify-center gap-2">
+            <LuStar size={28} />
             배지를 선택하세요
           </h2>
 
           {/* 주간 목표 표시 */}
           {weeklyRewardGoal && (
-            <div className="bg-yellow-50 p-4 rounded-lg mb-6 border border-yellow-200">
-              <div className="flex items-center justify-center mb-2">
-                <LuStar className="text-yellow-500 mr-2" />
-                <h3 className="text-lg font-semibold text-yellow-700">
+            <div
+              className="ui-card-soft mb-6"
+              style={{
+                backgroundColor: "var(--color-warning-light)",
+                color: "var(--color-warning-dark)",
+                borderColor: "var(--color-warning-dark)",
+              }}
+            >
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <LuStar />
+                <h3 className="text-lg" style={{ color: "inherit" }}>
                   이번 주 보상
                 </h3>
               </div>
-              <p className="text-yellow-800">{weeklyRewardGoal}</p>
+              <p className="font-bold">{weeklyRewardGoal}</p>
             </div>
           )}
 
           {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <div
+              role="alert"
+              className="ui-card-soft mb-4 font-semibold"
+              style={{
+                backgroundColor: "var(--color-error-light)",
+                color: "var(--color-error-dark)",
+              }}
+            >
               {error}
             </div>
           )}
 
           {loading ? (
             <div className="w-full min-h-[200px] flex items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500"></div>
+              <Spinner />
             </div>
           ) : badges.length === 0 ? (
-            <div className="text-center text-gray-600 p-6">
+            <div className="text-center ui-text-sub font-semibold p-6">
               <p>설정된 배지가 없습니다. 관리자에게 문의하세요.</p>
             </div>
           ) : (
             <div className="grid grid-cols-3 md:grid-cols-5 gap-3 mb-4">
-              {badges.map((badge, index) => (
-                <button
-                  key={badge.id}
-                  onClick={() => handleBadgeClick(badge.id)}
-                  className={`badge-item p-3 rounded-lg flex flex-col items-center transition-all ${
-                    selectedBadge === badge.id
-                      ? "bg-sky-100 ring-2 ring-sky-500 transform scale-105"
-                      : "bg-gray-100 hover:bg-sky-50"
-                  }`}
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <div className="relative w-16 h-16 md:w-20 md:h-20 mb-2 flex items-center justify-center">
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-sky-400 to-purple-500 badge-glow"></div>
-                    <div className="absolute inset-1 rounded-full bg-white flex items-center justify-center">
+              {badges.map((badge, index) => {
+                const isSelected = selectedBadge === badge.id;
+                return (
+                  <button
+                    key={badge.id}
+                    type="button"
+                    onClick={() => handleBadgeClick(badge.id)}
+                    aria-pressed={isSelected}
+                    className="badge-item p-3 flex flex-col items-center cursor-pointer"
+                    style={{
+                      animationDelay: `${index * 0.1}s`,
+                      backgroundColor: isSelected
+                        ? "var(--ui-accent-soft)"
+                        : "var(--ui-surface)",
+                      border: `${
+                        isSelected ? "var(--ui-bw)" : "var(--ui-bw-thin)"
+                      } solid var(--ui-ink)`,
+                      borderRadius: "var(--ui-radius-md)",
+                      boxShadow: isSelected ? "var(--ui-shadow-sm)" : "none",
+                      color: "var(--ui-text)",
+                    }}
+                  >
+                    <span
+                      className="w-16 h-16 md:w-20 md:h-20 mb-2 flex items-center justify-center rounded-full p-1"
+                      style={{
+                        backgroundColor: "var(--ui-surface)",
+                        border: "var(--ui-bw) solid var(--ui-ink)",
+                      }}
+                    >
                       <img
                         src={getBadgeImageUrl(badge.image_path)}
                         alt={badge.name}
-                        className="max-w-[80%] max-h-[80%] object-contain rounded-full"
+                        className="max-w-[85%] max-h-[85%] object-contain rounded-full"
                         onError={(e) => {
                           console.error("이미지 로드 오류:", badge.image_path);
                           (e.target as HTMLImageElement).src =
                             "/placeholder_badge.png";
                         }}
                       />
-                    </div>
-                  </div>
-                  <span className="text-xs md:text-sm font-medium text-center">
-                    {badge.name}
-                  </span>
-                </button>
-              ))}
+                    </span>
+                    <span className="text-xs md:text-sm font-bold text-center">
+                      {badge.name}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
 
-        <div className="flex justify-end border-t pt-3">
-          <button
-            onClick={handleClose}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 mr-2"
-          >
-            취소
-          </button>
-          <button
+        <div className="flex justify-end gap-3 pt-3">
+          <Button onClick={handleClose}>취소</Button>
+          <Button
+            variant="primary"
             onClick={handleConfirmSelection}
             disabled={!selectedBadge || loading}
-            className={`px-4 py-2 rounded-md ${
-              selectedBadge && !loading
-                ? "bg-sky-500 text-white hover:bg-sky-600"
-                : "bg-sky-300 text-white cursor-not-allowed"
-            }`}
           >
             선택 완료
-          </button>
+          </Button>
         </div>
 
         <Confetti

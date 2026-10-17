@@ -3,6 +3,9 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../contexts/AuthContext";
 import { LuUser, LuKey, LuSave } from "react-icons/lu";
 import { toast } from "react-hot-toast";
+import Card from "./ui/Card";
+import Button from "./ui/Button";
+import Spinner from "./ui/Spinner";
 
 const AccountSettings: React.FC = () => {
   const { user } = useAuth();
@@ -113,29 +116,33 @@ const AccountSettings: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-semibold text-gray-800 mb-4">계정 설정</h2>
+    <Card>
+      <h2 className="ui-section-title mb-4">
+        <LuUser /> 계정 설정
+      </h2>
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <div
+          role="alert"
+          className="ui-card-soft mb-4 font-semibold"
+          style={{
+            backgroundColor: "var(--color-error-light)",
+            color: "var(--color-error-dark)",
+          }}
+        >
           {error}
         </div>
       )}
 
       {loading && !error ? (
-        <div className="flex justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500"></div>
-        </div>
+        <Spinner />
       ) : (
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label
-              htmlFor="childName"
-              className="block text-sm font-medium text-gray-700 mb-2 flex items-center"
-            >
-              <LuUser className="mr-2" /> 오늘의 미션 제목 설정
+          <div className="mb-5">
+            <label htmlFor="childName" className="ui-label flex items-center gap-2">
+              <LuUser /> 오늘의 미션 제목 설정
             </label>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mb-2 text-sm ui-text-sub">
               오늘의 미션 페이지에 표시될 제목입니다.
             </p>
             <input
@@ -143,48 +150,38 @@ const AccountSettings: React.FC = () => {
               id="childName"
               value={childName}
               onChange={handleChildNameChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
+              className="w-full"
               placeholder="오늘의 미션 제목을 입력해주세요."
             />
           </div>
 
           <div className="mb-6">
-            <label
-              htmlFor="pinCode"
-              className="block text-sm font-medium text-gray-700 mb-2 flex items-center"
-            >
-              <LuKey className="mr-2" /> PIN 코드 (4자리)
+            <label htmlFor="pinCode" className="ui-label flex items-center gap-2">
+              <LuKey /> PIN 코드 (4자리)
             </label>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mb-2 text-sm ui-text-sub">
               오늘의 미션 설정 페이지에 접근할 때 필요한 PIN 코드입니다.
             </p>
             <input
               type="text"
               id="pinCode"
+              inputMode="numeric"
               value={pinCode}
               onChange={handlePinCodeChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
+              className="w-full"
               placeholder="4자리 숫자를 입력하세요"
               maxLength={4}
             />
           </div>
           <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex items-center px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-md shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <span className="mr-2 animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-              ) : (
-                <LuSave className="mr-2" />
-              )}
+            <Button type="submit" variant="primary" loading={loading}>
+              {!loading && <LuSave size={20} />}
               설정 저장
-            </button>
+            </Button>
           </div>
         </form>
       )}
-    </div>
+    </Card>
   );
 };
 

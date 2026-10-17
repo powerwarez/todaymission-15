@@ -1,4 +1,6 @@
 import React from "react";
+import Modal from "./ui/Modal";
+import Button from "./ui/Button";
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -19,49 +21,35 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   loading = false,
   onConfirm,
   onCancel,
-}) => {
-  if (!isOpen) return null;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
-      onClick={loading ? undefined : onCancel}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div
-        className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm"
-        onClick={(e) => e.stopPropagation()}
+}) => (
+  <Modal
+    isOpen={isOpen}
+    onClose={onCancel}
+    dismissible={!loading}
+    showClose={false}
+    maxWidthClass="max-w-sm"
+    ariaLabel={message}
+  >
+    <p className="text-center text-lg font-bold mb-6">{message}</p>
+    <div className="flex gap-3">
+      <Button
+        variant="secondary"
+        className="flex-1"
+        onClick={onCancel}
+        disabled={loading}
       >
-        <p
-          className="text-center mb-6"
-          style={{ color: "var(--color-text-primary)" }}
-        >
-          {message}
-        </p>
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={loading}
-            className="flex-1 min-h-[44px] rounded-lg border border-gray-300 text-gray-700 touch-manipulation disabled:opacity-50"
-          >
-            {cancelText}
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={loading}
-            className="flex-1 min-h-[44px] rounded-lg text-white touch-manipulation disabled:opacity-50"
-            style={{ backgroundColor: "var(--color-text-error)" }}
-          >
-            {loading ? "처리 중..." : confirmText}
-          </button>
-        </div>
-      </div>
+        {cancelText}
+      </Button>
+      <Button
+        variant="danger"
+        className="flex-1"
+        onClick={onConfirm}
+        loading={loading}
+      >
+        {confirmText}
+      </Button>
     </div>
-  );
-};
+  </Modal>
+);
 
 export default ConfirmModal;

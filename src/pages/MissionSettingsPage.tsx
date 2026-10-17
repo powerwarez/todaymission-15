@@ -7,11 +7,16 @@ import {
   LuSettings,
   LuArrowUp,
   LuArrowDown,
-  LuUser,
   LuPalette,
   LuTarget,
   LuTrash2,
+  LuAward,
 } from "react-icons/lu";
+import PageHeader from "../components/ui/PageHeader";
+import Card from "../components/ui/Card";
+import Button from "../components/ui/Button";
+import Chip from "../components/ui/Chip";
+import Spinner from "../components/ui/Spinner";
 import WeeklyBadgeSetting from "../components/WeeklyBadgeSetting";
 import AccountSettings from "../components/AccountSettings";
 import PinAuthModal from "../components/PinAuthModal";
@@ -239,12 +244,17 @@ const MissionSettingsPage: React.FC = () => {
   if (!user) {
     return (
       <div className="max-w-md mx-auto p-4">
-        <p className="text-center text-gray-600">
-          로그인이 필요한 페이지입니다.
-        </p>
+        <Card>
+          <p className="text-center font-semibold ui-text-sub">
+            로그인이 필요한 페이지입니다.
+          </p>
+        </Card>
       </div>
     );
   }
+
+  const globalChallenges = userChallenges.filter((c) => c.is_global);
+  const myChallenges = userChallenges.filter((c) => !c.is_global);
 
   return (
     <>
@@ -264,364 +274,172 @@ const MissionSettingsPage: React.FC = () => {
       />
 
       {(!showPinAuth || pinVerified) && (
-        <div className="max-w-4xl mx-auto p-4">
+        <div className="max-w-4xl mx-auto px-1 sm:px-2 py-2 space-y-10">
+          <PageHeader
+            title="설정"
+            description="컬러 테마, 계정, 오늘의 미션과 배지를 관리해요."
+            icon={<LuSettings size={24} />}
+            className="!mb-0"
+          />
+
           {/* 테마 설정 섹션 */}
-          <div className="mb-8">
-            <h1
-              className="text-2xl font-bold mb-6 flex items-center"
-              style={{ color: "var(--color-text-primary)" }}
-            >
-              <LuPalette className="mr-2" /> 테마 설정
-            </h1>
+          <section aria-labelledby="section-theme">
+            <h2 id="section-theme" className="ui-section-title mb-4">
+              <LuPalette /> 테마 설정
+            </h2>
             <ThemeManager />
-          </div>
+          </section>
 
           {/* 계정 설정 섹션 */}
-          <div className="mb-8">
-            <h1
-              className="text-2xl font-bold mb-6 flex items-center"
-              style={{ color: "var(--color-text-primary)" }}
-            >
-              <LuUser className="mr-2" /> 계정 설정
-            </h1>
+          <section aria-labelledby="section-account">
+            <h2 id="section-account" className="sr-only">
+              계정 설정
+            </h2>
             {user && <AccountSettings />}
-          </div>
+          </section>
 
           {/* 일일 미션 설정 섹션 */}
-          <h1
-            className="text-2xl font-bold mb-8 flex items-center"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            <LuSettings className="mr-2" /> 오늘의 미션 설정
-          </h1>
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <p className="text-gray-600 mb-6">
-              매일 수행할 오늘의 미션을 설정하세요. 수정, 삭제, 순서 변경이
-              가능합니다.
-            </p>
-
-            {error && (
-              <p style={{ color: "var(--color-text-error)" }} className="mb-4">
-                {error}
+          <section aria-labelledby="section-missions">
+            <h2 id="section-missions" className="ui-section-title mb-4">
+              <LuSettings /> 오늘의 미션 설정
+            </h2>
+            <Card>
+              <p className="ui-text-sub font-medium mb-6">
+                매일 수행할 오늘의 미션을 설정하세요. 수정, 삭제, 순서 변경이
+                가능합니다.
               </p>
-            )}
 
-            {loading ? (
-              <div className="flex justify-center">
-                <div
-                  className="animate-spin rounded-full h-8 w-8 border-b-2"
-                  style={{ borderColor: "var(--color-primary-medium)" }}
-                ></div>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-3 mb-6">
-                  {missions.map((mission, index) => (
-                    <div key={mission.id} className="flex items-center gap-2">
-                      <div className="flex flex-col justify-center">
-                        <button
-                          onClick={() => handleMoveUp(mission)}
-                          disabled={index === 0 || isReordering}
-                          className={`min-w-[44px] min-h-[28px] flex items-center justify-center text-gray-500 touch-manipulation ${
-                            index === 0 || isReordering
-                              ? "opacity-30 cursor-not-allowed"
-                              : "hover:text-gray-700"
-                          }`}
-                          title="위로 이동"
-                          aria-label="위로 이동"
-                        >
-                          <LuArrowUp size={20} />
-                        </button>
-                        <button
-                          onClick={() => handleMoveDown(mission)}
-                          disabled={index === missions.length - 1 || isReordering}
-                          className={`min-w-[44px] min-h-[28px] flex items-center justify-center text-gray-500 touch-manipulation ${
-                            index === missions.length - 1 || isReordering
-                              ? "opacity-30 cursor-not-allowed"
-                              : "hover:text-gray-700"
-                          }`}
-                          title="아래로 이동"
-                          aria-label="아래로 이동"
-                        >
-                          <LuArrowDown size={20} />
-                        </button>
-                      </div>
-                      <MissionSettingItem
-                        mission={mission}
-                        onUpdate={updateMission}
-                        onDelete={deleteMission}
-                      />
-                    </div>
-                  ))}
-                </div>
+              {error && (
+                <p role="alert" className="ui-error-text mb-4">
+                  {error}
+                </p>
+              )}
 
-                <form onSubmit={handleAddMission} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newMissionContent}
-                    onChange={(e) => setNewMissionContent(e.target.value)}
-                    placeholder="새 미션을 입력하세요"
-                    className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  />
-                  <button
-                    type="submit"
-                    className="text-white p-2 rounded-lg flex items-center"
-                    style={{
-                      backgroundColor: "var(--color-primary-medium)",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        "var(--color-primary-dark)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        "var(--color-primary-medium)";
-                    }}
-                  >
-                    <LuPlus className="mr-1" />
-                    추가
-                  </button>
-                </form>
-              </>
-            )}
-          </div>
+              {loading ? (
+                <Spinner />
+              ) : (
+                <>
+                  <ul className="space-y-3 mb-6">
+                    {missions.map((mission, index) => (
+                      <li key={mission.id} className="flex items-center gap-2">
+                        <div className="flex flex-col gap-1">
+                          <Button
+                            variant="soft"
+                            size="sm"
+                            iconOnly
+                            onClick={() => handleMoveUp(mission)}
+                            disabled={index === 0 || isReordering}
+                            title="위로 이동"
+                            aria-label="위로 이동"
+                          >
+                            <LuArrowUp size={18} />
+                          </Button>
+                          <Button
+                            variant="soft"
+                            size="sm"
+                            iconOnly
+                            onClick={() => handleMoveDown(mission)}
+                            disabled={
+                              index === missions.length - 1 || isReordering
+                            }
+                            title="아래로 이동"
+                            aria-label="아래로 이동"
+                          >
+                            <LuArrowDown size={18} />
+                          </Button>
+                        </div>
+                        <MissionSettingItem
+                          mission={mission}
+                          onUpdate={updateMission}
+                          onDelete={deleteMission}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+
+                  <form onSubmit={handleAddMission} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newMissionContent}
+                      onChange={(e) => setNewMissionContent(e.target.value)}
+                      placeholder="새 미션을 입력하세요"
+                      aria-label="새 미션 이름"
+                      className="flex-1 min-w-0"
+                    />
+                    <Button type="submit" variant="primary">
+                      <LuPlus size={20} />
+                      추가
+                    </Button>
+                  </form>
+                </>
+              )}
+            </Card>
+          </section>
 
           {/* 주간 배지 설정 섹션 */}
-          <h1
-            className="text-xl font-bold mb-8 flex items-center"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            <LuSettings className="mr-2" /> 주간 배지 설정
-          </h1>
-          {user && <WeeklyBadgeSetting userId={user.id} />}
+          <section aria-labelledby="section-weekly">
+            <h2 id="section-weekly" className="ui-section-title mb-4">
+              <LuAward /> 주간 배지 설정
+            </h2>
+            {user && <WeeklyBadgeSetting userId={user.id} />}
+          </section>
 
           {/* 도전과제 설정 섹션 */}
-          <div className="mt-8">
-            <h1
-              className="text-2xl font-bold mb-6 flex items-center"
-              style={{ color: "var(--color-text-primary)" }}
-            >
-              <LuTarget className="mr-2" /> 도전과제 설정
-            </h1>
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <p className="text-gray-600 mb-6">
-                나만의 도전과제를 만들어보세요! 미션을 완료하면 설정한 조건에 따라 배지를 획득할 수 있습니다.
+          <section aria-labelledby="section-challenges">
+            <h2 id="section-challenges" className="ui-section-title mb-4">
+              <LuTarget /> 도전과제 설정
+            </h2>
+            <Card>
+              <p className="ui-text-sub font-medium mb-6">
+                나만의 도전과제를 만들어보세요! 미션을 완료하면 설정한 조건에 따라
+                배지를 획득할 수 있습니다.
               </p>
 
               {/* 도전과제 목록 */}
               {challengesLoading ? (
-                <div className="flex justify-center py-8">
-                  <div
-                    className="animate-spin rounded-full h-8 w-8 border-b-2"
-                    style={{ borderColor: "var(--color-primary-medium)" }}
-                  ></div>
-                </div>
+                <Spinner />
               ) : (
                 <>
                   {/* 공용 도전과제 */}
-                  {userChallenges.filter((c) => c.is_global).length > 0 && (
-                    <div className="space-y-4 mb-6">
-                      <h3
-                        className="text-sm font-medium flex items-center gap-2"
-                        style={{ color: "var(--color-text-muted)" }}
-                      >
-                        <span
-                          className="px-2 py-0.5 rounded-full text-xs"
-                          style={{
-                            backgroundColor: "var(--color-accent-light)",
-                            color: "var(--color-accent-dark)",
-                          }}
-                        >
-                          공용
-                        </span>
+                  {globalChallenges.length > 0 && (
+                    <div className="space-y-3 mb-6">
+                      <h3 className="flex items-center gap-2 text-sm ui-text-sub">
+                        <Chip>공용</Chip>
                         기본 도전과제
                       </h3>
-                      {userChallenges
-                        .filter((c) => c.is_global)
-                        .map((challenge) => (
-                          <div
-                            key={challenge.id}
-                            className="flex items-center gap-4 p-4 rounded-lg border"
-                            style={{
-                              borderColor: "var(--color-border-light)",
-                              backgroundColor: "var(--color-bg-hover)",
-                            }}
-                          >
-                            {/* 배지 이미지 */}
-                            <div className="flex-shrink-0">
-                              {challenge.badge?.image_path ? (
-                                <img
-                                  src={challenge.badge.image_path}
-                                  alt={challenge.name}
-                                  className="w-12 h-12 object-cover rounded-full border-2"
-                                  style={{ borderColor: "var(--color-accent-light)" }}
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src =
-                                      "/placeholder_badge.png";
-                                  }}
-                                />
-                              ) : (
-                                <div
-                                  className="w-12 h-12 rounded-full flex items-center justify-center"
-                                  style={{
-                                    backgroundColor: "var(--color-accent-light)",
-                                  }}
-                                >
-                                  <LuTarget
-                                    size={24}
-                                    style={{ color: "var(--color-accent)" }}
-                                  />
-                                </div>
-                              )}
-                            </div>
-
-                            {/* 도전과제 정보 */}
-                            <div className="flex-1 min-w-0">
-                              <h4
-                                className="font-medium truncate"
-                                style={{ color: "var(--color-text-primary)" }}
-                              >
-                                {challenge.name}
-                              </h4>
-                              <p
-                                className="text-sm truncate"
-                                style={{ color: "var(--color-text-muted)" }}
-                              >
-                                {challenge.description}
-                              </p>
-                              <div className="flex gap-2 mt-1">
-                                <span
-                                  className="text-xs px-2 py-0.5 rounded-full"
-                                  style={{
-                                    backgroundColor: "var(--color-accent-light)",
-                                    color: "var(--color-accent-dark)",
-                                  }}
-                                >
-                                  {challenge.condition_type === "DAILY_COMPLETIONS" ||
-                                  challenge.condition_type ===
-                                    "DAILY_COMPLETIONS_REPEATABLE"
-                                    ? "영웅"
-                                    : "달성"}{" "}
-                                  {challenge.required_count}회
-                                  {challenge.condition_type ===
-                                    "DAILY_COMPLETIONS_REPEATABLE" && " (반복)"}
-                                </span>
-                              </div>
-                            </div>
-                            {/* 공용 도전과제는 삭제 버튼 없음 */}
-                          </div>
+                      <ul className="space-y-3">
+                        {globalChallenges.map((challenge) => (
+                          <ChallengeRow key={challenge.id} challenge={challenge} />
                         ))}
+                      </ul>
                     </div>
                   )}
 
                   {/* 내 도전과제 */}
-                  {userChallenges.filter((c) => !c.is_global).length > 0 && (
-                    <div className="space-y-4 mb-6">
-                      <h3
-                        className="text-sm font-medium"
-                        style={{ color: "var(--color-text-muted)" }}
-                      >
-                        내가 만든 도전과제
-                      </h3>
-                      {userChallenges
-                        .filter((c) => !c.is_global)
-                        .map((challenge) => (
-                          <div
+                  {myChallenges.length > 0 && (
+                    <div className="space-y-3 mb-6">
+                      <h3 className="text-sm ui-text-sub">내가 만든 도전과제</h3>
+                      <ul className="space-y-3">
+                        {myChallenges.map((challenge) => (
+                          <ChallengeRow
                             key={challenge.id}
-                            className="flex items-center gap-4 p-4 rounded-lg border"
-                            style={{
-                              borderColor: "var(--color-border-light)",
-                              backgroundColor: "var(--color-bg-hover)",
-                            }}
-                          >
-                            {/* 배지 이미지 */}
-                            <div className="flex-shrink-0">
-                              {challenge.badge?.image_path ? (
-                                <img
-                                  src={challenge.badge.image_path}
-                                  alt={challenge.name}
-                                  className="w-12 h-12 object-cover rounded-full border-2"
-                                  style={{ borderColor: "var(--color-primary-light)" }}
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src =
-                                      "/placeholder_badge.png";
-                                  }}
-                                />
-                              ) : (
-                                <div
-                                  className="w-12 h-12 rounded-full flex items-center justify-center"
-                                  style={{
-                                    backgroundColor: "var(--color-primary-light)",
-                                  }}
-                                >
-                                  <LuTarget
-                                    size={24}
-                                    style={{ color: "var(--color-primary-medium)" }}
-                                  />
-                                </div>
-                              )}
-                            </div>
-
-                            {/* 도전과제 정보 */}
-                            <div className="flex-1 min-w-0">
-                              <h4
-                                className="font-medium truncate"
-                                style={{ color: "var(--color-text-primary)" }}
-                              >
-                                {challenge.name}
-                              </h4>
-                              <p
-                                className="text-sm truncate"
-                                style={{ color: "var(--color-text-muted)" }}
-                              >
-                                {challenge.description}
-                              </p>
-                              <div className="flex gap-2 mt-1">
-                                <span
-                                  className="text-xs px-2 py-0.5 rounded-full"
-                                  style={{
-                                    backgroundColor: "var(--color-primary-light)",
-                                    color: "var(--color-primary-dark)",
-                                  }}
-                                >
-                                  {challenge.condition_type === "DAILY_COMPLETIONS"
-                                    ? "영웅"
-                                    : "달성"}{" "}
-                                  {challenge.required_count}회
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* 삭제 버튼 (내 도전과제만) */}
-                            <button
-                              onClick={() =>
-                                setChallengeToDelete({
-                                  id: challenge.id,
-                                  badgeId: challenge.badge_id,
-                                })
-                              }
-                              disabled={deletingChallengeId === challenge.id}
-                              className="flex-shrink-0 p-3 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-colors hover:bg-red-50 touch-manipulation"
-                              aria-label="도전과제 삭제"
-                              style={{ color: "var(--color-text-error)" }}
-                            >
-                              {deletingChallengeId === challenge.id ? (
-                                <span className="animate-spin rounded-full h-5 w-5 border-t-2 border-red-500 inline-block"></span>
-                              ) : (
-                                <LuTrash2 size={20} />
-                              )}
-                            </button>
-                          </div>
+                            challenge={challenge}
+                            deleting={deletingChallengeId === challenge.id}
+                            onDelete={() =>
+                              setChallengeToDelete({
+                                id: challenge.id,
+                                badgeId: challenge.badge_id,
+                              })
+                            }
+                          />
                         ))}
+                      </ul>
                     </div>
                   )}
 
                   {/* 도전과제가 하나도 없을 때 */}
                   {userChallenges.length === 0 && (
-                    <p
-                      className="text-center py-8"
-                      style={{ color: "var(--color-text-muted)" }}
-                    >
+                    <p className="text-center py-8 font-semibold ui-text-sub">
                       등록된 도전과제가 없습니다.
                     </p>
                   )}
@@ -630,11 +448,85 @@ const MissionSettingsPage: React.FC = () => {
 
               {/* 도전과제 추가 컴포넌트 */}
               <ChallengeCreator onChallengeCreated={loadUserChallenges} />
-            </div>
-          </div>
+            </Card>
+          </section>
         </div>
       )}
     </>
+  );
+};
+
+// 도전과제 한 줄 (onDelete 가 없으면 삭제 버튼을 숨긴다: 공용 도전과제)
+interface ChallengeRowProps {
+  challenge: UserChallenge;
+  deleting?: boolean;
+  onDelete?: () => void;
+}
+
+const ChallengeRow: React.FC<ChallengeRowProps> = ({
+  challenge,
+  deleting = false,
+  onDelete,
+}) => {
+  const isHero =
+    challenge.condition_type === "DAILY_COMPLETIONS" ||
+    challenge.condition_type === "DAILY_COMPLETIONS_REPEATABLE";
+
+  return (
+    <li className="ui-card-soft flex items-center gap-4">
+      {/* 배지 이미지 */}
+      <div className="flex-shrink-0">
+        {challenge.badge?.image_path ? (
+          <img
+            src={challenge.badge.image_path}
+            alt={challenge.name}
+            className="w-14 h-14 object-cover rounded-full"
+            style={{ border: "var(--ui-bw-thin) solid var(--ui-ink)" }}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "/placeholder_badge.png";
+            }}
+          />
+        ) : (
+          <div
+            className="w-14 h-14 rounded-full flex items-center justify-center"
+            style={{
+              backgroundColor: "var(--ui-accent-soft)",
+              border: "var(--ui-bw-thin) solid var(--ui-ink)",
+            }}
+          >
+            <LuTarget size={24} />
+          </div>
+        )}
+      </div>
+
+      {/* 도전과제 정보 */}
+      <div className="flex-1 min-w-0">
+        <h4 className="text-base truncate">{challenge.name}</h4>
+        <p className="text-sm ui-text-sub truncate">{challenge.description}</p>
+        <div className="mt-1">
+          <Chip>
+            {isHero ? "영웅" : "달성"} {challenge.required_count}회
+            {challenge.condition_type === "DAILY_COMPLETIONS_REPEATABLE" &&
+              " (반복)"}
+          </Chip>
+        </div>
+      </div>
+
+      {/* 삭제 버튼 (내 도전과제만) */}
+      {onDelete && (
+        <Button
+          variant="ghost"
+          iconOnly
+          onClick={onDelete}
+          disabled={deleting}
+          loading={deleting}
+          aria-label="도전과제 삭제"
+          style={{ color: "var(--color-error-dark)" }}
+        >
+          {!deleting && <LuTrash2 size={20} />}
+        </Button>
+      )}
+    </li>
   );
 };
 

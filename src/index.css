@@ -1,59 +1,54 @@
-/* Google Fonts (Quicksand, Nunito) 예시 - 원하는 폰트 추가 */
-@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Quicksand:wght@400;500;700&display=swap");
-
-/* Pretendard Font (CDN 예시 - 로컬 설치 권장) */
+/* 폰트 */
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Quicksand:wght@400;500;700&display=swap");
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
 
 @import "tailwindcss";
 
+/* =========================================================
+   1. 디자인 토큰
+   - 색상은 useTheme(설정 > 컬러 테마)이 :root 에 주입하는
+     --color-* 변수에서 파생된다. (여기 값은 기본 테마 "여름 하늘")
+   - 컴포넌트에서는 가능한 --ui-* 토큰과 .ui-* 클래스를 사용한다.
+   ========================================================= */
 @layer base {
-  /* :root 선택자를 사용하여 CSS 변수 정의 */
   :root {
-    /* 여름 하늘 테마 색상 변수 */
+    /* ---- 테마 원본 색상 (useTheme 이 덮어씀) ---- */
     --color-primary-light: #e0f2fe;
     --color-primary-default: #7dd3fc;
     --color-primary-medium: #38bdf8;
     --color-primary-dark: #0284c7;
 
-    /* 보조 색상 변수 */
     --color-secondary: #a5b4fc;
     --color-secondary-light: #c7d2fe;
     --color-secondary-medium: #818cf8;
     --color-secondary-dark: #4338ca;
     --color-accent: #fb923c;
 
-    /* 배경색 변수 */
     --color-bg-main: #f0f9ff;
     --color-bg-card: #ffffff;
     --color-bg-hover: #e0f2fe;
 
-    /* 상태별 배경색 */
     --color-bg-success: #d1fae5;
     --color-bg-warning: #fef3c7;
     --color-bg-warning-hover: #fde68a;
     --color-bg-error: #fee2e2;
 
-    /* 텍스트 색상 변수 */
     --color-text-primary: #0c4a6e;
     --color-text-secondary: #0369a1;
     --color-text-muted: #0ea5e9;
 
-    /* 상태별 텍스트 색상 */
     --color-text-error: #dc2626;
     --color-text-error-dark: #991b1b;
     --color-text-warning: #d97706;
     --color-text-warning-dark: #92400e;
 
-    /* 테두리 색상 변수 */
     --color-border-light: #bae6fd;
     --color-border-default: #7dd3fc;
     --color-border-focus: #0284c7;
 
-    /* 상태별 테두리 색상 */
     --color-border-error: #fca5a5;
     --color-border-warning: #fcd34d;
 
-    /* 상태 색상 */
     --color-success: #10b981;
     --color-success-light: #d1fae5;
     --color-success-dark: #047857;
@@ -64,53 +59,115 @@
     --color-error-light: #fee2e2;
     --color-error-dark: #dc2626;
 
-    /* CSS 변수에는 글꼴 스택을 문자열로 포함 */
+    /* ---- 폰트 ---- */
     --font-sans: "Pretendard", system-ui, sans-serif;
-    --font-cute: "Quicksand", "Nunito", sans-serif;
+    --font-cute: "Nunito", "Quicksand", "Pretendard", sans-serif;
+
+    /* ---- UI 토큰 (테마 색상에서 파생) ---- */
+    /* 윤곽선/그림자에 쓰는 진한 색 */
+    --ui-ink: var(--color-text-primary);
+    /* 채워진 버튼/체크 등 강조면 */
+    --ui-accent: var(--color-primary-dark);
+    --ui-accent-soft: var(--color-primary-light);
+    --ui-on-accent: #ffffff;
+    --ui-surface: var(--color-bg-card);
+    --ui-surface-soft: var(--color-bg-hover);
+    --ui-bg: var(--color-bg-main);
+    --ui-text: var(--color-text-primary);
+    --ui-text-sub: var(--color-text-secondary);
+    --ui-focus: color-mix(in srgb, var(--color-primary-medium) 40%, transparent);
+    --ui-overlay: color-mix(in srgb, var(--color-text-primary) 45%, transparent);
+
+    /* 모서리 */
+    --ui-radius-sm: 12px;
+    --ui-radius-md: 16px;
+    --ui-radius-lg: 22px;
+    --ui-radius-xl: 28px;
+
+    /* 테두리 두께 */
+    --ui-bw: 3px;
+    --ui-bw-thin: 2px;
+
+    /* 입체 그림자 (번지지 않는 단단한 그림자) */
+    --ui-shadow: 0 4px 0 var(--ui-ink);
+    --ui-shadow-sm: 0 3px 0 var(--ui-ink);
+    --ui-shadow-pressed: 0 1px 0 var(--ui-ink);
+
+    /* 터치 영역 */
+    --ui-tap: 44px;
   }
 
   html {
     font-family: var(--font-sans);
-    color: var(--color-text-primary);
+    color: var(--ui-text);
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
-    /* body 기본 스타일 리셋 또는 추가 설정 (Tailwind base가 대부분 처리) */
     min-height: 100vh;
-    background-color: var(--color-bg-main);
-    font-feature-settings: "tnum"; /* 숫자 고정폭 */
+    background-color: var(--ui-bg);
+    /* 은은한 물방울 패턴 (테마색을 따라감) */
+    background-image: radial-gradient(
+      color-mix(in srgb, var(--color-primary-medium) 22%, transparent) 2px,
+      transparent 2.5px
+    );
+    background-size: 28px 28px;
+    font-feature-settings: "tnum";
   }
 
-  /* 기본 버튼 스타일 */
+  /* 기본 버튼: Tailwind preflight 이후의 최소 기본값 */
   button,
   input[type="button"],
   input[type="submit"] {
     padding: 0.5rem 1rem;
-    transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out,
+      transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+    touch-action: manipulation;
   }
 
-  /* 기본 입력 필드 스타일 - 하늘색 테마로 변경 */
+  /* 기본 입력 필드: 모든 페이지에 공통 적용 */
   input[type="text"],
   input[type="email"],
   input[type="password"],
+  input[type="date"],
+  input[type="number"],
   textarea,
   select {
-    border: 1px solid var(--color-border-light);
-    padding: 0.5rem 0.75rem;
-    border-radius: 0.375rem;
+    border: var(--ui-bw-thin) solid var(--ui-ink);
+    padding: 0.6rem 0.9rem;
+    border-radius: var(--ui-radius-sm);
+    background-color: var(--ui-surface);
+    color: var(--ui-text);
+    min-height: var(--ui-tap);
+  }
+
+  textarea {
+    min-height: 0;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: color-mix(in srgb, var(--ui-text) 45%, transparent);
   }
 
   input[type="text"]:focus,
   input[type="email"]:focus,
   input[type="password"]:focus,
+  input[type="date"]:focus,
+  input[type="number"]:focus,
   textarea:focus,
   select:focus {
     outline: none;
-    box-shadow: 0 0 0 2px var(--color-border-focus);
-    border-color: var(--color-border-focus);
+    border-color: var(--ui-ink);
+    box-shadow: 0 0 0 4px var(--ui-focus);
   }
 
-  /* 기본 H1~H6 스타일 */
+  /* 키보드 포커스 */
+  :focus-visible {
+    outline: 3px solid var(--ui-focus);
+    outline-offset: 2px;
+  }
+
   h1,
   h2,
   h3,
@@ -118,37 +175,355 @@
   h5,
   h6 {
     font-family: var(--font-cute);
+    font-weight: 800;
+    color: var(--ui-text);
+  }
+}
+
+/* =========================================================
+   2. 공통 컴포넌트 클래스 (.ui-*)
+   React 컴포넌트(src/components/ui)가 이 클래스를 사용한다.
+   ========================================================= */
+@layer components {
+  /* ---------- 카드 ---------- */
+  .ui-card {
+    background-color: var(--ui-surface);
+    border: var(--ui-bw) solid var(--ui-ink);
+    border-radius: var(--ui-radius-lg);
+    box-shadow: var(--ui-shadow);
+    padding: 1.25rem;
+    color: var(--ui-text);
+  }
+  @media (min-width: 640px) {
+    .ui-card {
+      padding: 1.5rem;
+    }
+  }
+
+  /* 그림자 없는 부드러운 카드 (목록 안 항목 등) */
+  .ui-card-soft {
+    background-color: var(--ui-surface-soft);
+    border: var(--ui-bw-thin) solid var(--ui-ink);
+    border-radius: var(--ui-radius-md);
+    padding: 1rem;
+    color: var(--ui-text);
+  }
+
+  /* ---------- 버튼 ---------- */
+  .ui-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: var(--ui-tap);
+    padding: 0.5rem 1.1rem;
+    font-weight: 800;
+    font-size: 1rem;
+    line-height: 1.2;
+    color: var(--ui-text);
+    background-color: var(--ui-surface);
+    border: var(--ui-bw) solid var(--ui-ink);
+    border-radius: var(--ui-radius-md);
+    box-shadow: var(--ui-shadow);
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  .ui-btn:hover:not(:disabled) {
+    background-color: var(--ui-surface-soft);
+  }
+  .ui-btn:active:not(:disabled) {
+    transform: translateY(3px);
+    box-shadow: var(--ui-shadow-pressed);
+  }
+  .ui-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: translateY(3px);
+  }
+
+  .ui-btn-primary {
+    background-color: var(--ui-accent);
+    color: var(--ui-on-accent);
+  }
+  .ui-btn-primary:hover:not(:disabled) {
+    background-color: var(--ui-accent);
+    filter: brightness(1.08);
+  }
+
+  .ui-btn-soft {
+    background-color: var(--ui-accent-soft);
+  }
+  .ui-btn-soft:hover:not(:disabled) {
+    background-color: var(--color-primary-default);
+  }
+
+  .ui-btn-danger {
+    background-color: var(--color-error-dark);
+    color: #ffffff;
+  }
+  .ui-btn-danger:hover:not(:disabled) {
+    background-color: var(--color-error-dark);
+    filter: brightness(1.1);
+  }
+
+  .ui-btn-ghost {
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+  .ui-btn-ghost:hover:not(:disabled) {
+    background-color: var(--ui-surface-soft);
+  }
+  .ui-btn-ghost:active:not(:disabled) {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .ui-btn-sm {
+    min-height: 36px;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.875rem;
+    border-radius: var(--ui-radius-sm);
+    box-shadow: var(--ui-shadow-sm);
+  }
+  .ui-btn-lg {
+    min-height: 52px;
+    padding: 0.7rem 1.5rem;
+    font-size: 1.125rem;
+  }
+  .ui-btn-block {
+    width: 100%;
+  }
+  .ui-btn-icon {
+    width: var(--ui-tap);
+    height: var(--ui-tap);
+    padding: 0;
+    flex: none;
+  }
+  .ui-btn-icon.ui-btn-sm {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* ---------- 입력 ---------- */
+  .ui-label {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 0.875rem;
     font-weight: 700;
-    color: var(--color-text-primary);
+    color: var(--ui-text-sub);
+  }
+
+  .ui-error-text {
+    margin-top: 0.35rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-error-dark);
+  }
+
+  /* ---------- 칩/배지 ---------- */
+  .ui-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.1rem 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 800;
+    line-height: 1.5;
+    color: var(--ui-text);
+    background-color: var(--ui-accent-soft);
+    border: var(--ui-bw-thin) solid var(--ui-ink);
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .ui-chip-warning {
+    background-color: var(--color-warning-light);
+    color: var(--color-warning-dark);
+    border-color: var(--color-warning-dark);
+  }
+  .ui-chip-success {
+    background-color: var(--color-success-light);
+    color: var(--color-success-dark);
+    border-color: var(--color-success-dark);
+  }
+
+  /* ---------- 모달 ---------- */
+  .ui-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background-color: var(--ui-overlay);
+  }
+  .ui-modal {
+    position: relative;
+    width: 100%;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    background-color: var(--ui-surface);
+    border: var(--ui-bw) solid var(--ui-ink);
+    border-radius: var(--ui-radius-xl);
+    box-shadow: 0 6px 0 var(--ui-ink);
+    padding: 1.5rem;
+    color: var(--ui-text);
+  }
+
+  /* ---------- 진행바 ---------- */
+  .ui-progress {
+    height: 20px;
+    overflow: hidden;
+    background-color: var(--ui-accent-soft);
+    border: var(--ui-bw) solid var(--ui-ink);
+    border-radius: 999px;
+    box-sizing: content-box;
+  }
+  .ui-progress-fill {
+    height: 100%;
+    width: 100%;
+    background-color: var(--ui-accent);
+    transform-origin: left;
+    transition: transform 0.35s ease;
+  }
+
+  /* ---------- 페이지 제목 ---------- */
+  .ui-page-title {
+    font-family: var(--font-cute);
+    font-size: 1.625rem;
+    font-weight: 800;
+    line-height: 1.25;
+    color: var(--ui-text);
+  }
+  @media (min-width: 640px) {
+    .ui-page-title {
+      font-size: 2rem;
+    }
+  }
+  .ui-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-cute);
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--ui-text);
+  }
+  .ui-text-sub {
+    color: var(--ui-text-sub);
+  }
+
+  /* ---------- 체크 원 (미션/요일 공통) ---------- */
+  .ui-check {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    color: var(--ui-on-accent);
+    background-color: var(--ui-surface);
+    border: var(--ui-bw) solid var(--ui-ink);
+    border-radius: 999px;
+  }
+  .ui-check[data-checked="true"] {
+    background-color: var(--ui-accent);
+  }
+
+  /* ---------- 로딩 스피너 ---------- */
+  .ui-spinner {
+    display: inline-block;
+    width: 2rem;
+    height: 2rem;
+    border: 4px solid var(--ui-accent-soft);
+    border-top-color: var(--ui-accent);
+    border-radius: 999px;
+    animation: ui-spin 0.8s linear infinite;
+  }
+
+  /* ---------- 사이드바 메뉴 ---------- */
+  .ui-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: var(--ui-tap);
+    padding: 0.5rem 0.85rem;
+    font-weight: 800;
+    color: var(--ui-text);
+    border: var(--ui-bw) solid transparent;
+    border-radius: var(--ui-radius-md);
+    transition: background-color 0.15s ease, transform 0.1s ease;
+  }
+  .ui-nav-item:hover {
+    background-color: var(--ui-surface);
+  }
+  .ui-nav-item[aria-current="page"] {
+    background-color: var(--ui-accent);
+    color: var(--ui-on-accent);
+    border-color: var(--ui-ink);
+    box-shadow: var(--ui-shadow-sm);
   }
 }
 
-/* 기존 :root 및 미디어쿼리 스타일 제거 또는 수정 */
-/* Tailwind가 color-scheme 등을 처리하므로 :root의 color, background-color 제거 */
-
-/*
-:root {
-  ...
-  color-scheme: light dark; -> Tailwind가 처리하거나 필요시 유지
-  color: rgba(255, 255, 255, 0.87); -> 제거 (위 @layer base에서 설정)
-  background-color: #242424; -> 제거 (위 @layer base에서 설정)
-  ...
-}
-*/
-
-/*
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+/* =========================================================
+   3. 애니메이션
+   ========================================================= */
+@keyframes ui-spin {
+  to {
+    transform: rotate(360deg);
   }
-  ...
 }
-*/
 
+@keyframes ui-pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.ui-pop {
+  animation: ui-pop 0.3s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-pop,
+  .ui-spinner {
+    animation: none;
+  }
+  .ui-btn,
+  .ui-progress-fill {
+    transition: none;
+  }
+}
+
+/* =========================================================
+   4. 기본 문서 설정
+   ========================================================= */
 html,
 body {
-  background-color: var(--color-bg-main); /* CSS 변수 사용 */
   min-height: 100%;
   margin: 0;
   padding: 0;

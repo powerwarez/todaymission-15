@@ -14,6 +14,19 @@ import BadgeSettingsPage from "./pages/BadgeSettingsPage";
 import BadgeNotificationModal from "./components/BadgeNotificationModal";
 import { BadgeSelectionModal } from "./components/BadgeSelectionModal";
 import { Toaster } from "react-hot-toast";
+import Card from "./components/ui/Card";
+import Spinner from "./components/ui/Spinner";
+
+// 전체 화면 로딩 표시
+const FullScreenLoader: React.FC<{ title: string }> = ({ title }) => (
+  <div className="w-full min-h-screen flex items-center justify-center p-4">
+    <Card className="text-center">
+      <Spinner />
+      <h1 className="text-2xl font-extrabold">{title}</h1>
+      <p className="mt-2 ui-text-sub font-medium">잠시만 기다려주세요.</p>
+    </Card>
+  </div>
+);
 
 // PrivateRoute 컴포넌트: 인증된 사용자만 접근 가능
 const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({
@@ -21,14 +34,7 @@ const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({
 }) => {
   const { session, loading } = useAuth();
   if (loading) {
-    return (
-      <div className="w-full h-screen flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-lg">
-          <h1 className="text-2xl font-bold text-black">로딩 중...</h1>
-          <p className="mt-2 text-gray-600">잠시만 기다려주세요.</p>
-        </div>
-      </div>
-    );
+    return <FullScreenLoader title="로딩 중..." />;
   }
   return session ? children : <Navigate to="/login" replace />;
 };
@@ -39,14 +45,7 @@ const PublicRoute: React.FC<{ children: React.ReactElement }> = ({
 }) => {
   const { session, loading } = useAuth();
   if (loading) {
-    return (
-      <div className="w-full h-screen flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-lg">
-          <h1 className="text-2xl font-bold text-black">로딩 중...</h1>
-          <p className="mt-2 text-gray-600">잠시만 기다려주세요.</p>
-        </div>
-      </div>
-    );
+    return <FullScreenLoader title="로딩 중..." />;
   }
   return !session ? children : <Navigate to="/" replace />;
 };
@@ -97,14 +96,7 @@ const ThemeInitializer: React.FC<{ children: React.ReactNode }> = ({
 
   // 테마가 초기화될 때까지 로딩 표시
   if (!isInitialized) {
-    return (
-      <div className="w-full h-screen flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-lg">
-          <h1 className="text-2xl font-bold text-black">테마 로딩 중...</h1>
-          <p className="mt-2 text-gray-600">잠시만 기다려주세요.</p>
-        </div>
-      </div>
-    );
+    return <FullScreenLoader title="테마 로딩 중..." />;
   }
 
   return <>{children}</>;
@@ -141,8 +133,12 @@ const App: React.FC = () => {
           toastOptions={{
             duration: 2000,
             style: {
-              background: "#fff",
-              color: "#333",
+              background: "var(--ui-surface)",
+              color: "var(--ui-text)",
+              border: "var(--ui-bw-thin) solid var(--ui-ink)",
+              borderRadius: "var(--ui-radius-md)",
+              boxShadow: "var(--ui-shadow-sm)",
+              fontWeight: 700,
             },
           }}
         />
@@ -165,7 +161,7 @@ const App: React.FC = () => {
         ))}
         {/* 로딩 상태 표시 (선택 사항) */}
         {isLoadingBadge && notificationQueue.length > 0 && (
-          <div className="fixed bottom-5 right-5 z-[9998] p-2 bg-gray-700 text-white text-xs rounded shadow-lg">
+          <div className="ui-chip fixed bottom-5 right-5 z-[9998]">
             새로운 배지 로딩 중...
           </div>
         )}

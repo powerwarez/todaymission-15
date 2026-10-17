@@ -9,6 +9,7 @@ import {
   LuImage,
 } from "react-icons/lu";
 import toast from "react-hot-toast";
+import Button from "./ui/Button";
 
 interface ChallengeCreatorProps {
   onChallengeCreated?: () => void;
@@ -225,24 +226,15 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({
   if (!showForm) {
     return (
       <button
+        type="button"
         onClick={() => setShowForm(true)}
-        className="w-full p-4 border-2 border-dashed rounded-lg flex items-center justify-center gap-2 transition-colors"
+        className="w-full min-h-[56px] p-4 flex items-center justify-center gap-2 font-extrabold cursor-pointer transition-colors hover:bg-[var(--ui-surface-soft)]"
         style={{
-          borderColor: "var(--color-border-light)",
-          color: "var(--color-text-muted)",
+          border: "var(--ui-bw) dashed var(--ui-ink)",
+          borderRadius: "var(--ui-radius-lg)",
+          color: "var(--ui-text)",
         }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor =
-            "var(--color-primary-medium)";
-          e.currentTarget.style.color =
-            "var(--color-primary-medium)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor =
-            "var(--color-border-light)";
-          e.currentTarget.style.color =
-            "var(--color-text-muted)";
-        }}>
+      >
         <LuPlus size={20} />
         <span>새 도전과제 추가</span>
       </button>
@@ -250,43 +242,39 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({
   }
 
   return (
-    <div
-      className="bg-white rounded-lg shadow-md p-6 border"
-      style={{ borderColor: "var(--color-border-light)" }}>
+    <div className="ui-card-soft" style={{ padding: "1.25rem" }}>
       <div className="flex items-center justify-between mb-6">
-        <h3
-          className="text-lg font-semibold flex items-center gap-2"
-          style={{ color: "var(--color-text-primary)" }}>
+        <h3 className="text-lg flex items-center gap-2">
           <LuTarget size={20} />새 도전과제 만들기
         </h3>
-        <button
+        <Button
+          variant="ghost"
+          iconOnly
+          size="sm"
           onClick={() => {
             resetForm();
             setShowForm(false);
           }}
-          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-          style={{ color: "var(--color-text-muted)" }}>
+          aria-label="닫기"
+        >
           <LuX size={20} />
-        </button>
+        </Button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* 배지 이미지 업로드 */}
         <div>
-          <label
-            className="block text-sm font-medium mb-2"
-            style={{
-              color: "var(--color-text-secondary)",
-            }}>
-            배지 이미지 *
-          </label>
+          <span className="ui-label">배지 이미지 *</span>
           <div className="flex items-start gap-4">
             {/* 이미지 미리보기 */}
             <div
-              className="w-24 h-24 rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden"
+              className="w-24 h-24 flex items-center justify-center overflow-hidden flex-none"
               style={{
-                borderColor: "var(--color-border-light)",
-              }}>
+                border: "var(--ui-bw-thin) dashed var(--ui-ink)",
+                borderRadius: "var(--ui-radius-md)",
+                backgroundColor: "var(--ui-surface)",
+              }}
+            >
               {imagePreview ? (
                 <img
                   src={imagePreview}
@@ -294,16 +282,11 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <LuImage
-                  size={32}
-                  style={{
-                    color: "var(--color-text-muted)",
-                  }}
-                />
+                <LuImage size={32} className="ui-text-sub" />
               )}
             </div>
 
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -312,58 +295,28 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({
                 className="hidden"
                 id="badge-image-input"
               />
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <label
                   htmlFor="badge-image-input"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer transition-colors text-white"
-                  style={{
-                    backgroundColor:
-                      "var(--color-primary-medium)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                      "var(--color-primary-dark)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                      "var(--color-primary-medium)";
-                  }}>
+                  className="ui-btn ui-btn-primary ui-btn-sm"
+                >
                   <LuUpload size={16} />
                   이미지 선택
                 </label>
                 {imageFile && (
-                  <button
-                    type="button"
-                    onClick={handleRemoveImage}
-                    className="px-4 py-2 rounded-lg border transition-colors"
-                    style={{
-                      borderColor:
-                        "var(--color-border-default)",
-                      color: "var(--color-text-muted)",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        "var(--color-bg-hover)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        "transparent";
-                    }}>
+                  <Button size="sm" onClick={handleRemoveImage}>
                     제거
-                  </button>
+                  </Button>
                 )}
               </div>
-              <p
-                className="mt-2 text-xs"
-                style={{
-                  color: "var(--color-text-muted)",
-                }}>
+              <p className="mt-2 text-xs ui-text-sub font-medium">
                 PNG, JPG, GIF 형식 (최대 5MB)
               </p>
               {imageFile && (
                 <p
-                  className="mt-1 text-xs"
-                  style={{ color: "var(--color-success)" }}>
+                  className="mt-1 text-xs font-bold break-all"
+                  style={{ color: "var(--color-success-dark)" }}
+                >
                   {imageFile.name}
                 </p>
               )}
@@ -373,12 +326,7 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({
 
         {/* 도전과제 이름 */}
         <div>
-          <label
-            htmlFor="challenge-name"
-            className="block text-sm font-medium mb-2"
-            style={{
-              color: "var(--color-text-secondary)",
-            }}>
+          <label htmlFor="challenge-name" className="ui-label">
             도전과제 이름 *
           </label>
           <input
@@ -388,31 +336,13 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({
             onChange={(e) => setName(e.target.value)}
             placeholder="예: 꾸준한 도전자"
             maxLength={50}
-            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2"
-            style={{
-              borderColor: "var(--color-border-default)",
-            }}
-            onFocus={(e) => {
-              e.target.style.borderColor =
-                "var(--color-border-focus)";
-              e.target.style.boxShadow = `0 0 0 2px var(--color-border-focus)`;
-            }}
-            onBlur={(e) => {
-              e.target.style.borderColor =
-                "var(--color-border-default)";
-              e.target.style.boxShadow = "none";
-            }}
+            className="w-full"
           />
         </div>
 
         {/* 도전과제 설명 */}
         <div>
-          <label
-            htmlFor="challenge-description"
-            className="block text-sm font-medium mb-2"
-            style={{
-              color: "var(--color-text-secondary)",
-            }}>
+          <label htmlFor="challenge-description" className="ui-label">
             설명 *
           </label>
           <textarea
@@ -422,33 +352,18 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({
             placeholder="예: 미션을 100개 완료했습니다!"
             maxLength={200}
             rows={2}
-            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 resize-none"
-            style={{
-              borderColor: "var(--color-border-default)",
-            }}
-            onFocus={(e) => {
-              e.target.style.borderColor =
-                "var(--color-border-focus)";
-              e.target.style.boxShadow = `0 0 0 2px var(--color-border-focus)`;
-            }}
-            onBlur={(e) => {
-              e.target.style.borderColor =
-                "var(--color-border-default)";
-              e.target.style.boxShadow = "none";
-            }}
+            className="w-full resize-none"
           />
         </div>
 
         {/* 조건 타입 선택 */}
         <div>
-          <label
-            className="block text-sm font-medium mb-2"
-            style={{
-              color: "var(--color-text-secondary)",
-            }}>
-            달성 조건 *
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <span className="ui-label">달성 조건 *</span>
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+            role="radiogroup"
+            aria-label="달성 조건"
+          >
             {(
               [
                 {
@@ -460,145 +375,85 @@ const ChallengeCreator: React.FC<ChallengeCreatorProps> = ({
                   label: "주간 달성 획득",
                 },
               ] as const
-            ).map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() =>
-                  setConditionType(option.value)
-                }
-                className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
-                  conditionType === option.value
-                    ? "border-2"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
-                style={{
-                  borderColor:
-                    conditionType === option.value
-                      ? "var(--color-primary-medium)"
-                      : undefined,
-                  backgroundColor:
-                    conditionType === option.value
-                      ? "var(--color-primary-light)"
-                      : undefined,
-                  color:
-                    conditionType === option.value
-                      ? "var(--color-primary-dark)"
-                      : "var(--color-text-secondary)",
-                }}>
-                {option.label}
-              </button>
-            ))}
+            ).map((option) => {
+              const selected = conditionType === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => setConditionType(option.value)}
+                  className="min-h-[48px] p-3 text-sm font-extrabold cursor-pointer"
+                  style={{
+                    border: "var(--ui-bw) solid var(--ui-ink)",
+                    borderRadius: "var(--ui-radius-md)",
+                    backgroundColor: selected
+                      ? "var(--ui-accent)"
+                      : "var(--ui-surface)",
+                    color: selected ? "var(--ui-on-accent)" : "var(--ui-text)",
+                    boxShadow: selected ? "var(--ui-shadow-sm)" : "none",
+                  }}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
           </div>
-          <p
-            className="mt-2 text-xs"
-            style={{ color: "var(--color-text-muted)" }}>
+          <p className="mt-2 text-xs ui-text-sub font-medium">
             {getConditionDescription(conditionType)}
           </p>
         </div>
 
         {/* 달성 횟수 */}
         <div>
-          <label
-            htmlFor="required-count"
-            className="block text-sm font-medium mb-2"
-            style={{
-              color: "var(--color-text-secondary)",
-            }}>
+          <label htmlFor="required-count" className="ui-label">
             달성 횟수 *
           </label>
           <div className="flex items-center gap-3">
             <input
               type="number"
               id="required-count"
+              inputMode="numeric"
               value={requiredCount}
               onChange={(e) =>
-                setRequiredCount(
-                  Math.max(1, parseInt(e.target.value) || 1)
-                )
+                setRequiredCount(Math.max(1, parseInt(e.target.value) || 1))
               }
               min={1}
               max={10000}
-              className="w-32 p-3 border rounded-lg focus:outline-none focus:ring-2"
-              style={{
-                borderColor: "var(--color-border-default)",
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor =
-                  "var(--color-border-focus)";
-                e.target.style.boxShadow = `0 0 0 2px var(--color-border-focus)`;
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor =
-                  "var(--color-border-default)";
-                e.target.style.boxShadow = "none";
-              }}
+              className="w-32"
             />
-            <span
-              style={{
-                color: "var(--color-text-secondary)",
-              }}>
-              회
-            </span>
+            <span className="font-bold">회</span>
           </div>
         </div>
 
         {/* 제출 버튼 */}
-        <div className="flex gap-3 pt-4">
-          <button
-            type="button"
+        <div className="flex gap-3 pt-2">
+          <Button
+            className="flex-1"
             onClick={() => {
               resetForm();
               setShowForm(false);
             }}
             disabled={isSubmitting}
-            className="flex-1 px-4 py-3 rounded-lg border transition-colors"
-            style={{
-              borderColor: "var(--color-border-default)",
-              color: "var(--color-text-secondary)",
-            }}
-            onMouseEnter={(e) => {
-              if (!isSubmitting) {
-                e.currentTarget.style.backgroundColor =
-                  "var(--color-bg-hover)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor =
-                "transparent";
-            }}>
+          >
             취소
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            disabled={isSubmitting}
-            className="flex-1 px-4 py-3 rounded-lg text-white flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-            style={{
-              backgroundColor:
-                "var(--color-primary-medium)",
-            }}
-            onMouseEnter={(e) => {
-              if (!isSubmitting) {
-                e.currentTarget.style.backgroundColor =
-                  "var(--color-primary-dark)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor =
-                "var(--color-primary-medium)";
-            }}>
+            variant="primary"
+            className="flex-1"
+            loading={isSubmitting}
+          >
             {isSubmitting ? (
-              <>
-                <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-white"></span>
-                저장 중...
-              </>
+              "저장 중..."
             ) : (
               <>
-                <LuPlus size={16} />
+                <LuPlus size={18} />
                 도전과제 추가
               </>
             )}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
