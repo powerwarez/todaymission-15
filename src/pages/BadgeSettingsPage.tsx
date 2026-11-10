@@ -42,12 +42,14 @@ const GROUPS: { key: GroupKey; title: string; description: string }[] = [
   {
     key: "streak",
     title: "연속 달성",
-    description: "오늘의 영웅을 며칠 연속으로 달성했는지 확인해요. 주말은 쉬어도 괜찮아요.",
+    description:
+      "오늘의 영웅을 평일에 며칠 연속으로 달성했는지 확인해요. 주말과 공휴일은 쉬어도 되고, 그 날은 연속 일수에 포함되지 않아요.",
   },
   {
     key: "weekly",
     title: "주간 완주",
-    description: "월~금 미션을 모두 끝낸 주가 늘어날수록 얻는 배지예요.",
+    description:
+      "월~금 중 공휴일을 뺀 날을 모두 끝낸 주가 늘어날수록 얻는 배지예요. 공휴일은 해도 되고 안 해도 돼요.",
   },
   {
     key: "total",
@@ -85,9 +87,17 @@ const classifyBadge = (
         goalLabel: `오늘의 영웅 ${count}회마다`,
       };
     case "MISSION_STREAK":
-      return { group: "streak", order: count, goalLabel: `${count}일 연속` };
+      return {
+        group: "streak",
+        order: count,
+        goalLabel: `${count}일 연속 (주말·공휴일 제외)`,
+      };
     case "weekly_streak_mon_fri":
-      return { group: "weekly", order: 0, goalLabel: "월~금 미션 모두 완료" };
+      return {
+        group: "weekly",
+        order: 0,
+        goalLabel: "월~금 완료 (공휴일 제외)",
+      };
     case "WEEKLY_COMPLETIONS":
       return { group: "weekly", order: count, goalLabel: `주간 완주 ${count}회` };
     case "TOTAL_COMPLETIONS":

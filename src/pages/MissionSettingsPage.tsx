@@ -476,7 +476,7 @@ const ChallengeRow: React.FC<ChallengeRowProps> = ({
       case "DAILY_COMPLETIONS_REPEATABLE":
         return `영웅 ${n}회 (반복)`;
       case "MISSION_STREAK":
-        return `연속 ${n}일`;
+        return `연속 ${n}일 (주말·공휴일 제외)`;
       case "TOTAL_COMPLETIONS":
         return `미션 ${n}개`;
       default:

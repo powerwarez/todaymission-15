@@ -3,6 +3,8 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../contexts/AuthContext";
 import { toZonedTime, format } from "date-fns-tz";
 import { useNotification } from "../contexts/NotificationContext";
+import { getKoreanHolidayLabel } from "../lib/koreanHolidays";
+import { isWeeklyMissionComplete } from "../lib/weeklyMission";
 
 // 시간대 설정
 const timeZone = "Asia/Seoul";
@@ -40,6 +42,8 @@ export interface WeekdayStatus {
   date: string; // YYYY-MM-DD
   isCompleted: boolean | null; // null: 데이터 없음, true: 완료, false: 미완료
   isToday: boolean; // 오늘인지 여부 추가
+  isHoliday: boolean; // 한국 공휴일. 완료해도 되고 안 해도 된다
+  holidayLabel: string | null; // 공휴일 이름
   completionRatio: number; // 0.0 ~ 1.0 사이의 완료 비율
   totalMissions: number; // 총 미션 수
   completedMissions: number; // 완료된 미션 수
@@ -63,6 +67,8 @@ export const useWeeklyCompletionStatus = () => {
   const [weeklyStreakAchieved, setWeeklyStreakAchieved] = useState(false);
   // 이미 보상을 받았는지 여부
   const [weeklyStreakRewarded, setWeeklyStreakRewarded] = useState(false);
+  // 이번 주에 달성 처리를 이미 시작했는지 (다시 조회해도 모달을 한 번만)
+  const weeklyAwardLock = useRef(false);
 
   // 오늘 날짜는 한 번만 생성되도록 useMemo 사용 (KST 기준)
   const today = useMemo(() => new Date(), []);
@@ -78,40 +84,37 @@ export const useWeeklyCompletionStatus = () => {
   // 주간 스트릭 달성 여부 확인
   const checkWeeklyStreak = useCallback(
     async (weeklyStatus: WeekdayStatus[]) => {
-      if (!user || weeklyStreakRewarded || weeklyStreakAchieved) return;
-
-      // 오늘이 금요일인지 확인 (KST 기준)
-      const todayKST = toZonedTime(new Date(), timeZone);
-      const dayOfWeek = todayKST.getDay(); // 0: 일요일, 1: 월요일, ..., 5: 금요일, 6: 토요일
-      const isFriday = dayOfWeek === 5;
-
-      // 금요일이 아니면 체크하지 않음
-      if (!isFriday) {
-        console.log("오늘은 금요일이 아니므로 주간미션 체크를 하지 않습니다.");
+      if (
+        !user ||
+        weeklyAwardLock.current ||
+        weeklyStreakRewarded ||
+        weeklyStreakAchieved
+      ) {
         return;
       }
 
-      // 모든 날짜가 완료되었는지 확인 (월~금 모든 일일미션 달성)
-      const allCompleted = weeklyStatus.every(
-        (day) => day.isCompleted === true
-      );
+      const todayStr = formatDate(toZonedTime(new Date(), timeZone));
+      // 공휴일이 아닌 월~금이 모두 끝났을 때만 달성. 금요일이 공휴일이면 그 전 평일에 판정한다.
+      const allCompleted = isWeeklyMissionComplete(weeklyStatus, todayStr);
 
       console.log("🔍 주간미션 달성 체크:");
-      console.log("- 금요일 여부:", isFriday);
-      console.log("- 모든 날짜 완료 여부:", allCompleted);
+      console.log("- 기준일:", todayStr);
+      console.log("- 공휴일 제외 후 모두 완료:", allCompleted);
       console.log(
         "- 개별 날짜 상태:",
         weeklyStatus.map((day) => ({
           date: day.date,
           completed: day.isCompleted,
+          isHoliday: day.isHoliday,
           isToday: day.isToday,
         }))
       );
       console.log("- 이미 달성 상태:", weeklyStreakAchieved);
       console.log("- 이미 보상 받음:", weeklyStreakRewarded);
 
-      if (allCompleted && !weeklyStreakAchieved && !weeklyStreakRewarded) {
-        console.log("🎉 금요일에 주간 미션 모두 완료!");
+      if (allCompleted) {
+        weeklyAwardLock.current = true;
+        console.log("🎉 공휴일을 뺀 주간 미션을 모두 완료!");
         setWeeklyStreakAchieved(true);
 
         try {
@@ -155,10 +158,9 @@ export const useWeeklyCompletionStatus = () => {
             setWeeklyStreakRewarded(true);
           }
         } catch (err) {
+          weeklyAwardLock.current = false;
           console.error("주간 스트릭 확인 중 오류:", err);
         }
-      } else if (!allCompleted && isFriday) {
-        console.log("금요일이지만 모든 미션이 완료되지 않았습니다.");
       }
     },
     [
@@ -227,6 +229,8 @@ export const useWeeklyCompletionStatus = () => {
 
       for (let i = 1; i <= 5; i++) {
         const currentDateStr = formatDate(currentDay);
+        const holidayLabel = getKoreanHolidayLabel(currentDateStr);
+        const isHoliday = holidayLabel !== null;
         const snapshot = snapshotsMap.get(currentDateStr);
         const logsForDay = logsByDate.get(currentDateStr) || [];
         let isCompleted: boolean | null = null;
@@ -278,6 +282,8 @@ export const useWeeklyCompletionStatus = () => {
           date: currentDateStr,
           isCompleted: isCompleted,
           isToday: currentDateStr === todayStr,
+          isHoliday,
+          holidayLabel,
           completionRatio: snapshot
             ? snapshot.total_missions_count > 0
               ? Math.min(

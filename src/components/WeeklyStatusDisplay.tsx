@@ -15,6 +15,14 @@ const dayNames = ["월", "화", "수", "목", "금"];
 const getIndicatorColors = (
   status: WeekdayStatus
 ): { background: string; color: string } => {
+  // 공휴일에 아무것도 하지 않은 날은 미완료로 보이지 않게 한다
+  if (status.isHoliday && status.completionRatio <= 0) {
+    return {
+      background: "var(--ui-surface)",
+      color: "color-mix(in srgb, var(--ui-text) 55%, transparent)",
+    };
+  }
+
   if (status.totalMissions <= 0) {
     // 미션이 없는 날
     return {
@@ -65,11 +73,21 @@ const WeeklyStatusDisplay: React.FC<WeeklyStatusDisplayProps> = ({
 
   return (
     <Card className="flex flex-col items-center">
-      <h3 className="ui-section-title mb-4">주간 미션</h3>
+      <h3 className="ui-section-title mb-1">주간 미션</h3>
+      <p className="text-xs ui-text-sub font-medium mb-4 text-center">
+        공휴일은 해도 되고, 안 해도 돼요.
+      </p>
       {/* 모바일: 가로 배치, 데스크탑: 세로 배치 */}
       <ul className="flex flex-row md:flex-col items-start md:items-center gap-3">
         {weekStatus.map((status, index) => {
           const colors = getIndicatorColors(status);
+          const progressText =
+            status.totalMissions > 0
+              ? `${status.completedMissions}/${status.totalMissions} 미션 완료`
+              : "미션 없음";
+          const holidayText = status.isHoliday
+            ? `공휴일 ${status.holidayLabel}. 해도 되고 안 해도 돼요. `
+            : "";
           return (
             <li key={status.dayIndex} className="flex flex-col items-center">
               <div
@@ -77,23 +95,22 @@ const WeeklyStatusDisplay: React.FC<WeeklyStatusDisplayProps> = ({
                 style={{
                   background: colors.background,
                   color: colors.color,
-                  border: "var(--ui-bw) solid var(--ui-ink)",
+                  border: status.isHoliday
+                    ? "var(--ui-bw) dashed var(--ui-ink)"
+                    : "var(--ui-bw) solid var(--ui-ink)",
                   boxShadow: status.isToday ? "var(--ui-shadow)" : "none",
                   transform: status.isToday ? "translateY(-2px)" : undefined,
                 }}
-                title={
-                  status.totalMissions > 0
-                    ? `${status.completedMissions}/${status.totalMissions} 미션 완료 (${status.date})`
-                    : `미션 없음 (${status.date})`
-                }
-                aria-label={
-                  status.totalMissions > 0
-                    ? `${dayNames[index]}요일 ${status.completedMissions}/${status.totalMissions} 미션 완료`
-                    : `${dayNames[index]}요일 미션 없음`
-                }
+                title={`${holidayText}${progressText} (${status.date})`}
+                aria-label={`${dayNames[index]}요일 ${holidayText}${progressText}`}
               >
                 {dayNames[index]}
               </div>
+              {status.isHoliday && (
+                <span className="ui-chip mt-2" style={{ fontSize: "0.7rem" }}>
+                  공휴일
+                </span>
+              )}
               {status.isToday && (
                 <span className="ui-chip mt-2" style={{ fontSize: "0.7rem" }}>
                   오늘

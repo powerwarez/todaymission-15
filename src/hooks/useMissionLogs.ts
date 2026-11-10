@@ -18,7 +18,7 @@ const REPEATABLE_CONDITION_TYPES = ["DAILY_COMPLETIONS_REPEATABLE"] as const;
 const ONE_TIME_CONDITION_TYPES = [
   "DAILY_COMPLETIONS", // 오늘의 영웅 누적 횟수
   "WEEKLY_COMPLETIONS", // 주간 미션 달성 누적 횟수
-  "MISSION_STREAK", // 오늘의 영웅 연속 달성 일수 (주말은 쉬어도 이어짐)
+  "MISSION_STREAK", // 오늘의 영웅 연속 달성 일수 (주말·공휴일은 세지 않고, 쉬어도 이어짐)
   "TOTAL_COMPLETIONS", // 완료한 미션 누적 개수
 ] as const;
 const VALID_CHALLENGE_CONDITION_TYPES = [
