@@ -344,6 +344,27 @@ export const BADGES = [
   { file: "total_100", group: "total", tier: 0, icon: "checklist", iconTone: "bronze", number: 100 },
   { file: "total_500", group: "total", tier: 1, icon: "checklist", iconTone: "silver", number: 500 },
   { file: "total_1000", group: "total", tier: 2, icon: "checklist", iconTone: "gold", number: 1000 },
+  // 이미 다 달성한 주간·누적 카테고리의 상위 목표
+  { file: "weekly_52", group: "weekly", tier: 4, icon: "trophy", number: 52 },
+  { file: "weekly_78", group: "weekly", tier: 4, icon: "shield", number: 78 },
+  { file: "weekly_104", group: "weekly", tier: 4, icon: "gem", number: 104 },
+  { file: "weekly_130", group: "weekly", tier: 4, icon: "earth", number: 130 },
+  { file: "weekly_156", group: "weekly", tier: 4, icon: "star", number: 156 },
+  { file: "total_1500", group: "total", tier: 3, icon: "checklist", iconTone: "gold", number: 1500 },
+  { file: "total_2000", group: "total", tier: 4, icon: "checklist", iconTone: "gold", number: 2000 },
+  { file: "total_3000", group: "total", tier: 4, icon: "trophy", number: 3000 },
+  { file: "total_5000", group: "total", tier: 4, icon: "gem", number: 5000 },
+  { file: "total_8000", group: "total", tier: 4, icon: "earth", number: 8000 },
+  // 상위 누적 목표 사이를 500개 단위로 채움
+  { file: "total_2500", group: "total", tier: 4, icon: "shield", number: 2500 },
+  { file: "total_3500", group: "total", tier: 4, icon: "medal", number: 3500 },
+  { file: "total_4000", group: "total", tier: 4, icon: "star", number: 4000 },
+  { file: "total_4500", group: "total", tier: 4, icon: "checklist", iconTone: "gold", number: 4500 },
+  { file: "total_5500", group: "total", tier: 4, icon: "trophy", number: 5500 },
+  { file: "total_6000", group: "total", tier: 4, icon: "gem", number: 6000 },
+  { file: "total_6500", group: "total", tier: 4, icon: "shield", number: 6500 },
+  { file: "total_7000", group: "total", tier: 4, icon: "star", number: 7000 },
+  { file: "total_7500", group: "total", tier: 4, icon: "checklist", iconTone: "gold", number: 7500 },
 ];
 
 mkdirSync(OUT_DIR, { recursive: true });
